@@ -1,0 +1,26 @@
+{
+  "name": "claudetower",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Claude Code statusline + multi-account switching CLI (Display module always-on, Account module opt-in)",
+  "bin": {
+    "claudetower": "./bin/claudetower.js"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "test": "node --test \"test/display/**/*.test.js\"",
+    "test:display": "node --test \"test/display/**/*.test.js\"",
+    "test:accounts": "node --test \"test/accounts/**/*.test.js\"",
+    "build": "node scripts/build-sea.js",
+    "lint": "eslint .",
+    "lint:boundary": "node scripts/check-module-boundary.js",
+    "verify": "npm run lint && npm run lint:boundary && npm run test:display"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "devDependencies": {
+    "esbuild": "^0.28.1",
+    "eslint": "^10.6.0"
+  }
+}

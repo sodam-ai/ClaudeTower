@@ -1,0 +1,13 @@
+node_modules/
+dist/
+*.blob
+_spike-*/
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Claude Code 툴/플러그인 세션 메타데이터 (프로젝트 소스 아님)
+.omc/
+.plugin-config/
+.todos-report.md/
+.complexity-log.md
