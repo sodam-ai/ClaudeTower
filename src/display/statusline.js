@@ -5,10 +5,16 @@ const { renderLocation } = require('./widgets/location');
 const { renderContext } = require('./widgets/context');
 const { renderCost } = require('./widgets/cost');
 const { renderRateLimit } = require('./widgets/rate-limit');
+const { readEnabledWidgets } = require('./config/widget-config');
 
-// Phase 1 기본 활성 위젯 순서(.PRD/01_PRD.md §3). QuickSetup(Step 7)이 생기기 전까지는
-// 사용자 설정 없이 이 기본값만 쓴다 — 설정 파일을 미리 읽는 코드를 만들지 않는다(과도한 설계 방지).
-const WIDGETS = [renderLocation, renderContext, renderCost, renderRateLimit];
+// Phase 1 기본 활성 위젯 순서(.PRD/01_PRD.md §3). type은 claudetower setup이 쓰는
+// widget-config.js의 enabled_widgets 값과 일치해야 한다.
+const WIDGETS = [
+  { type: 'location', render: renderLocation },
+  { type: 'context', render: renderContext },
+  { type: 'cost', render: renderCost },
+  { type: 'rate_limit', render: renderRateLimit },
+];
 
 function readStdinJson() {
   let raw;
@@ -33,12 +39,15 @@ function readStdinJson() {
 
 // 위젯 단위 격리(.PRD/04_PROJECT_SPEC.md) — 위젯 하나가 예외를 던져도
 // 나머지 위젯·전체 상태표시줄 렌더링은 계속돼야 한다.
-function render(session) {
+// enabledWidgets를 명시적으로 받게 해서(기본값은 실제 설정 파일 읽기) 테스트가
+// 이 머신의 실제 ~/.claudetower/config.json 상태와 무관하게 결정적으로 동작하게 한다.
+function render(session, enabledWidgets = readEnabledWidgets()) {
   const parts = [];
   for (const widget of WIDGETS) {
+    if (!enabledWidgets.includes(widget.type)) continue;
     let result;
     try {
-      result = widget(session);
+      result = widget.render(session);
     } catch {
       result = null;
     }
