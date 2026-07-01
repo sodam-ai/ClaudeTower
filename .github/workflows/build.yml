@@ -1,0 +1,48 @@
+name: Build SEA binaries
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: claudetower-win-x64.exe
+          - os: macos-latest
+            artifact: claudetower-macos-arm64
+          - os: macos-13
+            artifact: claudetower-macos-x64
+          - os: ubuntu-latest
+            artifact: claudetower-linux-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - run: npm ci
+
+      - name: Verify (lint + module boundary + display tests)
+        run: npm run verify
+
+      - name: Build SEA binary
+        run: npm run build
+
+      - name: Smoke test (--version / --help)
+        shell: bash
+        run: |
+          ./dist/${{ matrix.artifact }} --version
+          ./dist/${{ matrix.artifact }} --help
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}
