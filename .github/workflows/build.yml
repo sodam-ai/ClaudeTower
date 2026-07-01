@@ -16,8 +16,6 @@ jobs:
             artifact: claudetower-win-x64.exe
           - os: macos-latest
             artifact: claudetower-macos-arm64
-          - os: macos-13
-            artifact: claudetower-macos-x64
           - os: ubuntu-latest
             artifact: claudetower-linux-x64
     runs-on: ${{ matrix.os }}
