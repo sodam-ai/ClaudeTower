@@ -1,6 +1,6 @@
 {
   "name": "claudetower",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Claude Code statusline + multi-account switching CLI (Display module always-on, Account module opt-in)",
   "bin": {
