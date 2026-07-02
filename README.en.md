@@ -4,60 +4,81 @@
 
 A statusline + (planned) multi-account switching CLI for Claude Code.
 
-> **Current status (important)**: Only **Phase 1** is implemented so far. "① Statusline" below works right now. "② Account switching" **does not have any code yet** (it's not disabled — it simply hasn't been built). It's planned for Phase 2, gated behind an explicit user consent flow.
+> **Current status (important)**: Only **Phase 1** is implemented so far (current version: v0.1.7). "① Statusline" below works right now. "② Account switching" **does not have any code yet** (it's not disabled — it simply hasn't been built). It's planned for Phase 2, gated behind an explicit user consent flow.
 
 ---
 
 ## ① Statusline (always safe, install and you're done)
 
-Shows your current project path, context usage, cost, and rate limits at the bottom of the Claude Code screen. **It never touches your Claude account credentials or password.**
+Shows your current project path, active model, context usage, cost, and rate limits at the bottom of the Claude Code screen, with colored gauge bars. **It never touches your Claude account credentials or password.**
 
-### Prerequisites
+Example:
+```
+모델 Sonnet 5  📁 my-project  컨텍스트 ██░░░ 45%  💰 $1.50  5시간 ████░ 78%·1:41  7일 ███░░ 71%·일06:00
+```
+(The reset countdown only appears once usage crosses the warning threshold (70%+). Below that it's just the bar and percentage.)
 
-- [Node.js](https://nodejs.org) 22 or later — **needed right now because this is still in development. The final release (an SEA binary) is designed to run without Node.js installed at all.**
-- The latest version of Claude Code
-- Git (only if you're cloning the repo to build it yourself)
+### Quick start — download and run (for everyone, 5 steps)
 
-### Quick start (5 steps)
+**You don't need to install Node.js.** Just follow the steps below.
 
-1. Clone the repository
-   ```bash
-   git clone https://github.com/sodam-ai/ClaudeTower.git
-   cd ClaudeTower
+1. Grab the file for your OS from the [Releases page](https://github.com/sodam-ai/ClaudeTower/releases/latest).
+   - Windows → `claudetower-win-x64.exe`
+   - macOS (Apple Silicon) → `claudetower-macos-arm64`
+   - Linux (x64) → `claudetower-linux-x64`
+   > This repo is still private, so you need to be logged into GitHub in your browser to see the download page.
+2. Put the file in any folder you like. You can rename it or move it to another folder later — that's fine (see "Can I delete or move the installed file?" below).
+3. Open a terminal in that folder (on Windows: type `cmd` in File Explorer's address bar and press Enter).
+4. Run:
    ```
-2. Install development tooling
-   ```bash
-   npm install
+   claudetower-win-x64.exe setup
    ```
-3. Build the distributable executable
-   ```bash
-   npm run build
-   ```
-   This produces one executable in `dist/` matching your OS (e.g. `claudetower-win-x64.exe`).
-4. Register the statusline
-   ```bash
-   node bin/claudetower.js setup
-   ```
-   Answer Y or N to each question (location/context/cost/rate-limit) and you're done.
+   (On macOS/Linux, prefix with `./`: `./claudetower-macos-arm64 setup`)
+   Answer Y or N to each question (model/location/context/cost/rate-limit) and you're done. The executable automatically copies itself to a fixed, safe location on your computer (`~/.claudetower/bin/`) as part of this step.
 5. The statusline appears starting from your next Claude Code interaction — no restart needed.
-
-> Official distribution channels (a one-line `curl`/`PowerShell` install, or `npm install -g`) are still being prepared — see "Installation" below for why.
 
 ### Installation (current status per channel)
 
 | Method | Status | Notes |
 |---|---|---|
-| Build from source (5 steps above) | ✅ Works now | For developers, requires Node.js |
-| `curl`/`PowerShell` one-liner (`install.sh`/`install.ps1`) | ⏳ Scripts are done, **waiting on a GitHub Release** | No Node.js required; will be the easiest path once ready |
+| **Download directly from GitHub Releases** (5 steps above) | ✅ Works now, **the easiest path** | No Node.js required; just needs a logged-in browser (private repo) |
+| Build from source | ✅ Works now | For developers, requires Node.js 22+ — see "For developers" below |
+| `curl`/`PowerShell` one-liner (`install.sh`/`install.ps1`) | ⏳ Scripts are done, **but the repo is private so unauthenticated downloads currently fail** | Will work as soon as the repo goes public |
 | `npm install -g` | ❌ Currently broken for this private repo (known issue) | Will be re-verified once the repo goes public |
+
+### Can I delete or move the installed file?
+
+**Yes.** The first time you run `setup`, the executable automatically copies itself to a fixed location on your computer (`~/.claudetower/bin/`) and settles there safely. After that, you're free to delete, rename, or move the file you originally downloaded — it no longer matters.
+
+If you accidentally delete that fixed-location copy too and the statusline stops showing up, just run `claudetower setup` again — it repairs itself automatically.
 
 ### Commands (only what actually exists right now)
 
 - `claudetower --version` / `--help`
-- `claudetower setup` — pick which statusline widgets to show + auto-register with Claude Code
+- `claudetower setup` — pick which statusline widgets to show + auto-register with Claude Code (includes the self-install step above)
+- `claudetower status` — check whether it's currently installed and which widgets are enabled
+  ```
+  Install status: installed (claudetower's statusline is registered with Claude Code)
+  Widgets shown: model, project location, context usage, cost, rate limits (5h/7d)
+  ```
+- `claudetower uninstall` — safely removes only the statusline registration (leaves your other Claude Code settings untouched)
 - `claudetower statusline` — the renderer Claude Code invokes internally (you won't run this by hand)
 
 > Account-related commands like `accounts` or `config` **do not exist yet** (planned for Phase 2).
+
+### Changing which widgets are shown later
+
+Just run `claudetower setup` again. Answer `Y` for what you want on and `n` for what you want off — there's no separate "settings" command, `setup` doubles as that.
+
+### For developers — building from source
+
+```bash
+git clone https://github.com/sodam-ai/ClaudeTower.git
+cd ClaudeTower
+npm install
+npm run build
+```
+This produces one executable in `dist/` matching your OS. Run `npm run verify` afterward to check lint, module boundaries, and tests in one go.
 
 ### Security & data flow
 
@@ -79,8 +100,10 @@ This program is split into two completely separate rooms. The "statusline room" 
 ## Troubleshooting
 
 - **The statusline doesn't show up**: Try one more Claude Code interaction — settings don't apply instantly, only from the next interaction onward.
-- **`npm run build` fails**: Check that `node --version` is 22 or later.
-- **Windows shows a warning when running the built executable**: It isn't code-signed yet, so Windows may show an "unknown publisher" warning. Click "More info" then "Run anyway" — this is expected before an official signed release.
+- **`claudetower status` says "registered but the executable can't be found (broken)"**: You've deleted or moved the file that was installed. Run `claudetower setup` again to repair it automatically.
+- **Double-clicking the exe opens a window that closes immediately**: Running it with no arguments just shows help text and exits. To actually use it, open a terminal and type a command directly, e.g. `claudetower-win-x64.exe setup`.
+- **`npm run build` fails (for developers)**: Check that `node --version` is 22 or later.
+- **Windows shows a warning when running the executable**: It isn't code-signed yet, so Windows may show an "unknown publisher" warning. Click "More info" then "Run anyway" — this is expected before an official signed release.
 - **The context percentage looks off**: It can be empty early in a session or right after `/compact` — that's expected, official Claude Code behavior.
 
 ## FAQ
@@ -88,6 +111,7 @@ This program is split into two completely separate rooms. The "statusline room" 
 - **Does installing this automatically collect my account info?** No. Account-related code isn't included in this version at all.
 - **Does anything get sent over the internet?** No, everything runs locally only.
 - **Will account switching turn on automatically once it's built?** No. It's designed to require your explicit consent before it can ever be enabled.
+- **Is it really okay to delete the file I originally downloaded?** Yes, as long as you've run `setup` at least once first — see "Can I delete or move the installed file?" above.
 
 ## Legal, copyright, and license
 
