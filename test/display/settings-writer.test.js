@@ -58,3 +58,16 @@ test('readExistingSettings는 파일이 없으면 빈 객체를 반환한다', (
   const filePath = tempSettingsPath();
   assert.deepEqual(readExistingSettings(filePath), {});
 });
+
+test('쓰기 권한이 없어 실패해도 원본은 보존되고 .tmp 잔여물을 남기지 않는다', () => {
+  const filePath = tempSettingsPath();
+  fs.writeFileSync(filePath, JSON.stringify({ existing: true }));
+  fs.chmodSync(filePath, 0o444); // 읽기 전용
+  try {
+    assert.throws(() => writeStatusLineConfig({ type: 'command', command: 'x' }, filePath));
+    assert.equal(fs.readFileSync(filePath, 'utf8'), JSON.stringify({ existing: true }));
+    assert.equal(fs.existsSync(`${filePath}.tmp`), false);
+  } finally {
+    fs.chmodSync(filePath, 0o644); // 다음 테스트/정리가 파일을 지울 수 있도록 복구
+  }
+});

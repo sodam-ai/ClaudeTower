@@ -40,8 +40,19 @@ function writeStatusLineConfig(statusLineConfig, filePath = resolveSettingsPath(
 
   const merged = { ...existing, statusLine: statusLineConfig };
   const tmpPath = `${filePath}.tmp`;
-  fs.writeFileSync(tmpPath, JSON.stringify(merged, null, 2), 'utf8');
-  fs.renameSync(tmpPath, filePath); // 원자적 교체(중간에 죽어도 원본 또는 tmp만 남고 반쯤 쓰인 파일이 안 남음)
+  try {
+    fs.writeFileSync(tmpPath, JSON.stringify(merged, null, 2), 'utf8');
+    fs.renameSync(tmpPath, filePath); // 원자적 교체(중간에 죽어도 원본 또는 tmp만 남고 반쯤 쓰인 파일이 안 남음)
+  } catch (err) {
+    // 권한 거부 등으로 rename이 실패해도 .tmp 잔여물을 남기지 않는다(QA 중 실제로
+    // 읽기 전용 파일 대상 쓰기 실패 시 .tmp가 정리 안 되고 남는 결함을 발견해 수정).
+    try {
+      fs.unlinkSync(tmpPath);
+    } catch {
+      // .tmp 자체가 안 만들어졌거나 이미 없으면 무시
+    }
+    throw err;
+  }
 
   return { filePath, backedUp: fs.existsSync(`${filePath}.bak`) };
 }
