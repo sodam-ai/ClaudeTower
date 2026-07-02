@@ -19,8 +19,13 @@ const WIDGET_LABELS = {
 // 재현·확인했다(실제 사람이 터미널에 치는 경우엔 stdin이 안 끝나서 안 나타나지만,
 // 스크립트로 답을 흘려보내는 자동화·무인 설치 시나리오에서는 그대로 재현된다).
 // 비동기 이터레이터(for-await 패턴)는 같은 조건에서 4개 질문 전부 정상 처리됨을 실측 확인.
-function askQuestion(lineIterator, prompt) {
-  process.stdout.write(prompt);
+//
+// 프롬프트는 반드시 rl에 주입된 output 스트림에 써야 한다 — process.stdout에 직접 쓰면
+// (실제로 그렇게 짰다가 발견) node --test 하위 프로세스에서 테스트 러너 자신의 stdout
+// 기반 IPC 채널과 경합해 "Unable to deserialize cloned data" 오류로 테스트 러너가
+// 간헐적으로 깨지는 실제 버그가 있었다(재현율 약 3/5, 실측 확인).
+function askQuestion(rl, lineIterator, prompt) {
+  rl.output.write(prompt);
   return lineIterator.next().then(({ value, done }) => (done ? '' : value));
 }
 
@@ -30,7 +35,7 @@ async function runSetupWizard(rl, { widgetConfigPath, settingsPath, log = () => 
   const lineIterator = rl[Symbol.asyncIterator]();
   const enabled = [];
   for (const type of ALL_WIDGET_TYPES) {
-    const answer = await askQuestion(lineIterator, `${WIDGET_LABELS[type]} 표시할까요? (Y/n): `);
+    const answer = await askQuestion(rl, lineIterator, `${WIDGET_LABELS[type]} 표시할까요? (Y/n): `);
     const normalized = answer.trim().toLowerCase();
     if (normalized !== 'n' && normalized !== 'no') {
       enabled.push(type);
