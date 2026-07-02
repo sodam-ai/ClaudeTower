@@ -8,8 +8,9 @@
 // 전부 5/5칸 표시) — 숫자(%)가 항상 같이 표시되므로 정보 자체가 사라지진 않는다.
 // 근본 해결(Claude Code가 지원하는 COLUMNS 환경변수 기반 동적 폭 계산)은 별도 후속 작업.
 const BAR_WIDTH = 5;
-const FILLED = '▰';
-const EMPTY = '▱';
+// 다이아몬드형(▰▱)이 "평범하다"는 피드백으로 전통적인 솔리드 진행률 바 모양으로 교체.
+const FILLED = '█';
+const EMPTY = '░';
 
 function renderGauge(value, width = BAR_WIDTH) {
   if (!Number.isFinite(value)) return EMPTY.repeat(width);
@@ -19,4 +20,4 @@ function renderGauge(value, width = BAR_WIDTH) {
   return FILLED.repeat(filledCount) + EMPTY.repeat(width - filledCount);
 }
 
-module.exports = { renderGauge, BAR_WIDTH };
+module.exports = { renderGauge, BAR_WIDTH, FILLED, EMPTY };

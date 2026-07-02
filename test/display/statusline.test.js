@@ -56,13 +56,15 @@ test('rate_limits.seven_day만 없으면 five_hour만 표시된다', () => {
   assert.doesNotMatch(out, /7일/);
 });
 
-test('context 70% 이상이면 경고색, 90% 이상이면 위험색이 적용된다', () => {
+test('context 70% 이상이면 경고색, 90% 이상이면 위험색, 그 아래는 안전색(초록)이 적용된다', () => {
+  // "게이지바가 평범하다"는 피드백으로 안전 구간도 항상 초록색을 입히도록 바뀌었다
+  // (이전엔 안전 구간이 무색이었음).
   const warn = render({ context_window: { used_percentage: 75 } }, ALL_WIDGET_TYPES);
   const critical = render({ context_window: { used_percentage: 95 } }, ALL_WIDGET_TYPES);
   const safe = render({ context_window: { used_percentage: 10 } }, ALL_WIDGET_TYPES);
   assert.match(warn, /\x1b\[33m/);
   assert.match(critical, /\x1b\[31m/);
-  assert.doesNotMatch(safe, /\x1b\[/);
+  assert.match(safe, /\x1b\[32m/);
 });
 
 test('위젯 하나가 예외를 던져도 나머지 위젯은 정상 렌더링된다(위젯 단위 격리)', () => {
@@ -90,10 +92,12 @@ test('잘못된 타입 값(문자열)이 들어와도 크래시하지 않는다'
 
 // 아래는 경계값 테스트로 실제 발견해 수정한 결함들의 회귀 테스트.
 
-test('경계값: context 정확히 70/90에서 각각 경고색/위험색, 69/89는 무색', () => {
-  assert.doesNotMatch(render({ context_window: { used_percentage: 69 } }, ALL_WIDGET_TYPES), /\x1b\[/);
+test('경계값: context 정확히 70/90에서 각각 경고색/위험색, 69는 안전색(초록)/89는 경고색 유지', () => {
+  // 89는 70(경고 임계값) 이상이라 경고색이 계속 적용된다 - "무색"이 "안전색"으로
+  // 바뀐 건 70 미만 구간뿐이다(69에서 확인).
+  assert.match(render({ context_window: { used_percentage: 69 } }, ALL_WIDGET_TYPES), /\x1b\[32m/);
   assert.match(render({ context_window: { used_percentage: 70 } }, ALL_WIDGET_TYPES), /\x1b\[33m/);
-  assert.doesNotMatch(render({ context_window: { used_percentage: 89 } }, ALL_WIDGET_TYPES), /\x1b\[31m/);
+  assert.match(render({ context_window: { used_percentage: 89 } }, ALL_WIDGET_TYPES), /\x1b\[33m/);
   assert.match(render({ context_window: { used_percentage: 90 } }, ALL_WIDGET_TYPES), /\x1b\[31m/);
 });
 

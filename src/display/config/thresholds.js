@@ -11,6 +11,7 @@ const DEFAULT_THRESHOLDS = {
 };
 
 const COLOR = {
+  safe: '\x1b[32m',
   warn: '\x1b[33m',
   critical: '\x1b[31m',
   reset: '\x1b[0m',
