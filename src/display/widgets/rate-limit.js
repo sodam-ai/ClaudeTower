@@ -1,6 +1,7 @@
 'use strict';
 
 const { pickColor, colorize } = require('../config/thresholds');
+const { renderGauge } = require('../config/gauge');
 
 // rate_limits 자체가 통째로 없을 수 있고(Pro/Max 구독자만, 첫 API 응답 전엔 없음),
 // five_hour/seven_day도 각각 독립적으로 없을 수 있음(공식 문서 확인,
@@ -11,16 +12,19 @@ function renderRateLimit(session) {
 
   // Number.isFinite로 NaN과 Infinity/-Infinity를 함께 걸러낸다(context.js/cost.js와
   // 동일한 결함이 여기도 있었음 — 경계값 테스트로 발견).
+  // 아이콘만으로는 처음 쓰는 사람이 뭘 뜻하는지 알기 어렵다는 실사용 피드백 반영 —
+  // "5시간"/"7일" 한글 이름표 + 게이지바를 같이 넣는다.
   const parts = [];
   if (Number.isFinite(fiveHour)) {
-    parts.push(colorize(`5h ${fiveHour}%`, pickColor('rate_limit_5h', fiveHour)));
+    parts.push(colorize(`5시간 ${renderGauge(fiveHour)} ${fiveHour}%`, pickColor('rate_limit_5h', fiveHour)));
   }
   if (Number.isFinite(sevenDay)) {
-    parts.push(colorize(`7d ${sevenDay}%`, pickColor('rate_limit_7d', sevenDay)));
+    parts.push(colorize(`7일 ${renderGauge(sevenDay)} ${sevenDay}%`, pickColor('rate_limit_7d', sevenDay)));
   }
 
+  // "5시간"/"7일" 이름표 자체가 이미 뜻을 설명하므로 ⏱·"사용률" 접두어는 생략(공간 절약).
   if (parts.length === 0) return null;
-  return `⏱ ${parts.join(' ')}`;
+  return parts.join('  ');
 }
 
 module.exports = { renderRateLimit };
