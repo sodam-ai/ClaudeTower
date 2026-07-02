@@ -32,38 +32,38 @@ function tempPaths() {
   };
 }
 
-test('4개 질문에 y/y/n/y로 답하면 cost만 제외된 위젯 목록이 저장된다', async () => {
+test('5개 질문에 y/y/y/n/y로 답하면 cost만 제외된 위젯 목록이 저장된다', async () => {
   const { widgetConfigPath, settingsPath } = tempPaths();
-  const rl = fakeInteractiveSession('y\ny\nn\ny\n');
+  const rl = fakeInteractiveSession('y\ny\ny\nn\ny\n');
 
   const result = await runSetupWizard(rl, { widgetConfigPath, settingsPath });
 
-  assert.deepEqual(result.enabled, ['location', 'context', 'rate_limit']);
+  assert.deepEqual(result.enabled, ['model', 'location', 'context', 'rate_limit']);
   const written = JSON.parse(fs.readFileSync(widgetConfigPath, 'utf8'));
-  assert.deepEqual(written.enabled_widgets, ['location', 'context', 'rate_limit']);
+  assert.deepEqual(written.enabled_widgets, ['model', 'location', 'context', 'rate_limit']);
 });
 
 test('전부 n으로 답하면 최소 1개 보장을 위해 기본값(전체)으로 폴백한다', async () => {
   const { widgetConfigPath, settingsPath } = tempPaths();
-  const rl = fakeInteractiveSession('n\nn\nn\nn\n');
+  const rl = fakeInteractiveSession('n\nn\nn\nn\nn\n');
 
   const result = await runSetupWizard(rl, { widgetConfigPath, settingsPath });
 
-  assert.deepEqual(result.enabled, ['location', 'context', 'cost', 'rate_limit']);
+  assert.deepEqual(result.enabled, ['model', 'location', 'context', 'cost', 'rate_limit']);
 });
 
 test('엔터만 치면(빈 답변) 기본값 Y로 처리된다', async () => {
   const { widgetConfigPath, settingsPath } = tempPaths();
-  const rl = fakeInteractiveSession('\n\n\n\n');
+  const rl = fakeInteractiveSession('\n\n\n\n\n');
 
   const result = await runSetupWizard(rl, { widgetConfigPath, settingsPath });
 
-  assert.deepEqual(result.enabled, ['location', 'context', 'cost', 'rate_limit']);
+  assert.deepEqual(result.enabled, ['model', 'location', 'context', 'cost', 'rate_limit']);
 });
 
 test('settings.json에 statusLine.command가 기록된다', async () => {
   const { widgetConfigPath, settingsPath } = tempPaths();
-  const rl = fakeInteractiveSession('y\ny\ny\ny\n');
+  const rl = fakeInteractiveSession('y\ny\ny\ny\ny\n');
 
   await runSetupWizard(rl, { widgetConfigPath, settingsPath });
 

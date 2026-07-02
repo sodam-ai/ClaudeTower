@@ -10,9 +10,10 @@ const { ALL_WIDGET_TYPES } = require('../../src/display/config/widget-config');
 // claudetower setup을 실행한 적이 있으면 그 결과에 테스트 성패가 좌우되는 결함이 있었다
 // (실사용 테스트로 생성된 실제 설정 파일 내용에 따라 6개 테스트가 재현 가능하게 깨짐 — 발견 후 수정).
 
-test('모든 필드가 있을 때 4개 위젯이 모두 렌더링된다', () => {
+test('모든 필드가 있을 때 5개 위젯이 모두 렌더링된다', () => {
   const out = render(
     {
+      model: { display_name: 'Opus' },
       workspace: { current_dir: '/home/user/my-project' },
       context_window: { used_percentage: 50 },
       cost: { total_cost_usd: 1.5 },
@@ -20,12 +21,19 @@ test('모든 필드가 있을 때 4개 위젯이 모두 렌더링된다', () => 
     },
     ALL_WIDGET_TYPES
   );
+  assert.match(out, /모델 Opus/);
   assert.match(out, /my-project/);
   assert.match(out, /컨텍스트/);
   assert.match(out, /50%/);
   assert.match(out, /\$1\.50/);
   assert.match(out, /5시간.*30%/);
   assert.match(out, /7일.*20%/);
+});
+
+test('model 필드가 없으면 model 위젯만 숨겨지고 나머지는 그대로 표시된다', () => {
+  const out = render({ workspace: { current_dir: '/x' } }, ALL_WIDGET_TYPES);
+  assert.doesNotMatch(out, /모델/);
+  assert.match(out, /x/);
 });
 
 test('빈 세션(필드 전무)이면 빈 문자열을 반환한다', () => {
@@ -117,6 +125,26 @@ test('Infinity/-Infinity 값은 위젯이 숨겨진다(NaN처럼 걸러짐, "Inf
   );
   assert.doesNotMatch(out, /Infinity/);
   assert.match(out, /7일.*50%/); // 유효한 값은 정상 표시
+});
+
+test('부동소수점 오차로 생긴 긴 소수(예: 14.000000000000002)는 반올림돼 깔끔한 정수%로 표시된다', () => {
+  // 실사용 중 "5시간 14.000000000000002%" 처럼 표시되는 결함이 보고됨 — Claude Code의
+  // used_percentage가 부동소수점 계산 결과라 생기는 오차. 공식 예제 스크립트들도
+  // 전부 반올림/절삭 후 표시한다(RESEARCH_SOURCES.md 375/397/415행 - cut -d. -f1,
+  // int(), Math.floor() 등) - 우리도 동일하게 반올림해야 함을 뒷받침하는 근거.
+  const out = render(
+    {
+      context_window: { used_percentage: 13.999999999999993 },
+      rate_limits: {
+        five_hour: { used_percentage: 14.000000000000002 },
+        seven_day: { used_percentage: 10.000000000000002 },
+      },
+    },
+    ALL_WIDGET_TYPES
+  );
+  assert.doesNotMatch(out, /\./); // 소수점 자체가 출력에 남아있으면 안 됨
+  assert.match(out, /14%/);
+  assert.match(out, /10%/);
 });
 
 test('enabledWidgets에서 제외된 위젯은 유효한 값이 있어도 렌더링되지 않는다(설정 필터링 확인)', () => {

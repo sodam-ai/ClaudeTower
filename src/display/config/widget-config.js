@@ -10,7 +10,10 @@ const path = require('node:path');
 const os = require('node:os');
 const { CONFIG_DIR_NAME } = require('../../shared/constants');
 
-const ALL_WIDGET_TYPES = ['location', 'context', 'cost', 'rate_limit'];
+// model은 PulseLine 원본 설계(.PRD/.archive/PulseLine원본/02_DATA_MODEL.md 46/79행,
+// enabled_fields 기본값에 model이 가장 먼저 나열됨)에 있었는데 ClaudeTower 통합 과정에서
+// 빠져 있던 것을 복원(실사용 피드백으로 발견). 순서도 원본과 동일하게 맨 앞에 둔다.
+const ALL_WIDGET_TYPES = ['model', 'location', 'context', 'cost', 'rate_limit'];
 
 function resolveWidgetConfigPath() {
   return (

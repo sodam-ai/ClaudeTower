@@ -8,6 +8,7 @@ const { writeStatusLineConfig } = require('./config/settings-writer');
 const { buildStatuslineCommand } = require('./config/statusline-command');
 
 const WIDGET_LABELS = {
+  model: '사용 모델',
   location: '프로젝트 위치',
   context: '컨텍스트 사용량',
   cost: '비용',

@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('node:fs');
+const { renderModel } = require('./widgets/model');
 const { renderLocation } = require('./widgets/location');
 const { renderContext } = require('./widgets/context');
 const { renderCost } = require('./widgets/cost');
@@ -8,8 +9,10 @@ const { renderRateLimit } = require('./widgets/rate-limit');
 const { readEnabledWidgets } = require('./config/widget-config');
 
 // Phase 1 기본 활성 위젯 순서(.PRD/01_PRD.md §3). type은 claudetower setup이 쓰는
-// widget-config.js의 enabled_widgets 값과 일치해야 한다.
+// widget-config.js의 enabled_widgets 값과 일치해야 한다. model이 맨 앞인 이유는
+// PulseLine 원본 설계의 enabled_fields 기본 순서를 따름(widget-config.js 참고).
 const WIDGETS = [
+  { type: 'model', render: renderModel },
   { type: 'location', render: renderLocation },
   { type: 'context', render: renderContext },
   { type: 'cost', render: renderCost },

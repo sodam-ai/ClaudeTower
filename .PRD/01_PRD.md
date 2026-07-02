@@ -63,6 +63,7 @@ Claude Code 상태표시줄(컨텍스트·비용·프로젝트 위치 표시)과
 |------|-----------|------|----------|--------|
 | 크로스플랫폼 자동 설치/감지 | 공통 | Windows/Mac/Linux 감지, Node.js SEA 배포 | P1 (MVP) | 복잡 |
 | 프로젝트 위치 위젯 | Display | `workspace.current_dir` 즉시 파싱·표시 | P1 (MVP) | 간단 |
+| **사용 모델 위젯**(복원) | Display | `model.display_name` 표시 — PulseLine 원본 설계(`.archive/PulseLine원본/02_DATA_MODEL.md`)의 `enabled_fields` 기본값에 있었으나 ClaudeTower 통합 과정에서 누락됐던 것을 실사용 피드백으로 발견해 복원 | P1 (MVP) | 간단 |
 | 임계값 색상 경고 | Display | context/cost/rate_limit 경고 색상 | P1 (MVP) | 간단 |
 | 슬래시 명령 대화형 설정 | Display | `/claudetower:setup`으로 표시 항목 설정 | P1 (MVP) | 보통 |
 | **모듈 격리 기반 구조** | 공통 | Display/Account 코드·권한 분리, 활성 계정명 단방향 파일 인터페이스 | P1 (MVP) | 복잡 |
