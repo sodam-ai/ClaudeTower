@@ -15,6 +15,19 @@ async function run(args) {
     console.log(`${CLI_NAME} — Claude Code statusline + account switching CLI`);
     console.log('Usage: claudetower <command>');
     console.log('Commands: setup, statusline');
+    // 인자 없이 실행된 경우(대표적으로 exe 더블클릭)는 Windows가 새 콘솔 창을 열고,
+    // 프로세스가 끝나자마자 그 창도 함께 닫혀버려 사용자가 위 안내를 읽을 새도 없이
+    // 창이 사라진다("켜졌다 바로 꺼짐" 버그 리포트로 발견). stdin/stdout이 둘 다
+    // 실제 터미널(TTY)일 때만 키 입력을 기다려 창이 즉시 닫히지 않게 한다 — 파이프
+    // 입력이나 CI 스모크테스트(비대화형)에서는 TTY가 아니므로 이 대기가 걸리지 않는다.
+    if (args.length === 0 && process.stdin.isTTY && process.stdout.isTTY) {
+      console.log('\n아무 키나 누르면 창이 닫힙니다...');
+      await new Promise((resolve) => {
+        process.stdin.setRawMode(true);
+        process.stdin.resume();
+        process.stdin.once('data', resolve);
+      });
+    }
     return 0;
   }
 
