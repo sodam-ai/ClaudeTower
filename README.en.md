@@ -28,7 +28,6 @@ Example:
    - Windows → `claudetower-win-x64.exe`
    - macOS (Apple Silicon) → `claudetower-macos-arm64`
    - Linux (x64) → `claudetower-linux-x64`
-   > This repo is still private, so you need to be logged into GitHub in your browser to see the download page.
 2. Put the file in any folder you like. You can rename it or move it to another folder later — that's fine (see "Can I delete or move the installed file?" below).
 3. Open a terminal in that folder (on Windows: type `cmd` in File Explorer's address bar and press Enter).
 4. Run:
@@ -43,10 +42,12 @@ Example:
 
 | Method | Status | Notes |
 |---|---|---|
-| **Download directly from GitHub Releases** (5 steps above) | ✅ Works now, **the easiest path** | No Node.js required; just needs a logged-in browser (private repo) |
+| **Download directly from GitHub Releases** (5 steps above) | ✅ Works now | No Node.js required |
+| `curl`/`PowerShell` one-liner (`install.sh`/`install.ps1`) | ⚠️ The script logic itself (download → install to a fixed location) is confirmed working, **but there's no `main` branch yet, so the "one-line install" via `raw.githubusercontent.com/.../main/...` doesn't work yet** (404) | Will work as soon as a `main` branch exists (at official release time) |
 | Build from source | ✅ Works now | For developers, requires Node.js 22+ — see "For developers" below |
-| `curl`/`PowerShell` one-liner (`install.sh`/`install.ps1`) | ⏳ Scripts are done, **but the repo is private so unauthenticated downloads currently fail** | Will work as soon as the repo goes public |
-| `npm install -g` | ❌ Currently broken for this private repo (known issue) | Will be re-verified once the repo goes public |
+| `npm install -g` | ⚠️ Known to be broken when the repo was private — not yet re-verified after going public | To be checked next |
+
+> We've confirmed that `install.sh`/`install.ps1`'s core logic — fetching the executable from a GitHub Release and installing it to a fixed location — actually works. However, the repository doesn't have a `main` branch yet (everything so far lives on the `feat/phase1-mvp-skeleton` branch), so a one-line install like `curl .../main/install.sh | sh` doesn't work yet. For now, use "Download directly from GitHub Releases" above.
 
 ### Can I delete or move the installed file?
 

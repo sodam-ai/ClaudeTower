@@ -54,7 +54,7 @@ What this line tells you:
 
 - This project is still in its **early development stage (Phase 1)**. The "statusline" feature described here is fully working right now, but the "automatic multi-account switching" feature (Account module) **does not have any code written for it yet.**
 - Since the final product name hasn't been decided, it's currently referred to by the working title "ClaudeTower."
-- This project lives in a **private GitHub repository**. Only people logged into GitHub with access to this repository can see the download page.
+- This project's GitHub repository is **public**. You don't need to be logged into GitHub to see the download page.
 - **It is free and intended for personal use only.** It is not designed to be sold commercially or delivered as a paid service to a company (see Section 17 for details).
 
 ---
@@ -67,7 +67,7 @@ What this line tells you:
 |---|---|---|
 | A Windows, macOS (Apple Silicon), or Linux (x64) computer | The program currently only runs on these three operating systems | If you're not sure, on Windows check Start Menu → Settings → System → About |
 | The latest version of [Claude Code](https://claude.com/claude-code) | This program plugs into Claude Code's "statusline" feature, so Claude Code must already be installed | If Claude Code is already running, you're set |
-| A web browser + a GitHub account you're logged into | The download page is private, so you need to be logged in | Any modern browser works fine |
+| A web browser (Chrome, Edge, etc.) | Needed to reach the page where you download the program file (no GitHub login required) | Whatever browser you normally use is fine |
 
 **Important**: Regular users **do not need to install Node.js at all.** Just download one file and you're ready to go.
 
@@ -83,13 +83,12 @@ What this line tells you:
 
 ## 4. How to download
 
-1. Open your web browser.
-2. Make sure you're logged into GitHub (you should see your profile picture or username in a corner of the page).
-3. Go to:
+1. Open your web browser (no GitHub login required).
+2. Go to:
    ```
    https://github.com/sodam-ai/ClaudeTower/releases/latest
    ```
-4. This is the "latest release" page. Scroll down to the **"Assets"** section and click the file matching your operating system.
+3. This is the "latest release" page. Scroll down to the **"Assets"** section and click the file matching your operating system.
 
    | Your computer | File to download |
    |---|---|
@@ -97,9 +96,9 @@ What this line tells you:
    | macOS, Apple Silicon (M1/M2/M3, etc.) | `claudetower-macos-arm64` |
    | Linux, 64-bit | `claudetower-linux-x64` |
 
-5. Once downloaded, the file usually lands in your Downloads folder.
+4. Once downloaded, the file usually lands in your Downloads folder.
 
-> ⚠️ **Getting a 404 Not Found error?** You're either not logged into GitHub, or logged in with an account that doesn't have access to this repository. Log in with the correct account at `github.com` and try again.
+> ⚠️ **Getting a 404 Not Found error?** Double-check that you typed the URL correctly (watch for typos and capitalization).
 
 ---
 
@@ -324,7 +323,7 @@ Here's where this program actually creates or uses files on your computer.
 
 | Symptom | Cause / fix |
 |---|---|
-| **404 error** on the Releases page | Not logged into GitHub, or logged in with an account without access. Log in with the correct account and retry. |
+| **404 error** on the Releases page | Double-check that you typed the URL correctly. |
 | **"Run anyway" button doesn't appear** on the blue warning | You need to click "More info" first — the button appears below it. |
 | **Window closes instantly after double-clicking** | Not a malfunction — running with no arguments just shows help text and exits. See Section 6 and use a terminal instead. |
 | `status` says **"registered but the executable can't be found (broken)"** | You accidentally deleted the installed file. Run `setup` again to repair it automatically. |
