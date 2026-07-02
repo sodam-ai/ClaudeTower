@@ -15,7 +15,7 @@ async function run(args) {
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
     console.log(`${CLI_NAME} — Claude Code statusline + account switching CLI`);
     console.log('Usage: claudetower <command>');
-    console.log('Commands: setup, statusline, uninstall');
+    console.log('Commands: setup, statusline, status, uninstall');
     // 인자 없이 실행된 경우(대표적으로 exe 더블클릭)는 Windows가 새 콘솔 창을 열고,
     // 프로세스가 끝나자마자 그 창도 함께 닫혀버려 사용자가 위 안내를 읽을 새도 없이
     // 창이 사라진다("켜졌다 바로 꺼짐" 버그 리포트로 발견). stdin/stdout이 둘 다
@@ -55,12 +55,40 @@ async function run(args) {
     return 0;
   }
 
+  if (command === 'status') {
+    // "설치 여부를 확실히 알 수 있게" — setup/uninstall을 실행한 세션이 끝난 뒤에도
+    // 언제든 나중에 조회 가능한 읽기 전용 명령. 실사용 피드백으로 추가.
+    const { getInstallStatus } = require('../src/display/config/status');
+    const { WIDGET_LABELS } = require('../src/display/setup-wizard');
+    try {
+      const status = getInstallStatus();
+      if (status.installed) {
+        console.log('설치 상태: 설치됨 (claudetower 상태표시줄이 Claude Code에 등록되어 있습니다)');
+        console.log(`표시 중인 항목: ${status.enabledWidgets.map((t) => WIDGET_LABELS[t] || t).join(', ')}`);
+        console.log(`등록된 명령: ${status.command}`);
+        console.log(`설정 파일: ${status.settingsPath}`);
+      } else if (status.foreign) {
+        console.log('설치 상태: claudetower가 등록한 것이 아닌 다른 상태표시줄이 등록되어 있습니다.');
+        console.log(`등록된 명령: ${status.command}`);
+        console.log('claudetower setup을 실행하면 이 설정을 덮어씁니다.');
+      } else {
+        console.log('설치 상태: 설치 안 됨 (claudetower 상태표시줄이 등록되어 있지 않습니다)');
+        console.log('claudetower setup을 실행하면 설치됩니다.');
+      }
+      return 0;
+    } catch (err) {
+      console.error(`상태 확인 실패: ${err.message}`);
+      return 1;
+    }
+  }
+
   if (command === 'uninstall') {
     // setup 반대 방향 — "제거하려면 settings.json을 손으로 고쳐야 해서 다른 설정까지
     // 실수로 지울 위험이 있다"는 실사용 피드백으로 추가. statusLine 키만 안전하게
     // 제거하고 hooks/권한 등 나머지 설정은 절대 건드리지 않는다.
     const { removeStatusLineConfig } = require('../src/display/config/settings-writer');
     const { resolveWidgetConfigPath } = require('../src/display/config/widget-config');
+    const { getInstallStatus } = require('../src/display/config/status');
 
     const result = removeStatusLineConfig();
     if (result.removed) {
@@ -78,7 +106,16 @@ async function run(args) {
       console.log(`위젯 설정 파일도 삭제했습니다: ${widgetConfigPath}`);
     }
 
-    console.log('\n제거가 완료됐습니다. claudetower 실행 파일(.exe)은 직접 삭제하시면 됩니다.');
+    // "제거 여부를 확실히 알 수 있게" — 지우고 끝내는 대신, 설정 파일을 다시 읽어서
+    // 정말로 남은 게 없는지 재확인하고 그 결과를 명시적으로 알린다(Account 모듈의
+    // "삭제 완전성 검증" 원칙과 동일한 정신, .PRD/04_PROJECT_SPEC.md 86행 참고).
+    const verifyStatus = getInstallStatus();
+    if (verifyStatus.installed) {
+      console.error('\n확인 실패: 제거를 시도했지만 설정 파일에 claudetower 상태표시줄이 여전히 남아있습니다.');
+      return 1;
+    }
+    console.log('\n확인 완료: claudetower 상태표시줄이 완전히 제거됐습니다.');
+    console.log('claudetower 실행 파일(.exe)은 직접 삭제하시면 됩니다.');
     return 0;
   }
 
