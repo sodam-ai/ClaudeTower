@@ -5,7 +5,11 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { writeStatusLineConfig, readExistingSettings } = require('../../src/display/config/settings-writer');
+const {
+  writeStatusLineConfig,
+  readExistingSettings,
+  removeStatusLineConfig,
+} = require('../../src/display/config/settings-writer');
 
 // 절대 실제 ~/.claude/settings.json을 쓰지 않는다 — 매 테스트마다 임시 디렉터리를 새로 만든다.
 function tempSettingsPath() {
@@ -57,6 +61,37 @@ test('존재하지 않는 부모 디렉터리도 자동 생성한다', () => {
 test('readExistingSettings는 파일이 없으면 빈 객체를 반환한다', () => {
   const filePath = tempSettingsPath();
   assert.deepEqual(readExistingSettings(filePath), {});
+});
+
+test('removeStatusLineConfig: statusLine 키만 제거하고 나머지(hooks 등)는 보존한다', () => {
+  const filePath = tempSettingsPath();
+  fs.writeFileSync(
+    filePath,
+    JSON.stringify({ hooks: { foo: 'bar' }, statusLine: { type: 'command', command: 'x' } })
+  );
+  const result = removeStatusLineConfig(filePath);
+  assert.equal(result.removed, true);
+  assert.equal(result.backedUp, true);
+  const written = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  assert.deepEqual(written.hooks, { foo: 'bar' });
+  assert.equal('statusLine' in written, false);
+});
+
+test('removeStatusLineConfig: 파일 자체가 없으면 아무 것도 안 하고 removed=false를 반환한다', () => {
+  const filePath = tempSettingsPath();
+  const result = removeStatusLineConfig(filePath);
+  assert.equal(result.removed, false);
+  assert.equal(result.backedUp, false);
+  assert.equal(fs.existsSync(filePath), false);
+});
+
+test('removeStatusLineConfig: statusLine 키가 원래 없으면 removed=false, 파일은 그대로 둔다', () => {
+  const filePath = tempSettingsPath();
+  fs.writeFileSync(filePath, JSON.stringify({ hooks: { foo: 'bar' } }));
+  const result = removeStatusLineConfig(filePath);
+  assert.equal(result.removed, false);
+  const written = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  assert.deepEqual(written, { hooks: { foo: 'bar' } });
 });
 
 test('쓰기 권한이 없어 실패해도 원본은 보존되고 .tmp 잔여물을 남기지 않는다', (t) => {

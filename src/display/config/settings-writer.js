@@ -28,20 +28,11 @@ function readExistingSettings(filePath) {
   }
 }
 
-function writeStatusLineConfig(statusLineConfig, filePath = resolveSettingsPath()) {
-  const dir = path.dirname(filePath);
-  fs.mkdirSync(dir, { recursive: true });
-
-  const existing = readExistingSettings(filePath);
-
-  if (fs.existsSync(filePath)) {
-    fs.copyFileSync(filePath, `${filePath}.bak`);
-  }
-
-  const merged = { ...existing, statusLine: statusLineConfig };
+// write/remove가 공유하는 원자적 쓰기(임시파일 -> rename, 실패 시 .tmp 정리).
+function atomicWriteJson(filePath, data) {
   const tmpPath = `${filePath}.tmp`;
   try {
-    fs.writeFileSync(tmpPath, JSON.stringify(merged, null, 2), 'utf8');
+    fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf8');
     fs.renameSync(tmpPath, filePath); // 원자적 교체(중간에 죽어도 원본 또는 tmp만 남고 반쯤 쓰인 파일이 안 남음)
   } catch (err) {
     // 권한 거부 등으로 rename이 실패해도 .tmp 잔여물을 남기지 않는다(QA 중 실제로
@@ -53,8 +44,42 @@ function writeStatusLineConfig(statusLineConfig, filePath = resolveSettingsPath(
     }
     throw err;
   }
+}
+
+function writeStatusLineConfig(statusLineConfig, filePath = resolveSettingsPath()) {
+  const dir = path.dirname(filePath);
+  fs.mkdirSync(dir, { recursive: true });
+
+  const existing = readExistingSettings(filePath);
+
+  if (fs.existsSync(filePath)) {
+    fs.copyFileSync(filePath, `${filePath}.bak`);
+  }
+
+  const merged = { ...existing, statusLine: statusLineConfig };
+  atomicWriteJson(filePath, merged);
 
   return { filePath, backedUp: fs.existsSync(`${filePath}.bak`) };
 }
 
-module.exports = { resolveSettingsPath, readExistingSettings, writeStatusLineConfig };
+// claudetower uninstall용 — statusLine 키만 제거하고 hooks/권한 등 나머지 설정은
+// 손대지 않는다("제거하려면 사용자가 settings.json을 손으로 고쳐야 해서 다른 설정까지
+// 실수로 지울 위험이 있다"는 실사용 피드백으로 추가).
+function removeStatusLineConfig(filePath = resolveSettingsPath()) {
+  if (!fs.existsSync(filePath)) {
+    return { filePath, removed: false, backedUp: false };
+  }
+
+  const existing = readExistingSettings(filePath);
+  if (!('statusLine' in existing)) {
+    return { filePath, removed: false, backedUp: false };
+  }
+
+  fs.copyFileSync(filePath, `${filePath}.bak`);
+  const { statusLine, ...rest } = existing;
+  atomicWriteJson(filePath, rest);
+
+  return { filePath, removed: true, backedUp: true };
+}
+
+module.exports = { resolveSettingsPath, readExistingSettings, writeStatusLineConfig, removeStatusLineConfig };

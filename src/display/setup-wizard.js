@@ -49,7 +49,12 @@ async function runSetupWizard(rl, { widgetConfigPath, settingsPath, log = () => 
 
   writeEnabledWidgets(enabled, widgetConfigPath);
   const command = buildStatuslineCommand();
-  const writeResult = writeStatusLineConfig({ type: 'command', command }, settingsPath);
+  // Claude Code는 기본적으로 "이벤트(대화) 발생 시"에만 상태표시줄을 다시 실행한다
+  // (공식 문서 확인). refreshInterval(초 단위, 최소 1)을 지정하면 이벤트와 별개로
+  // 고정 주기로도 재실행되어, 프로젝트 위치 등이 조금이라도 더 빠르게 반영된다.
+  // 최소값 1초로 설정 — 우리 스크립트 자체는 약 60ms만에 끝나 병목이 아니므로
+  // 매초 재실행해도 체감 부담이 없다.
+  const writeResult = writeStatusLineConfig({ type: 'command', command, refreshInterval: 1 }, settingsPath);
 
   log(`\n설정 완료: ${enabled.map((t) => WIDGET_LABELS[t]).join(', ')}`);
   log(`상태표시줄 명령이 Claude Code 설정에 등록됐습니다: ${writeResult.filePath}`);
