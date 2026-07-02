@@ -27,8 +27,12 @@ test('NaN/Infinity/-Infinity는 크래시 없이 빈 막대를 반환한다', ()
   assert.equal(renderGauge(NaN), '▱'.repeat(BAR_WIDTH));
 });
 
-test('50%는 정확히 절반이 채워진다', () => {
-  const bar = renderGauge(50);
-  const filledCount = (bar.match(/▰/g) || []).length;
-  assert.equal(filledCount, BAR_WIDTH / 2);
+test('채워진 칸 수는 항상 반올림 공식(value/100*width)과 일치한다', () => {
+  // BAR_WIDTH가 홀수면 50%가 정확히 절반으로 안 나뉜다(예: 5칸의 50% -> round(2.5) = 3칸).
+  // "절반"을 하드코딩하는 대신 구현과 동일한 공식으로 기대값을 계산해 폭 변경에 안전하게 한다.
+  for (const v of [0, 10, 25, 50, 75, 90, 100]) {
+    const bar = renderGauge(v);
+    const filledCount = (bar.match(/▰/g) || []).length;
+    assert.equal(filledCount, Math.round((v / 100) * BAR_WIDTH));
+  }
 });
