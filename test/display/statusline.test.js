@@ -70,3 +70,27 @@ test('잘못된 타입 값(문자열)이 들어와도 크래시하지 않는다'
     render({ context_window: { used_percentage: 'not-a-number' }, cost: { total_cost_usd: 'free' } });
   });
 });
+
+// 아래는 경계값 테스트로 실제 발견해 수정한 결함들의 회귀 테스트.
+
+test('경계값: context 정확히 70/90에서 각각 경고색/위험색, 69/89는 무색', () => {
+  assert.doesNotMatch(render({ context_window: { used_percentage: 69 } }), /\x1b\[/);
+  assert.match(render({ context_window: { used_percentage: 70 } }), /\x1b\[33m/);
+  assert.doesNotMatch(render({ context_window: { used_percentage: 89 } }), /\x1b\[31m/);
+  assert.match(render({ context_window: { used_percentage: 90 } }), /\x1b\[31m/);
+});
+
+test('위치 위젯: 앞뒤 공백이 포함된 경로는 트리밍 후 표시된다(공백이 출력에 남지 않음)', () => {
+  const out = render({ workspace: { current_dir: '   /spaced/path   ' } });
+  assert.match(out, /📁 path$/);
+});
+
+test('Infinity/-Infinity 값은 위젯이 숨겨진다(NaN처럼 걸러짐, "Infinity%" 같은 깨진 출력 방지)', () => {
+  const out = render({
+    context_window: { used_percentage: Infinity },
+    cost: { total_cost_usd: -Infinity },
+    rate_limits: { five_hour: { used_percentage: Infinity }, seven_day: { used_percentage: 50 } },
+  });
+  assert.doesNotMatch(out, /Infinity/);
+  assert.match(out, /7d 50%/); // 유효한 값은 정상 표시
+});

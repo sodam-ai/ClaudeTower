@@ -9,11 +9,13 @@ function renderRateLimit(session) {
   const fiveHour = session?.rate_limits?.five_hour?.used_percentage;
   const sevenDay = session?.rate_limits?.seven_day?.used_percentage;
 
+  // Number.isFinite로 NaN과 Infinity/-Infinity를 함께 걸러낸다(context.js/cost.js와
+  // 동일한 결함이 여기도 있었음 — 경계값 테스트로 발견).
   const parts = [];
-  if (typeof fiveHour === 'number' && !Number.isNaN(fiveHour)) {
+  if (Number.isFinite(fiveHour)) {
     parts.push(colorize(`5h ${fiveHour}%`, pickColor('rate_limit_5h', fiveHour)));
   }
-  if (typeof sevenDay === 'number' && !Number.isNaN(sevenDay)) {
+  if (Number.isFinite(sevenDay)) {
     parts.push(colorize(`7d ${sevenDay}%`, pickColor('rate_limit_7d', sevenDay)));
   }
 
