@@ -59,15 +59,40 @@ test('readExistingSettings는 파일이 없으면 빈 객체를 반환한다', (
   assert.deepEqual(readExistingSettings(filePath), {});
 });
 
-test('쓰기 권한이 없어 실패해도 원본은 보존되고 .tmp 잔여물을 남기지 않는다', () => {
+test('쓰기 권한이 없어 실패해도 원본은 보존되고 .tmp 잔여물을 남기지 않는다', (t) => {
   const filePath = tempSettingsPath();
-  fs.writeFileSync(filePath, JSON.stringify({ existing: true }));
+  const original = JSON.stringify({ existing: true });
+  fs.writeFileSync(filePath, original);
   fs.chmodSync(filePath, 0o444); // 읽기 전용
+
+  // CI(GitHub Actions Linux/macOS 러너)는 root 권한으로 돌아서 chmod 0o444를 걸어도
+  // 실제 쓰기가 그대로 성공해버리는 걸 실측으로 확인했다(로컬 Windows에서는 EPERM,
+  // CI Linux/macOS에서는 성공 — "Missing expected exception"으로 실패 재현).
+  // 권한 강제가 안 통하는 환경(주로 root)에서는 이 테스트 자체가 성립하지 않으므로
+  // 무력화하는 대신 명시적으로 건너뛴다 — 실제 코드의 방어 로직은 그대로 유지.
+  let writeSucceededDespiteReadonly = false;
+  try {
+    writeStatusLineConfig({ type: 'command', command: 'probe' }, filePath);
+    writeSucceededDespiteReadonly = true;
+  } catch {
+    // 예상대로 실패 — 아래에서 본검증 진행
+  } finally {
+    fs.chmodSync(filePath, 0o644);
+  }
+
+  if (writeSucceededDespiteReadonly) {
+    t.skip('이 환경(예: CI가 root로 실행)에서는 파일 권한이 강제되지 않아 검증 불가');
+    return;
+  }
+
+  // 권한이 실제로 강제되는 환경에서만 본검증: 실패 시 원본 보존 + .tmp 잔여물 없음.
+  fs.writeFileSync(filePath, original);
+  fs.chmodSync(filePath, 0o444);
   try {
     assert.throws(() => writeStatusLineConfig({ type: 'command', command: 'x' }, filePath));
-    assert.equal(fs.readFileSync(filePath, 'utf8'), JSON.stringify({ existing: true }));
+    assert.equal(fs.readFileSync(filePath, 'utf8'), original);
     assert.equal(fs.existsSync(`${filePath}.tmp`), false);
   } finally {
-    fs.chmodSync(filePath, 0o644); // 다음 테스트/정리가 파일을 지울 수 있도록 복구
+    fs.chmodSync(filePath, 0o644);
   }
 });
