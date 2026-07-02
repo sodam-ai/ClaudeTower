@@ -44,3 +44,23 @@ jobs:
         with:
           name: ${{ matrix.artifact }}
           path: dist/${{ matrix.artifact }}
+
+  # .PRD/03_PHASES.md Phase 1 "진짜 제품" 체크리스트: "Account 모듈 코드(src/accounts/)가
+  # 아예 존재하지 않아도(빈 디렉토리여도) Display 모듈이 완전히 독립적으로 동작함을 확인".
+  # src/accounts/를 통째로 지운 뒤 Display 검증이 여전히 통과하는지 매 push마다 증명한다.
+  verify-display-standalone:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - run: npm ci
+
+      - name: src/accounts/ 완전히 제거 (Account 모듈이 존재한 적 없다고 가정)
+        run: rm -rf src/accounts
+
+      - name: Display 모듈이 Account 모듈 없이도 완전히 독립적으로 동작하는지 확인
+        run: npm run verify
