@@ -62,7 +62,13 @@ async function run(args) {
     const { WIDGET_LABELS } = require('../src/display/setup-wizard');
     try {
       const status = getInstallStatus();
-      if (status.installed) {
+      if (status.installed && status.broken) {
+        // command 문자열엔 "claudetower"가 있지만 실제 파일이 없는 상태 — 등록만
+        // 남아있고 실행은 안 되는 "고장" 상태(파일을 지웠거나 옮긴 경우 등).
+        console.log('설치 상태: 등록은 되어 있으나 실행 파일을 찾을 수 없습니다(고장 상태)');
+        console.log(`등록된 명령: ${status.command}`);
+        console.log('claudetower setup을 다시 실행하면 자동으로 복구됩니다.');
+      } else if (status.installed) {
         console.log('설치 상태: 설치됨 (claudetower 상태표시줄이 Claude Code에 등록되어 있습니다)');
         console.log(`표시 중인 항목: ${status.enabledWidgets.map((t) => WIDGET_LABELS[t] || t).join(', ')}`);
         console.log(`등록된 명령: ${status.command}`);
@@ -89,6 +95,8 @@ async function run(args) {
     const { removeStatusLineConfig } = require('../src/display/config/settings-writer');
     const { resolveWidgetConfigPath } = require('../src/display/config/widget-config');
     const { getInstallStatus } = require('../src/display/config/status');
+    const { resolveInstallTargetPath } = require('../src/display/config/install-target');
+    const sea = require('node:sea');
 
     const result = removeStatusLineConfig();
     if (result.removed) {
@@ -115,7 +123,13 @@ async function run(args) {
       return 1;
     }
     console.log('\n확인 완료: claudetower 상태표시줄이 완전히 제거됐습니다.');
-    console.log('claudetower 실행 파일(.exe)은 직접 삭제하시면 됩니다.');
+    // 실행 중인 파일이 자기 자신을 스스로 지우는 건 확실히 안전하다고 보장할 수
+    // 없어(플랫폼별 동작 불확실) 시도하지 않는다 — 대신 위치를 정확히 안내해서
+    // 사용자가 원하면 직접 지울 수 있게 한다.
+    if (sea.isSea()) {
+      console.log(`claudetower 실행 파일은 여기 있습니다: ${resolveInstallTargetPath()}`);
+      console.log('원하시면 이 파일을 직접 삭제하셔도 됩니다(자동으로 지우지 않습니다).');
+    }
     return 0;
   }
 

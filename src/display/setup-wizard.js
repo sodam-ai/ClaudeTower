@@ -6,6 +6,7 @@
 const { ALL_WIDGET_TYPES, writeEnabledWidgets } = require('./config/widget-config');
 const { writeStatusLineConfig } = require('./config/settings-writer');
 const { buildStatuslineCommand } = require('./config/statusline-command');
+const { ensureInstalledAtTarget } = require('./config/install-target');
 
 const WIDGET_LABELS = {
   model: '사용 모델',
@@ -49,6 +50,24 @@ async function runSetupWizard(rl, { widgetConfigPath, settingsPath, log = () => 
   }
 
   writeEnabledWidgets(enabled, widgetConfigPath);
+
+  // "이름/위치를 바꾸거나 지워도 안 깨지게" — SEA 바이너리로 실행 중이면 고정 설치
+  // 위치(~/.claudetower/bin)로 자기 자신을 복사해 정착시킨다. 이후 사용자가 원래
+  // 다운로드한 파일을 지우거나 옮겨도 등록된 명령은 이 고정 복사본을 가리키므로
+  // 영향받지 않는다(실사용 중 발견된 "고장난 명령어" 문제의 근본 해결책).
+  const installResult = ensureInstalledAtTarget();
+  if (installResult.copied) {
+    log(`\n설치 파일을 안전한 위치로 복사했습니다: ${installResult.targetPath}`);
+    log('(원래 다운로드하신 파일은 이제 지우거나 옮기셔도 상관없습니다)');
+  } else if (installResult.error) {
+    // Claude Code가 이 위치의 파일을 주기적으로 실행 중이라 그 순간과 겹치면 Windows가
+    // 파일을 잠가 복사가 실패할 수 있다(일시적 현상) - 중단하지 않고 계속 진행하되
+    // 사용자에게 명확히 알린다. 이 경우 지금 실행 중인 파일의 위치가 그대로 등록되어
+    // "고장 위험"이 남아있는 상태로 진행됨을 알려야 한다.
+    log(`\n안전한 위치로 파일을 복사하는 데 실패했습니다: ${installResult.error.message}`);
+    log('(잠시 후 claudetower setup을 다시 실행해보세요. 지금은 현재 파일 위치로 등록됩니다.)');
+  }
+
   const command = buildStatuslineCommand();
   // Claude Code는 기본적으로 "이벤트(대화) 발생 시"에만 상태표시줄을 다시 실행한다
   // (공식 문서 확인). refreshInterval(초 단위, 최소 1)을 지정하면 이벤트와 별개로

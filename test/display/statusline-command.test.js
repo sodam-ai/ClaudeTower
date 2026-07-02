@@ -28,3 +28,8 @@ test('command는 항상 statusline 서브커맨드로 끝난다', () => {
 test('연속 호출해도 매번 동일한 값을 반환한다(부수효과 없음)', () => {
   assert.equal(buildStatuslineCommand(), buildStatuslineCommand());
 });
+
+test('경로가 따옴표로 감싸져 있다(사용자 계정 이름에 공백이 있어도 셸이 쪼개지 않도록)', () => {
+  const command = buildStatuslineCommand();
+  assert.match(command, /^"/);
+});
