@@ -2,76 +2,99 @@
 
 [한국어](./README.md) | [English](./README.en.md)
 
-## What is this? (one-line explanation for beginners)
+A statusline + (planned) multi-account switching CLI for Claude Code.
 
-A statusline tool for Claude Code that shows what's happening right now at the bottom of your screen (context usage, cost, current project path). Multi-account auto-switching is planned for later, but that feature will never turn on until its safety gate (explicit user consent) is fully built.
+> **Current status (important)**: Only **Phase 1** is implemented so far. "① Statusline" below works right now. "② Account switching" **does not have any code yet** (it's not disabled — it simply hasn't been built). It's planned for Phase 2, gated behind an explicit user consent flow.
 
-## Current status (important)
+---
 
-This project is still in **Phase 1 (first milestone)**. There is no installable release for end users yet — right now, this is source code that developers build and test directly.
+## ① Statusline (always safe, install and you're done)
 
-- Done: CLI skeleton (`claudetower --version`/`--help`), single-executable (SEA) build pipeline, Display/Account module code isolation with automated verification
-- Not yet: actual statusline widgets, the `setup` configuration wizard, end-user install scripts
+Shows your current project path, context usage, cost, and rate limits at the bottom of the Claude Code screen. **It never touches your Claude account credentials or password.**
 
-## Prerequisites
+### Prerequisites
 
-- [Node.js](https://nodejs.org) 22 or later (only needed for development/building right now — the final release is designed to run without Node.js installed)
-- Git
+- [Node.js](https://nodejs.org) 22 or later — **needed right now because this is still in development. The final release (an SEA binary) is designed to run without Node.js installed at all.**
+- The latest version of Claude Code
+- Git (only if you're cloning the repo to build it yourself)
 
-## 1. Clone the repository
+### Quick start (5 steps)
 
-```bash
-git clone <repository URL>
-cd ClaudeTower
-```
+1. Clone the repository
+   ```bash
+   git clone https://github.com/sodam-ai/ClaudeTower.git
+   cd ClaudeTower
+   ```
+2. Install development tooling
+   ```bash
+   npm install
+   ```
+3. Build the distributable executable
+   ```bash
+   npm run build
+   ```
+   This produces one executable in `dist/` matching your OS (e.g. `claudetower-win-x64.exe`).
+4. Register the statusline
+   ```bash
+   node bin/claudetower.js setup
+   ```
+   Answer Y or N to each question (location/context/cost/rate-limit) and you're done.
+5. The statusline appears starting from your next Claude Code interaction — no restart needed.
 
-## 2. Install development tools
+> Official distribution channels (a one-line `curl`/`PowerShell` install, or `npm install -g`) are still being prepared — see "Installation" below for why.
 
-```bash
-npm install
-```
+### Installation (current status per channel)
 
-This fetches development tooling (the ESLint linter, the esbuild bundler, etc.). Requires an internet connection.
+| Method | Status | Notes |
+|---|---|---|
+| Build from source (5 steps above) | ✅ Works now | For developers, requires Node.js |
+| `curl`/`PowerShell` one-liner (`install.sh`/`install.ps1`) | ⏳ Scripts are done, **waiting on a GitHub Release** | No Node.js required; will be the easiest path once ready |
+| `npm install -g` | ❌ Currently broken for this private repo (known issue) | Will be re-verified once the repo goes public |
 
-## 3. Try running it
+### Commands (only what actually exists right now)
 
-```bash
-node bin/claudetower.js --help
-node bin/claudetower.js --version
-```
+- `claudetower --version` / `--help`
+- `claudetower setup` — pick which statusline widgets to show + auto-register with Claude Code
+- `claudetower statusline` — the renderer Claude Code invokes internally (you won't run this by hand)
 
-## 4. Run the tests
+> Account-related commands like `accounts` or `config` **do not exist yet** (planned for Phase 2).
 
-```bash
-npm test
-```
+### Security & data flow
 
-To run everything at once (style check + module-boundary security check + tests):
+- Nothing is ever sent externally. Everything runs locally on your machine.
+- Each time Claude Code hands the statusline program your current state (project path, context usage, etc.), it's only rendered on screen — never stored.
 
-```bash
-npm run verify
-```
+### Architecture (in plain terms)
 
-## 5. Build a distributable executable
+This program is split into two completely separate rooms. The "statusline room" only displays information on screen, so it's always safe. The "account-switching room" hasn't even been built yet — and when it is, its key won't open the statusline room's door. Automated checks (ESLint) and tests verify on every change that no secret door has snuck in between the two rooms.
 
-```bash
-npm run build
-```
+---
 
-This produces one executable in `dist/` matching your OS (e.g. `claudetower-win-x64.exe` on Windows). That executable runs as-is even on a machine without Node.js installed.
+## ② Account switching (planned for Phase 2, doesn't exist yet)
 
-## Common issues
+**No code for this feature exists yet.** Once built, it will require an explicit consent step with the warning "This feature carries a risk that your Claude account could be suspended. The statusline works fine without turning this on" before it can ever be enabled (see [`.PRD/01_PRD.md`](./.PRD/01_PRD.md) for the full design).
 
-- **`npm install` fails**: Check your internet connection and Node.js installation (`node --version`).
-- **`npm run build` fails**: This usually means your Node.js version is below 22.
-- **Windows shows a warning when running the built executable**: The binary isn't code-signed yet, so Windows may show an "unknown publisher" warning. Click "More info" then "Run anyway" — this is expected before an official signed release.
+---
 
-## Security & architecture notes
+## Troubleshooting
 
-- This program is split into two parts: the **statusline part** (always safe, never touches credentials) and the **account-switching part** (no code exists yet; will only be added and enabled after an explicit consent flow).
-- The two parts are prevented from reaching into each other at the code level, and this is checked automatically every time (ESLint rule + independent verification script + a runtime test) via `npm run verify`.
-- For full design rationale and security requirements, see the docs in [`.PRD/`](./.PRD/).
+- **The statusline doesn't show up**: Try one more Claude Code interaction — settings don't apply instantly, only from the next interaction onward.
+- **`npm run build` fails**: Check that `node --version` is 22 or later.
+- **Windows shows a warning when running the built executable**: It isn't code-signed yet, so Windows may show an "unknown publisher" warning. Click "More info" then "Run anyway" — this is expected before an official signed release.
+- **The context percentage looks off**: It can be empty early in a session or right after `/compact` — that's expected, official Claude Code behavior.
 
-## License
+## FAQ
 
-MIT — see [`LICENSE`](./LICENSE) (the copyright holder name is not finalized yet).
+- **Does installing this automatically collect my account info?** No. Account-related code isn't included in this version at all.
+- **Does anything get sent over the internet?** No, everything runs locally only.
+- **Will account switching turn on automatically once it's built?** No. It's designed to require your explicit consent before it can ever be enabled.
+
+## Legal, copyright, and license
+
+- License: MIT (copyright holder not finalized yet — see [`LICENSE`](./LICENSE))
+- This project is for personal use; there are no plans for commercial sale or a paid service.
+- For more background, see the "법률·저작권·라이선스·상업적 사용 요구사항" section in [`.PRD/04_PROJECT_SPEC.md`](./.PRD/04_PROJECT_SPEC.md).
+
+## Full design documentation
+
+The design rationale, decision history, and security requirements for this project are all in the [`.PRD/`](./.PRD/) folder.
