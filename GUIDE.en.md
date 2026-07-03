@@ -56,6 +56,7 @@ What this line tells you:
 - Since the final product name hasn't been decided, it's currently referred to by the working title "ClaudeTower."
 - This project's GitHub repository is **public**. You don't need to be logged into GitHub to see the download page.
 - **It is free and intended for personal use only.** It is not designed to be sold commercially or delivered as a paid service to a company (see Section 17 for details).
+- **This program is not an official product of Anthropic** (the company that makes Claude and Claude Code). It's an independent companion tool built by an individual developer, with no affiliation, sponsorship, or partnership with Anthropic (see Section 17 for details).
 
 ---
 
@@ -99,6 +100,22 @@ What this line tells you:
 4. Once downloaded, the file usually lands in your Downloads folder.
 
 > ⚠️ **Getting a 404 Not Found error?** Double-check that you typed the URL correctly (watch for typos and capitalization).
+
+### 4-1. (Optional) Install with one terminal command — for people already comfortable with a terminal
+
+If you've used a terminal before, you can skip steps 1-4 above and do the download-and-install in a single command. **If this is your first time using a computer or a terminal, we recommend the "download directly" method above instead** — copying and pasting a command can be confusing if it's unfamiliar.
+
+**Windows (PowerShell)**:
+```powershell
+irm https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.ps1 | iex
+```
+
+**macOS / Linux (terminal)**:
+```bash
+curl -fsSL https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.sh | sh
+```
+
+This one line automatically finds and downloads the right executable for your operating system from the GitHub Release, then installs it to a fixed location on your computer (`~/.claudetower/bin/`). Once it finishes, continue with "Run the setup wizard" in Section 5.
 
 ---
 
@@ -374,17 +391,21 @@ A. It's designed for personal use and is not intended for commercial sale or del
 
 > ⚠️ **This section is not legal advice.** It describes this project's current status honestly and as-is, clearly distinguishing between confirmed facts and matters that are still undecided. If you need a legally significant determination, please consult a qualified professional such as a lawyer.
 
-### 17-1. License (confirmed facts)
+### 17-1. This program's relationship with Anthropic (very important)
+
+**This program is not made or officially endorsed by Anthropic** (the company that makes Claude and Claude Code). It is an independent companion tool built by an individual developer, with no affiliation, sponsorship, or partnership with Anthropic whatsoever. The word "Claude" appears in this document and in the program's description solely to describe the fact that this program works alongside Claude Code — it does not mean Anthropic created, endorses, or is responsible for this program. We state this clearly to avoid any misunderstanding.
+
+### 17-2. License (confirmed facts)
 
 - This project uses the **Apache License 2.0**, a widely used open-source license that allows the source code to be freely viewed, modified, and redistributed, with an explicit patent grant (unlike MIT).
 - The copyright holder is **SoDam AI Studio**.
 - The full license text is in the [`LICENSE`](./LICENSE) file in the repository.
 
-### 17-2. License (not yet finalized — stated honestly)
+### 17-3. License (not yet finalized — stated honestly)
 
-- The final product name has not been decided yet (trademark review regarding candidate names is still in progress).
+- The final product name has not been decided yet (trademark review regarding candidate names is still in progress). Until the name is finalized, the `npm install -g` distribution channel is also deliberately not being opened (an npm package name is effectively permanent once claimed).
 
-### 17-3. Commercial use — strict prohibition
+### 17-4. Commercial use — strict prohibition
 
 **The current version of this program (v0.1.9, Phase 1 MVP) is not designed for:**
 
@@ -398,11 +419,11 @@ Reason for this strict limitation: there are plans to eventually add an "automat
 
 > Note: as of this writing (v0.1.9), the "account switching" feature has no code at all, so the terms-of-service conflict risk described above **does not actually exist yet.** However, the commercial-use prohibition itself applies to the entire project from the start, as a matter of design principle.
 
-### 17-4. On reusing external code and ideas
+### 17-5. On reusing external code and ideas
 
 While designing this project, several other open-source statusline/account-management tools were referenced (e.g., ccstatusline, starship-claude, teamclaude, claude-swap, and others). However, **this project did not copy their source code — only design ideas and patterns were referenced.** If any actual code is borrowed in the future, the attribution requirements of the original project's license will be followed (this has not yet been fully reviewed legally).
 
-### 17-5. Limitation of liability
+### 17-6. Limitation of liability
 
 This program is provided **"AS IS"** under the standard terms of the Apache License 2.0, without any warranty of any kind, express or implied. The copyright holder (SoDam AI Studio) is not liable for any damages arising from the use of this program (see the [`LICENSE`](./LICENSE) file for the exact legal text).
 

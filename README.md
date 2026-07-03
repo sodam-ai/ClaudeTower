@@ -131,6 +131,7 @@ npm run build
 
 ## 법률·저작권·라이선스
 
+- **이 프로그램은 Anthropic의 공식 제품이 아닙니다.** 개인이 만든 비공식 보조 도구이며, Anthropic과 제휴·후원 관계가 없습니다.
 - 라이선스: Apache License 2.0 (저작권자: SoDam AI Studio — [`LICENSE`](./LICENSE) 참고)
 - 이 프로젝트는 개인 사용을 목적으로 하며, 상업적 판매·유료 서비스화는 계획에 없습니다.
 - 자세한 배경은 [`.PRD/04_PROJECT_SPEC.md`](./.PRD/04_PROJECT_SPEC.md)의 "법률·저작권·라이선스·상업적 사용 요구사항" 참고.
