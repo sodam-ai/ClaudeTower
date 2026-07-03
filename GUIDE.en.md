@@ -2,7 +2,7 @@
 
 > This guide is written so that anyone can follow it from start to finish, even with little or no prior experience using computers, smartphones, or AI tools. Wherever a technical term appears, a plain-language explanation follows right next to it.
 
-**Document version**: This guide covers ClaudeTower **v0.1.7**.
+**Document version**: This guide covers ClaudeTower **v0.1.8**.
 
 ---
 
@@ -267,7 +267,7 @@ This program **never sends anything over the internet.** All information stays e
 
 ## 11. Version history summary
 
-This program has been rapidly refined through real-world testing. Below is an accurate summary of what actually changed in each version (current latest: **v0.1.7**).
+This program has been rapidly refined through real-world testing. Below is an accurate summary of what actually changed in each version (current latest: **v0.1.8**).
 
 | Version | Key changes |
 |---|---|
@@ -279,6 +279,7 @@ This program has been rapidly refined through real-world testing. Below is an ac
 | v0.1.5 | Added `status` command; `uninstall` now double-checks that removal actually completed |
 | v0.1.6 | Installed files no longer break if renamed, moved, or deleted (auto-settles into a fixed safe location) |
 | v0.1.7 | Shows the reset countdown/time once a rate limit reaches a warning level (70%+) |
+| v0.1.8 | Reset countdown is now always shown regardless of usage level (previously only shown at 70%+). Also fixed a bug where re-running `setup` to install a new version could silently fail because Claude Code kept the executable in use (now copies to a temp file first, then swaps it in safely, with automatic retry) |
 
 ---
 
@@ -327,6 +328,7 @@ Here's where this program actually creates or uses files on your computer.
 | **"Run anyway" button doesn't appear** on the blue warning | You need to click "More info" first — the button appears below it. |
 | **Window closes instantly after double-clicking** | Not a malfunction — running with no arguments just shows help text and exits. See Section 6 and use a terminal instead. |
 | `status` says **"registered but the executable can't be found (broken)"** | You accidentally deleted the installed file. Run `setup` again to repair it automatically. |
+| **Ran `setup` to install a new version, but nothing changed** (e.g. version number stays the same) | Since v0.1.8, this retries automatically a few times, but antivirus scanning or similar can occasionally take even longer. Close Claude Code briefly and run `setup` again — with nothing actively using the file, the swap will go through reliably. |
 | **Statusline doesn't show up** in Claude Code | Settings apply starting from your *next* interaction. Try interacting with Claude Code once more. |
 | **Context percentage looks off or empty** | This can happen briefly at the start of a session or right after `/compact`. This is expected, normal Claude Code behavior. |
 | For developers — `npm run build` fails | Check that `node --version` is 22 or later. |
@@ -338,7 +340,7 @@ Here's where this program actually creates or uses files on your computer.
 ## 16. Frequently asked questions (FAQ)
 
 **Q. Does installing this collect my Claude account information?**
-A. No. Account-related code isn't included in this version (v0.1.7) at all. This program is structurally unable to see or store your ID, password, or authentication tokens.
+A. No. Account-related code isn't included in this version (v0.1.8) at all. This program is structurally unable to see or store your ID, password, or authentication tokens.
 
 **Q. Does anything get sent over the internet?**
 A. No. Everything runs locally, entirely on your own computer.
@@ -376,7 +378,7 @@ A. It's designed for personal use and is not intended for commercial sale or del
 
 ### 17-3. Commercial use — strict prohibition
 
-**The current version of this program (v0.1.7, Phase 1 MVP) is not designed for:**
+**The current version of this program (v0.1.8, Phase 1 MVP) is not designed for:**
 
 - ❌ Commercial sale
 - ❌ Being offered as a paid service
@@ -386,7 +388,7 @@ A. It's designed for personal use and is not intended for commercial sale or del
 
 Reason for this strict limitation: there are plans to eventually add an "automatic multi-account switching" feature (the Account module), which would cycle between multiple Claude accounts automatically — a pattern that **could conflict with Claude's terms of service.** It has been clearly established that once this feature actually ships, that risk applies to the entire program, even for users who never turn the feature on and only use the statusline. To avoid amplifying that risk through commercial expansion, the design principle from the very beginning excludes commercial use entirely.
 
-> Note: as of this writing (v0.1.7), the "account switching" feature has no code at all, so the terms-of-service conflict risk described above **does not actually exist yet.** However, the commercial-use prohibition itself applies to the entire project from the start, as a matter of design principle.
+> Note: as of this writing (v0.1.8), the "account switching" feature has no code at all, so the terms-of-service conflict risk described above **does not actually exist yet.** However, the commercial-use prohibition itself applies to the entire project from the start, as a matter of design principle.
 
 ### 17-4. On reusing external code and ideas
 
@@ -398,4 +400,4 @@ This program is provided **"AS IS"** under the standard terms of the MIT License
 
 ---
 
-*This document covers ClaudeTower v0.1.7 and is an extended companion to [`README.en.md`](./README.en.md). The Korean version is [`GUIDE.md`](./GUIDE.md).*
+*This document covers ClaudeTower v0.1.8 and is an extended companion to [`README.en.md`](./README.en.md). The Korean version is [`GUIDE.md`](./GUIDE.md).*

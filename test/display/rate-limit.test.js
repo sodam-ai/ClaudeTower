@@ -45,14 +45,13 @@ test('formatSevenDayReset: resets_at이 없으면 null을 반환한다', () => {
   assert.equal(formatSevenDayReset(undefined, FIXED_NOW), null);
 });
 
-test('renderRateLimit: 70% 미만이면 재설정 시간을 붙이지 않는다(줄 길이 절약)', () => {
+test('renderRateLimit: 70% 미만(안전 구간)이어도 재설정 시간을 함께 표시한다', () => {
   const resetsAt = Math.floor(FIXED_NOW / 1000) + 3600;
   const out = renderRateLimit(
     { rate_limits: { five_hour: { used_percentage: 50, resets_at: resetsAt } } },
     FIXED_NOW
   );
-  assert.match(out, /5시간.*50%/);
-  assert.doesNotMatch(out, /·/);
+  assert.match(out, /5시간.*50%·1:00/);
 });
 
 test('renderRateLimit: 70% 이상이면 재설정 시간을 함께 표시한다', () => {

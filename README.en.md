@@ -6,7 +6,7 @@ A statusline + (planned) multi-account switching CLI for Claude Code.
 
 > 📖 **New to computers or AI tools?** We've prepared a much more detailed, beginner-friendly [Complete User Guide (GUIDE.en.md)](./GUIDE.en.md) · [View as PDF (GUIDE.en.pdf)](./GUIDE.en.pdf).
 
-> **Current status (important)**: Only **Phase 1** is implemented so far (current version: v0.1.7). "① Statusline" below works right now. "② Account switching" **does not have any code yet** (it's not disabled — it simply hasn't been built). It's planned for Phase 2, gated behind an explicit user consent flow.
+> **Current status (important)**: Only **Phase 1** is implemented so far (current version: v0.1.8). "① Statusline" below works right now. "② Account switching" **does not have any code yet** (it's not disabled — it simply hasn't been built). It's planned for Phase 2, gated behind an explicit user consent flow.
 
 ---
 
@@ -18,7 +18,7 @@ Example:
 ```
 모델 Sonnet 5  📁 my-project  컨텍스트 ██░░░ 45%  💰 $1.50  5시간 ████░ 78%·1:41  7일 ███░░ 71%·일06:00
 ```
-(The reset countdown only appears once usage crosses the warning threshold (70%+). Below that it's just the bar and percentage.)
+(The reset countdown is always shown alongside the percentage, regardless of usage level.)
 
 ### Quick start — download and run (for everyone, 5 steps)
 

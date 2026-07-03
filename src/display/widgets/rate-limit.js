@@ -52,16 +52,16 @@ function renderRateLimit(session, now = Date.now()) {
   if (Number.isFinite(fiveHour)) {
     const rounded = Math.round(fiveHour);
     const color = pickColor('rate_limit_5h', rounded);
-    // 재설정 시간은 경고/위험 임계값 이상일 때만 붙인다(70% 미만이면 리셋 시간이
-    // 안 중요하고, 항상 붙이면 줄이 너무 길어진다는 피드백으로 조건부 표시 채택).
-    const reset = color ? formatFiveHourReset(session?.rate_limits?.five_hour?.resets_at, now) : null;
+    // 재설정 시간은 사용률과 무관하게 항상 표시한다(실사용 피드백 — 안전 구간에서도
+    // 언제 리셋되는지 미리 알고 싶다는 요청으로 조건부 표시를 폐지).
+    const reset = formatFiveHourReset(session?.rate_limits?.five_hour?.resets_at, now);
     const text = `5시간 ${renderGauge(rounded)} ${rounded}%${reset ? `·${reset}` : ''}`;
     parts.push(colorize(text, color || COLOR.safe));
   }
   if (Number.isFinite(sevenDay)) {
     const rounded = Math.round(sevenDay);
     const color = pickColor('rate_limit_7d', rounded);
-    const reset = color ? formatSevenDayReset(session?.rate_limits?.seven_day?.resets_at, now) : null;
+    const reset = formatSevenDayReset(session?.rate_limits?.seven_day?.resets_at, now);
     const text = `7일 ${renderGauge(rounded)} ${rounded}%${reset ? `·${reset}` : ''}`;
     parts.push(colorize(text, color || COLOR.safe));
   }

@@ -55,17 +55,24 @@ async function runSetupWizard(rl, { widgetConfigPath, settingsPath, log = () => 
   // 위치(~/.claudetower/bin)로 자기 자신을 복사해 정착시킨다. 이후 사용자가 원래
   // 다운로드한 파일을 지우거나 옮겨도 등록된 명령은 이 고정 복사본을 가리키므로
   // 영향받지 않는다(실사용 중 발견된 "고장난 명령어" 문제의 근본 해결책).
-  const installResult = ensureInstalledAtTarget();
+  const installResult = await ensureInstalledAtTarget({
+    // Claude Code가 이 파일을 초 단위로 계속 실행 중이면 교체가 몇 차례 밀릴 수
+    // 있다 — 화면이 멈춘 것처럼 보이지 않도록 재시도 중임을 알린다.
+    onRetry: (attempt, maxAttempts) => {
+      log(`Claude Code가 파일을 사용 중이라 잠시 기다립니다... (${attempt}/${maxAttempts})`);
+    },
+  });
   if (installResult.copied) {
     log(`\n설치 파일을 안전한 위치로 복사했습니다: ${installResult.targetPath}`);
     log('(원래 다운로드하신 파일은 이제 지우거나 옮기셔도 상관없습니다)');
   } else if (installResult.error) {
     // Claude Code가 이 위치의 파일을 주기적으로 실행 중이라 그 순간과 겹치면 Windows가
-    // 파일을 잠가 복사가 실패할 수 있다(일시적 현상) - 중단하지 않고 계속 진행하되
+    // 파일을 잠가 교체가 실패할 수 있다(여러 차례 재시도까지 다 실패한 드문 경우 —
+    // 예: 백신 검사가 새 파일을 오래 붙잡는 경우) - 중단하지 않고 계속 진행하되
     // 사용자에게 명확히 알린다. 이 경우 지금 실행 중인 파일의 위치가 그대로 등록되어
     // "고장 위험"이 남아있는 상태로 진행됨을 알려야 한다.
-    log(`\n안전한 위치로 파일을 복사하는 데 실패했습니다: ${installResult.error.message}`);
-    log('(잠시 후 claudetower setup을 다시 실행해보세요. 지금은 현재 파일 위치로 등록됩니다.)');
+    log(`\n안전한 위치로 파일을 교체하는 데 실패했습니다: ${installResult.error.message}`);
+    log('(Claude Code를 잠깐 닫아두고 claudetower setup을 다시 실행해보시면 대부분 해결됩니다. 지금은 현재 파일 위치로 등록됩니다.)');
   }
 
   const command = buildStatuslineCommand();
