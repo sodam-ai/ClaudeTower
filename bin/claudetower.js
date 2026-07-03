@@ -15,7 +15,7 @@ async function run(args) {
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
     console.log(`${CLI_NAME} — Claude Code statusline + account switching CLI`);
     console.log('Usage: claudetower <command>');
-    console.log('Commands: setup, statusline, status, uninstall');
+    console.log('Commands: setup, statusline, status, uninstall, widgets');
     // 인자 없이 실행된 경우(대표적으로 exe 더블클릭)는 Windows가 새 콘솔 창을 열고,
     // 프로세스가 끝나자마자 그 창도 함께 닫혀버려 사용자가 위 안내를 읽을 새도 없이
     // 창이 사라진다("켜졌다 바로 꺼짐" 버그 리포트로 발견). stdin/stdout이 둘 다
@@ -88,6 +88,12 @@ async function run(args) {
     }
   }
 
+  if (command === 'widgets') {
+    const { runWidgetsCommand } = require('../src/display/widgets-command');
+    const result = runWidgetsCommand(args.slice(1), { log: (msg) => console.log(msg) });
+    return result.applied === false ? 1 : 0;
+  }
+
   if (command === 'uninstall') {
     // setup 반대 방향 — "제거하려면 settings.json을 손으로 고쳐야 해서 다른 설정까지
     // 실수로 지울 위험이 있다"는 실사용 피드백으로 추가. statusLine 키만 안전하게
@@ -112,6 +118,14 @@ async function run(args) {
     if (fs.existsSync(widgetConfigPath)) {
       fs.unlinkSync(widgetConfigPath);
       console.log(`위젯 설정 파일도 삭제했습니다: ${widgetConfigPath}`);
+    }
+
+    // setup이 심어둔 "/claudetower-widgets" 대화형 설정도 같이 정리한다 — 안 지우면
+    // 실행 파일이 사라진 뒤에도 스킬만 고아 상태로 남아 사용자가 호출 시 에러를 보게 됨.
+    const { removeSkillFile } = require('../src/display/config/skill-file');
+    const skillRemoveResult = removeSkillFile();
+    if (skillRemoveResult.removed) {
+      console.log(`"/claudetower-widgets" 대화형 설정도 삭제했습니다: ${skillRemoveResult.skillDir}`);
     }
 
     // "제거 여부를 확실히 알 수 있게" — 지우고 끝내는 대신, 설정 파일을 다시 읽어서

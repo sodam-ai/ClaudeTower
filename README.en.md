@@ -6,7 +6,7 @@ A statusline + (planned) multi-account switching CLI for Claude Code.
 
 > 📖 **New to computers or AI tools?** We've prepared a much more detailed, beginner-friendly [Complete User Guide (GUIDE.en.md)](./GUIDE.en.md) · [View as PDF (GUIDE.en.pdf)](./GUIDE.en.pdf).
 
-> **Current status (important)**: Only **Phase 1** is implemented so far (current version: v0.1.8). "① Statusline" below works right now. "② Account switching" **does not have any code yet** (it's not disabled — it simply hasn't been built). It's planned for Phase 2, gated behind an explicit user consent flow.
+> **Current status (important)**: Only **Phase 1** is implemented so far (current version: v0.1.9). "① Statusline" below works right now. "② Account switching" **does not have any code yet** (it's not disabled — it simply hasn't been built). It's planned for Phase 2, gated behind an explicit user consent flow.
 
 ---
 
@@ -64,8 +64,14 @@ If you accidentally delete that fixed-location copy too and the statusline stops
   Install status: installed (claudetower's statusline is registered with Claude Code)
   Widgets shown: model, project location, context usage, cost, rate limits (5h/7d)
   ```
+- `claudetower widgets` — check which widgets are currently on
+- `claudetower widgets off <widgets...>` / `claudetower widgets on <widgets...>` — turn only the named widgets on/off (everything else stays as-is — no need to re-answer all 5 `setup` questions). Widget names: `model`, `location`, `context`, `cost`, `rate_limit`
 - `claudetower uninstall` — safely removes only the statusline registration (leaves your other Claude Code settings untouched)
 - `claudetower statusline` — the renderer Claude Code invokes internally (you won't run this by hand)
+
+### Turn widgets on/off right from the Claude Code chat — no terminal needed
+
+Running `setup` also installs a conversational command, `/claudetower-widgets`. Type `/claudetower-widgets` in the Claude Code chat, or just say something like "turn off context and cost in the statusline," and the AI shows you the current state and toggles it for you — no terminal, no command syntax to remember.
 
 > Account-related commands like `accounts` or `config` **do not exist yet** (planned for Phase 2).
 

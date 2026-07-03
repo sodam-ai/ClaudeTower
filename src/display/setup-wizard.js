@@ -5,8 +5,9 @@
 
 const { ALL_WIDGET_TYPES, writeEnabledWidgets } = require('./config/widget-config');
 const { writeStatusLineConfig } = require('./config/settings-writer');
-const { buildStatuslineCommand } = require('./config/statusline-command');
+const { buildStatuslineCommand, resolveUsableExePath } = require('./config/statusline-command');
 const { ensureInstalledAtTarget } = require('./config/install-target');
+const { writeSkillFile } = require('./config/skill-file');
 
 const WIDGET_LABELS = {
   model: '사용 모델',
@@ -89,6 +90,25 @@ async function runSetupWizard(rl, { widgetConfigPath, settingsPath, log = () => 
     log(`(기존 설정은 ${writeResult.filePath}.bak 으로 백업해뒀습니다)`);
   }
   log('다음 Claude Code 상호작용부터 상태표시줄이 표시됩니다.');
+
+  // 터미널을 열 줄 모르는 사용자도 클로드코드 채팅창에서 그냥 /claudetower-widgets라고
+  // 치면 위젯을 켜고 끌 수 있게, Personal Skill 파일을 함께 심어둔다(.PRD/01_PRD.md
+  // §3의 원래 P1 요구사항 "슬래시 명령 대화형 설정"). SEA로 실행 중일 때만 의미가
+  // 있다(개발 모드는 단일 실행 파일이 없어 스킬이 실행할 명령을 못 만듦) — 이 단계가
+  // 실패해도(권한 문제 등) setup 자체는 이미 끝난 상태이므로 조용히 건너뛰고
+  // 계속 진행한다(통계표시줄 핵심 기능과 무관한 부가 기능이 설치 전체를 막으면 안 됨).
+  const usableExePath = resolveUsableExePath();
+  if (usableExePath) {
+    try {
+      const skillResult = writeSkillFile(usableExePath);
+      log(`\n클로드코드 채팅창에서 "/claudetower-widgets"라고 치면 위젯을 대화로 켜고 끌 수 있습니다.`);
+      if (!skillResult.skillsDirExistedBefore) {
+        log('(방금 처음 만들어진 설정이라, 클로드코드를 한 번 재시작해야 인식됩니다. 이미 다른 스킬을 쓰고 계셨다면 재시작 없이 바로 됩니다.)');
+      }
+    } catch (err) {
+      log(`\n("/claudetower-widgets" 대화형 설정 등록은 건너뛰었습니다: ${err.message} — 상태표시줄 자체는 정상 작동합니다)`);
+    }
+  }
 
   return { enabled, command, settingsFilePath: writeResult.filePath };
 }

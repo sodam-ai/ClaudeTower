@@ -27,19 +27,27 @@ function quote(p) {
   return `"${p}"`;
 }
 
+// SEA 바이너리로 실행 중일 때 "지금 실제로 쓸 수 있는" claudetower 실행 파일
+// 경로 하나만 돌려준다(개발 모드는 node + 스크립트 두 조각이라 단일 경로 개념이
+// 없으므로 null) — statusLine 명령 생성과 skill 파일의 allowed-tools 양쪽에서
+// 동일한 "실행 파일이 실제로 어디 있는지" 판단 로직을 공유하기 위해 분리했다.
+function resolveUsableExePath() {
+  if (!sea.isSea()) return null;
+  const targetPath = resolveInstallTargetPath();
+  // 고정 위치에 파일이 실제로 있을 때만 그 경로를 쓴다. ensureInstalledAtTarget의
+  // 복사가 실패했다면(예: Windows 파일 잠금 충돌) 존재하지도 않는 경로를 등록해서
+  // "즉시 고장난 상태"로 만드는 것보다, 지금 실제로 실행 중인 파일(반드시 존재함)의
+  // 위치를 쓰는 게 훨씬 안전하다 — 그 경우 이전과 동일한 수준의 위험만 남는다.
+  return fs.existsSync(targetPath) ? targetPath : process.execPath;
+}
+
 function buildStatuslineCommand() {
   if (sea.isSea()) {
-    const targetPath = resolveInstallTargetPath();
-    // 고정 위치에 파일이 실제로 있을 때만 그 경로를 등록한다. ensureInstalledAtTarget의
-    // 복사가 실패했다면(예: Windows 파일 잠금 충돌) 존재하지도 않는 경로를 등록해서
-    // "즉시 고장난 상태"로 만드는 것보다, 지금 실제로 실행 중인 파일(반드시 존재함)의
-    // 위치를 등록하는 게 훨씬 안전하다 — 그 경우 이전과 동일한 수준의 위험만 남는다.
-    const usablePath = fs.existsSync(targetPath) ? targetPath : process.execPath;
-    return `${quote(toForwardSlash(usablePath))} statusline`;
+    return `${quote(toForwardSlash(resolveUsableExePath()))} statusline`;
   }
   const execPath = toForwardSlash(process.execPath);
   const binPath = toForwardSlash(path.join(__dirname, '..', '..', '..', 'bin', 'claudetower.js'));
   return `${quote(execPath)} ${quote(binPath)} statusline`;
 }
 
-module.exports = { buildStatuslineCommand, toForwardSlash };
+module.exports = { buildStatuslineCommand, resolveUsableExePath, toForwardSlash };

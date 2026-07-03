@@ -2,7 +2,7 @@
 
 > This guide is written so that anyone can follow it from start to finish, even with little or no prior experience using computers, smartphones, or AI tools. Wherever a technical term appears, a plain-language explanation follows right next to it.
 
-**Document version**: This guide covers ClaudeTower **v0.1.8**.
+**Document version**: This guide covers ClaudeTower **v0.1.9**.
 
 ---
 
@@ -174,7 +174,11 @@ No. **You only need to run `setup` once.** After that, the program runs automati
 
 ### I want to change which items are shown later
 
-Just run `setup` again. Answer the 5 questions again, and it takes effect immediately. For example, to stop showing "context" and "cost," just answer `n` to those two questions and press Enter for the rest.
+**Easiest way**: Type `/claudetower-widgets` in the Claude Code chat, or just say something like "turn off context and cost in the statusline." No terminal needed — the AI shows you the current state and toggles it for you (this conversational command gets installed automatically whenever you run `setup`).
+
+**If you're comfortable with a terminal**: run something like `claudetower widgets off context cost` — only the widgets you name change, everything else stays as it was (no need to re-answer all 5 `setup` questions). Widget names: `model`, `location`, `context`, `cost`, `rate_limit`. Running `claudetower widgets` alone shows you what's currently on.
+
+**To reconfigure everything from scratch**: run `setup` again and answer the 5 questions.
 
 ### I want to check whether it's installed correctly
 
@@ -217,12 +221,15 @@ This program **never sends anything over the internet.** All information stays e
 
 | Command | What it does | Example |
 |---|---|---|
-| `claudetower --version` | Shows the currently installed version number | `0.1.7` |
+| `claudetower --version` | Shows the currently installed version number | `0.1.9` |
 | `claudetower --help` (or run with no arguments) | Shows usage instructions | — |
-| `claudetower setup` | Choose which widgets to show and auto-register with Claude Code (also used to change settings later) | Answer 5 questions with Y/n |
+| `claudetower setup` | Choose which widgets to show and auto-register with Claude Code (also installs the `/claudetower-widgets` chat command) | Answer 5 questions with Y/n |
+| `claudetower widgets` | Check which widgets are currently on | Shows status only, changes nothing |
+| `claudetower widgets off <widgets...>` / `on <widgets...>` | Turn only the named widgets on/off | `claudetower widgets off context cost` |
 | `claudetower status` | Check current install status and which widgets are enabled | Shows "installed" / "not installed" / "broken" |
-| `claudetower uninstall` | Safely remove only the statusline registration from Claude Code | Other settings are left untouched |
+| `claudetower uninstall` | Safely remove the statusline registration and the `/claudetower-widgets` chat command | Other settings are left untouched |
 | `claudetower statusline` | The renderer Claude Code calls internally | **You never need to run this yourself** |
+| `/claudetower-widgets` (in Claude Code chat) | Turn widgets on/off conversationally, no terminal needed | Just say "turn off context and cost" |
 
 > Account-related commands like `accounts` or `config` **do not exist yet** (planned for Phase 2 — there is no code for them right now).
 
@@ -267,7 +274,7 @@ This program **never sends anything over the internet.** All information stays e
 
 ## 11. Version history summary
 
-This program has been rapidly refined through real-world testing. Below is an accurate summary of what actually changed in each version (current latest: **v0.1.8**).
+This program has been rapidly refined through real-world testing. Below is an accurate summary of what actually changed in each version (current latest: **v0.1.9**).
 
 | Version | Key changes |
 |---|---|
@@ -280,6 +287,7 @@ This program has been rapidly refined through real-world testing. Below is an ac
 | v0.1.6 | Installed files no longer break if renamed, moved, or deleted (auto-settles into a fixed safe location) |
 | v0.1.7 | Shows the reset countdown/time once a rate limit reaches a warning level (70%+) |
 | v0.1.8 | Reset countdown is now always shown regardless of usage level (previously only shown at 70%+). Also fixed a bug where re-running `setup` to install a new version could silently fail because Claude Code kept the executable in use (now copies to a temp file first, then swaps it in safely, with automatic retry) |
+| v0.1.9 | Added `claudetower widgets on/off` for quickly toggling just the widgets you name (no need to re-answer all 5 questions). `setup` now also installs a `/claudetower-widgets` command so you can turn widgets on/off conversationally right in the Claude Code chat (no terminal needed) |
 
 ---
 
@@ -340,7 +348,7 @@ Here's where this program actually creates or uses files on your computer.
 ## 16. Frequently asked questions (FAQ)
 
 **Q. Does installing this collect my Claude account information?**
-A. No. Account-related code isn't included in this version (v0.1.8) at all. This program is structurally unable to see or store your ID, password, or authentication tokens.
+A. No. Account-related code isn't included in this version (v0.1.9) at all. This program is structurally unable to see or store your ID, password, or authentication tokens.
 
 **Q. Does anything get sent over the internet?**
 A. No. Everything runs locally, entirely on your own computer.
@@ -378,7 +386,7 @@ A. It's designed for personal use and is not intended for commercial sale or del
 
 ### 17-3. Commercial use — strict prohibition
 
-**The current version of this program (v0.1.8, Phase 1 MVP) is not designed for:**
+**The current version of this program (v0.1.9, Phase 1 MVP) is not designed for:**
 
 - ❌ Commercial sale
 - ❌ Being offered as a paid service
@@ -388,7 +396,7 @@ A. It's designed for personal use and is not intended for commercial sale or del
 
 Reason for this strict limitation: there are plans to eventually add an "automatic multi-account switching" feature (the Account module), which would cycle between multiple Claude accounts automatically — a pattern that **could conflict with Claude's terms of service.** It has been clearly established that once this feature actually ships, that risk applies to the entire program, even for users who never turn the feature on and only use the statusline. To avoid amplifying that risk through commercial expansion, the design principle from the very beginning excludes commercial use entirely.
 
-> Note: as of this writing (v0.1.8), the "account switching" feature has no code at all, so the terms-of-service conflict risk described above **does not actually exist yet.** However, the commercial-use prohibition itself applies to the entire project from the start, as a matter of design principle.
+> Note: as of this writing (v0.1.9), the "account switching" feature has no code at all, so the terms-of-service conflict risk described above **does not actually exist yet.** However, the commercial-use prohibition itself applies to the entire project from the start, as a matter of design principle.
 
 ### 17-4. On reusing external code and ideas
 
@@ -400,4 +408,4 @@ This program is provided **"AS IS"** under the standard terms of the MIT License
 
 ---
 
-*This document covers ClaudeTower v0.1.8 and is an extended companion to [`README.en.md`](./README.en.md). The Korean version is [`GUIDE.md`](./GUIDE.md).*
+*This document covers ClaudeTower v0.1.9 and is an extended companion to [`README.en.md`](./README.en.md). The Korean version is [`GUIDE.md`](./GUIDE.md).*
