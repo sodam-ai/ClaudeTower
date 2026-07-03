@@ -73,3 +73,27 @@ test('widgets off: 이미 꺼진 항목을 또 꺼도 에러 없이 멱등하게
   assert.equal(result.applied, true);
   assert.deepEqual(readEnabledWidgets(widgetConfigPath), ['model', 'location']);
 });
+
+test('widgets off/on: 항목 이름을 하나도 안 주면 "성공"으로 위장하지 않고 명확히 거부한다', () => {
+  const widgetConfigPath = tempWidgetConfigPath();
+  writeEnabledWidgets(ALL_WIDGET_TYPES, widgetConfigPath);
+
+  const offResult = runWidgetsCommand(['off'], { widgetConfigPath });
+  assert.equal(offResult.applied, false);
+  assert.deepEqual(readEnabledWidgets(widgetConfigPath), ALL_WIDGET_TYPES);
+
+  const onResult = runWidgetsCommand(['on'], { widgetConfigPath });
+  assert.equal(onResult.applied, false);
+  assert.deepEqual(readEnabledWidgets(widgetConfigPath), ALL_WIDGET_TYPES);
+});
+
+test('widgets off: 유효한 항목과 잘못된 항목이 섞이면 유효한 항목도 적용하지 않고 전체를 거부한다', () => {
+  const widgetConfigPath = tempWidgetConfigPath();
+  writeEnabledWidgets(ALL_WIDGET_TYPES, widgetConfigPath);
+
+  const result = runWidgetsCommand(['off', 'cost', 'bogus'], { widgetConfigPath });
+
+  assert.equal(result.applied, false);
+  // cost도 함께 거부돼야 한다(부분 적용 금지) — 실제 유효한 항목까지 같이 꺼지면 안 됨.
+  assert.deepEqual(readEnabledWidgets(widgetConfigPath), ALL_WIDGET_TYPES);
+});

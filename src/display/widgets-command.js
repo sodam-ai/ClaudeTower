@@ -18,6 +18,15 @@ function formatStatusLines(enabled) {
 // 두고 사용자가 지정한 항목만 바꾼다 — "설정을 쉽게 켜고 끄고 싶다"는 실사용
 // 피드백의 근본 요구사항(전체 재설정이 아니라 부분 변경).
 function applyWidgetChange(action, names, { widgetConfigPath, log = () => {} } = {}) {
+  if (names.length === 0) {
+    // 이름을 하나도 안 넘기면 "바꿀 게 없다"고 조용히 성공 처리하던 결함 —
+    // 실제로는 아무것도 안 바뀌었는데 "변경 완료"가 떠서 사용자가 요청이
+    // 반영된 줄 착각할 수 있었다(실측으로 재현). 실수로 이름을 빠뜨린
+    // 경우이므로 명확히 에러로 알린다.
+    log(`끄거나 켤 항목 이름을 하나 이상 알려주세요. 사용 가능한 항목: ${ALL_WIDGET_TYPES.join(', ')}`);
+    return { applied: false };
+  }
+
   const invalid = names.filter((n) => !ALL_WIDGET_TYPES.includes(n));
   if (invalid.length > 0) {
     log(`알 수 없는 항목: ${invalid.join(', ')}`);
