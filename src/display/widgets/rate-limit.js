@@ -50,7 +50,9 @@ function renderRateLimit(session, now = Date.now()) {
   // 일관되게 사용한다.
   const parts = [];
   if (Number.isFinite(fiveHour)) {
-    const rounded = Math.round(fiveHour);
+    // stdin은 신뢰하지 않는 입력으로 취급 — 음수·100 초과 값이 "-10%"·"150%"로 그대로
+    // 노출되지 않도록 0~100으로 고정한다(context.js와 동일한 결함, 경계값 테스트로 발견).
+    const rounded = Math.round(Math.max(0, Math.min(100, fiveHour)));
     const color = pickColor('rate_limit_5h', rounded);
     // 재설정 시간은 사용률과 무관하게 항상 표시한다(실사용 피드백 — 안전 구간에서도
     // 언제 리셋되는지 미리 알고 싶다는 요청으로 조건부 표시를 폐지).
@@ -59,7 +61,7 @@ function renderRateLimit(session, now = Date.now()) {
     parts.push(colorize(text, color || COLOR.safe));
   }
   if (Number.isFinite(sevenDay)) {
-    const rounded = Math.round(sevenDay);
+    const rounded = Math.round(Math.max(0, Math.min(100, sevenDay)));
     const color = pickColor('rate_limit_7d', rounded);
     const reset = formatSevenDayReset(session?.rate_limits?.seven_day?.resets_at, now);
     const text = `7일 ${renderGauge(rounded)} ${rounded}%${reset ? `·${reset}` : ''}`;
