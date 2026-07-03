@@ -18,8 +18,22 @@ const path = require('node:path');
 
 const SKILL_NAME = 'claudetower-widgets';
 
+// 실사용 검증 중 발견한 근본 결함: Claude Code는 설정 홈을 CLAUDE_CONFIG_DIR
+// 환경변수로 바꿀 수 있고(Windows npm-global 설치 등에서 실제로
+// C:\Users\<이름>\AppData\Roaming\claude-code 로 지정돼 있음), 그럴 때
+// 네이티브 개인 스킬은 ~/.claude/skills/ 가 아니라 $CLAUDE_CONFIG_DIR/skills/
+// 에서 읽힌다. 실측으로 확정: ~/.claude/skills/ 에 넣은 스킬은 며칠간 한 번도
+// 인식되지 않았고, 같은 스킬을 $CLAUDE_CONFIG_DIR/skills/ 로 옮기자 그 즉시
+// 세션 스킬 목록에 나타났다. 그래서 CLAUDE_CONFIG_DIR가 설정돼 있으면 반드시
+// 그쪽을 쓰고, 없을 때만(기본 설치) ~/.claude/skills/ 로 폴백한다.
 function resolveSkillsDir() {
-  return process.env.CLAUDETOWER_SKILLS_DIR || path.join(os.homedir(), '.claude', 'skills');
+  if (process.env.CLAUDETOWER_SKILLS_DIR) {
+    return process.env.CLAUDETOWER_SKILLS_DIR;
+  }
+  if (process.env.CLAUDE_CONFIG_DIR) {
+    return path.join(process.env.CLAUDE_CONFIG_DIR, 'skills');
+  }
+  return path.join(os.homedir(), '.claude', 'skills');
 }
 
 function resolveSkillFilePath() {
