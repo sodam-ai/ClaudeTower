@@ -1,10 +1,8 @@
 # ClaudeTower 설치 스크립트 (Windows, irm .../install.ps1 | iex)
 #
-# 주의: 이 저장소가 비공개(private)인 동안에는 GitHub Release 자산이
-# 인증 없는 Invoke-WebRequest로 받아지지 않는다 — 저장소를 공개 전환하거나
-# GitHub Release 자체를 아직 만들지 않은 상태에서는 이 스크립트가 실제로
-# 동작하지 않는다(Phase 1 시점에는 스크립트 구조만 완성, 실다운로드 검증은
-# 보류 — .PRD 참고).
+# 2026-07-04: 저장소 공개 전환 + main 브랜치 개설 + v0.1.9 릴리스로
+# 원라이너 설치(irm https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.ps1 | iex)
+# 가 실제로 동작하는 것을 실측 확인했다.
 
 $ErrorActionPreference = 'Stop'
 

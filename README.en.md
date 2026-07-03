@@ -43,11 +43,18 @@ Sonnet 5  📁 my-project  컨텍스트 ██░░░ 45%  💰 $1.50  5시간
 | Method | Status | Notes |
 |---|---|---|
 | **Download directly from GitHub Releases** (5 steps above) | ✅ Works now | No Node.js required |
-| `curl`/`PowerShell` one-liner (`install.sh`/`install.ps1`) | ⚠️ The script logic itself (download → install to a fixed location) is confirmed working, **but there's no `main` branch yet, so the "one-line install" via `raw.githubusercontent.com/.../main/...` doesn't work yet** (404) | Will work as soon as a `main` branch exists (at official release time) |
+| `curl`/`PowerShell` one-liner (`install.sh`/`install.ps1`) | ✅ Works now (fixed 2026-07-04 — a `main` branch now exists) | No Node.js required, see commands below |
 | Build from source | ✅ Works now | For developers, requires Node.js 22+ — see "For developers" below |
-| `npm install -g` | ⚠️ Known to be broken when the repo was private — not yet re-verified after going public | To be checked next |
+| `npm install -g` | ⏸️ Deliberately deferred | "ClaudeTower/claudetower" is still a working title, and trademark clearance is unresolved (`.PRD/01_PRD.md` §7, `[legal review needed]`). An npm package name is effectively permanent once claimed, so we won't publish until the name is final |
 
-> We've confirmed that `install.sh`/`install.ps1`'s core logic — fetching the executable from a GitHub Release and installing it to a fixed location — actually works. However, the repository doesn't have a `main` branch yet (everything so far lives on the `feat/phase1-mvp-skeleton` branch), so a one-line install like `curl .../main/install.sh | sh` doesn't work yet. For now, use "Download directly from GitHub Releases" above.
+macOS/Linux:
+```bash
+curl -fsSL https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.sh | sh
+```
+Windows (PowerShell):
+```powershell
+irm https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.ps1 | iex
+```
 
 ### Can I delete or move the installed file?
 

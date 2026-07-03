@@ -43,11 +43,18 @@ Sonnet 5  📁 my-project  컨텍스트 ██░░░ 45%  💰 $1.50  5시간
 | 방법 | 상태 | 비고 |
 |---|---|---|
 | **GitHub Release에서 직접 다운로드** (위 5단계) | ✅ 지금 가능 | Node.js 불필요 |
-| `curl`/`PowerShell` 원라이너 (`install.sh`/`install.ps1`) | ⚠️ 스크립트 자체(다운로드→고정 위치 설치)는 정상 동작 확인됨, **다만 아직 `main` 브랜치가 없어서 `raw.githubusercontent.com/.../main/...` 형태의 "한 줄 설치"는 지금 안 됨**(404) | `main` 브랜치가 생기면(정식 배포 시) 바로 사용 가능 |
+| `curl`/`PowerShell` 원라이너 (`install.sh`/`install.ps1`) | ✅ 지금 가능(2026-07-04부터, `main` 브랜치 개설로 해결) | Node.js 불필요, 아래 명령 참고 |
 | 소스에서 직접 빌드 | ✅ 지금 가능 | 개발자용, Node.js 22+ 필요 — 아래 "개발자용" 참고 |
-| `npm install -g` | ⚠️ 저장소가 비공개였을 때 알려진 문제로 동작하지 않았음 — 저장소를 공개로 전환한 뒤 아직 재검증하지 않음 | 다음에 확인 예정 |
+| `npm install -g` | ⏸️ 의도적으로 보류 | "ClaudeTower/claudetower"는 아직 가제이고 상표 저촉 여부도 [법무 검토 필요] 상태(`.PRD/01_PRD.md` §7). npm 패키지 이름은 사실상 영구 점유되는 자원이라, 이름이 확정되기 전에 발행하지 않습니다 |
 
-> `install.sh`/`install.ps1` 스크립트는 GitHub Release에서 실행 파일을 받아 고정 위치에 설치하는 로직 자체는 실제로 동작하는 것을 확인했습니다. 다만 지금은 저장소에 `main` 브랜치가 없어서(작업이 전부 `feat/phase1-mvp-skeleton` 브랜치에 있음), `curl .../main/install.sh | sh` 같은 "한 줄 설치"는 아직 안 됩니다 — 지금은 위 "GitHub Release에서 직접 다운로드" 방법을 이용하세요.
+macOS/Linux:
+```bash
+curl -fsSL https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.sh | sh
+```
+Windows(PowerShell):
+```powershell
+irm https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.ps1 | iex
+```
 
 ### 설치 파일을 지우거나 옮겨도 되나요?
 
