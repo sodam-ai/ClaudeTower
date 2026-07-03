@@ -42,13 +42,21 @@ function resolveSkillFilePath() {
 
 // exePath: 지금 설치된(또는 설치될) claudetower 실행 파일의 절대경로 — 그 경로만
 // Bash 실행을 허용해서(allowed-tools), 이 스킬이 임의의 명령을 실행할 수 있는
-// 넓은 권한을 갖지 않도록 범위를 좁힌다(비개발자 대상 기능이 넓은 Bash 권한 문을
-// 여는 건 이 프로젝트의 최소 권한 원칙에서 벗어남).
+// 넓은 권한을 갖지 않도록 범위를 좁힌다(비개발자 대상 기능이 최소 권한 원칙에서
+// 벗어나 넓은 Bash 권한 문을 여는 건 금지).
+//
+// disable-model-invocation은 일부러 넣지 않는다(실사용 검증에서 발견한 교훈):
+// 이 값을 true로 두면 사용자가 "컨텍스트 표시 꺼줘"처럼 자연어로 말했을 때 AI가
+// 이 스킬을 자동으로 못 쓰고, 엉뚱한 범용 설정 스킬이 config.json을 직접 손으로
+// 편집해버리는 상황이 실제로 재현됐다. 위젯 켜고 끄기는 위험하지도 비가역적이지도
+// 않으므로(설계상 최소 1개 유지 규칙 등 안전장치는 widgets 명령에 이미 있음),
+// AI 자동 호출을 막을 이유가 없다. 오히려 "비개발자가 말로 설정"이라는 본래
+// 목적을 위해 자동 호출이 반드시 열려 있어야 한다. 대신 description에 ClaudeTower
+// 상태표시줄 고유 문구를 강하게 넣어, 범용 설정 스킬이 아니라 이 스킬이 선택되게 한다.
 function buildSkillFileContent(exePath) {
   const quotedExe = `"${exePath.replace(/\\/g, '/')}"`;
   return `---
-description: ClaudeTower 상태표시줄에 표시할 항목(사용 모델/프로젝트 위치/컨텍스트/비용/사용률)을 대화로 켜고 끕니다. "상태표시줄 설정 바꿔줘", "컨텍스트 표시 꺼줘" 같은 요청에 사용하세요.
-disable-model-invocation: true
+description: ClaudeTower 상태표시줄(statusline) 위젯을 켜고 끕니다. 표시 항목은 사용 모델·프로젝트 위치·컨텍스트 사용량·비용·사용률 5가지. "상태표시줄에서 컨텍스트 꺼줘", "비용 표시 꺼줘", "상태표시줄 설정 바꿔줘", "ClaudeTower 위젯 켜/꺼" 같은 요청이면 반드시 이 스킬을 사용하고, config.json을 직접 편집하지 마세요.
 argument-hint: [끄거나 켜고 싶은 항목을 자연어로]
 allowed-tools: Bash(${quotedExe} widgets *)
 ---

@@ -45,8 +45,20 @@ function withSkillsDirOverride(dir, fn) {
 test('buildSkillFileContent: allowed-tools가 정확한 exe 경로로만 좁혀져 있다(넓은 Bash 권한 금지)', () => {
   const content = buildSkillFileContent('C:/Users/Someone/.claudetower/bin/claudetower.exe');
   assert.match(content, /allowed-tools: Bash\("C:\/Users\/Someone\/\.claudetower\/bin\/claudetower\.exe" widgets \*\)/);
-  assert.match(content, /disable-model-invocation: true/);
   assert.match(content, /\$ARGUMENTS/);
+});
+
+test('buildSkillFileContent: disable-model-invocation을 넣지 않는다(자연어 자동 호출을 막으면 안 됨 — 실사용 교훈)', () => {
+  const content = buildSkillFileContent('C:/Users/Someone/.claudetower/bin/claudetower.exe');
+  // 이 값이 true면 "컨텍스트 꺼줘" 같은 자연어에 이 스킬이 자동으로 안 잡혀서
+  // 엉뚱한 범용 설정 스킬이 config.json을 직접 편집해버린다(실측 재현).
+  assert.doesNotMatch(content, /disable-model-invocation/);
+});
+
+test('buildSkillFileContent: description에 statusline/ClaudeTower 고유 문구가 있어 범용 설정 스킬 대신 선택되게 한다', () => {
+  const content = buildSkillFileContent('C:/Users/Someone/.claudetower/bin/claudetower.exe');
+  assert.match(content, /statusline|상태표시줄/);
+  assert.match(content, /config\.json을 직접 편집하지 마세요/);
 });
 
 test('writeSkillFile: SKILL.md을 올바른 위치에 쓰고, 폴더가 없었으면 skillsDirExistedBefore=false를 반환한다', () => {
