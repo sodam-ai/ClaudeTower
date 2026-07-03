@@ -100,11 +100,15 @@ async function runSetupWizard(rl, { widgetConfigPath, settingsPath, log = () => 
   const usableExePath = resolveUsableExePath();
   if (usableExePath) {
     try {
-      const skillResult = writeSkillFile(usableExePath);
+      writeSkillFile(usableExePath);
+      // 원래는 "~/.claude/skills/ 폴더가 이미 있었으면 재시작 없이 바로 인식된다"는
+      // 공식 문서를 근거로 조건부 안내였다 — 그런데 실사용 테스트에서 폴더가 이미
+      // 있던 환경에서도 재시작 전까지는 인식되지 않는 게 2회 재현됐다(setup을 실행한
+      // 바로 그 세션에서 곧바로 "/claudetower-widgets"를 시도 → "No commands match").
+      // 문서의 조건과 실측 결과가 어긋난 이상, 조건부로 안내를 생략해 사용자가
+      // "왜 안 되지"에 갇히게 하는 것보다 매번 안내하는 쪽이 안전하다.
       log(`\n클로드코드 채팅창에서 "/claudetower-widgets"라고 치면 위젯을 대화로 켜고 끌 수 있습니다.`);
-      if (!skillResult.skillsDirExistedBefore) {
-        log('(방금 처음 만들어진 설정이라, 클로드코드를 한 번 재시작해야 인식됩니다. 이미 다른 스킬을 쓰고 계셨다면 재시작 없이 바로 됩니다.)');
-      }
+      log('(지금 이 창에서는 바로 안 될 수 있습니다 — 이 창을 완전히 닫고 클로드코드를 새로 시작한 뒤에 써보세요.)');
     } catch (err) {
       log(`\n("/claudetower-widgets" 대화형 설정 등록은 건너뛰었습니다: ${err.message} — 상태표시줄 자체는 정상 작동합니다)`);
     }
