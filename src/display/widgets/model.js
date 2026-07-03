@@ -13,7 +13,8 @@ function renderModel(session) {
   if (trimmed.length === 0) {
     return null;
   }
-  return `모델 ${trimmed}`;
+  // "모델" 접두어 없이 모델 이름만 그대로 표시(실사용 피드백 — 예: "모델 Sonnet 5" → "Sonnet 5").
+  return trimmed;
 }
 
 module.exports = { renderModel };

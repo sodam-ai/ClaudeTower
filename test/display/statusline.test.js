@@ -21,7 +21,7 @@ test('모든 필드가 있을 때 5개 위젯이 모두 렌더링된다', () => 
     },
     ALL_WIDGET_TYPES
   );
-  assert.match(out, /모델 Opus/);
+  assert.match(out, /Opus/);
   assert.match(out, /my-project/);
   assert.match(out, /컨텍스트/);
   assert.match(out, /50%/);

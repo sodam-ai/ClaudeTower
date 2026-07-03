@@ -4,8 +4,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { renderModel } = require('../../src/display/widgets/model');
 
-test('model.display_name이 있으면 "모델 <이름>" 형태로 표시된다', () => {
-  assert.equal(renderModel({ model: { display_name: 'Opus' } }), '모델 Opus');
+test('model.display_name이 있으면 접두어 없이 이름만 그대로 표시된다', () => {
+  assert.equal(renderModel({ model: { display_name: 'Opus' } }), 'Opus');
 });
 
 test('model 필드 자체가 없으면 위젯이 숨겨진다', () => {
@@ -23,5 +23,5 @@ test('display_name이 공백뿐이면 숨겨진다', () => {
 });
 
 test('앞뒤 공백은 트리밍된다', () => {
-  assert.equal(renderModel({ model: { display_name: '  Sonnet  ' } }), '모델 Sonnet');
+  assert.equal(renderModel({ model: { display_name: '  Sonnet  ' } }), 'Sonnet');
 });

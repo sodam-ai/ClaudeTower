@@ -16,7 +16,7 @@ Shows your current project path, active model, context usage, cost, and rate lim
 
 Example:
 ```
-모델 Sonnet 5  📁 my-project  컨텍스트 ██░░░ 45%  💰 $1.50  5시간 ████░ 78%·1:41  7일 ███░░ 71%·일06:00
+Sonnet 5  📁 my-project  컨텍스트 ██░░░ 45%  💰 $1.50  5시간 ████░ 78%·1:41  7일 ███░░ 71%·일06:00
 ```
 (The reset countdown is always shown alongside the percentage, regardless of usage level.)
 

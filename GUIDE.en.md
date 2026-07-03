@@ -35,11 +35,11 @@
 For example, it shows a single line like this at the bottom of your screen:
 
 ```
-모델 Sonnet 5  📁 my-project  컨텍스트 ██░░░ 45%  💰 $1.50  5시간 ████░ 78%·1:41  7일 ███░░ 71%·일06:00
+Sonnet 5  📁 my-project  컨텍스트 ██░░░ 45%  💰 $1.50  5시간 ████░ 78%·1:41  7일 ███░░ 71%·일06:00
 ```
 
 What this line tells you:
-- **모델 (Model) Sonnet 5** — which AI model you're currently using
+- **Sonnet 5** — which AI model you're currently using (the model name is shown as-is)
 - **📁 my-project** — the name of the folder you're currently working in
 - **컨텍스트 (Context) ██░░░ 45%** — how much of the AI's "memory" of your conversation is currently full (once it fills up, the AI starts forgetting earlier parts of the conversation)
 - **💰 $1.50** — how much this conversation has cost so far, in US dollars
