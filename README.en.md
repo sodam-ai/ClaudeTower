@@ -6,7 +6,7 @@ A statusline + (planned) multi-account switching CLI for Claude Code.
 
 > 📖 **New to computers or AI tools?** We've prepared a much more detailed, beginner-friendly [Complete User Guide (GUIDE.en.md)](./GUIDE.en.md) · [View as PDF (GUIDE.en.pdf)](./GUIDE.en.pdf).
 
-> **Current status (important)**: Only **Phase 1** is implemented so far (current version: v0.1.9). "① Statusline" below works right now. "② Account switching" **does not have any code yet** (it's not disabled — it simply hasn't been built). It's planned for Phase 2, gated behind an explicit user consent flow.
+> **Current status (important)**: Only **Phase 1** is implemented so far (current version: v0.1.10). "① Statusline" below works right now. "② Account switching" **does not have any code yet** (it's not disabled — it simply hasn't been built). It's planned for Phase 2, gated behind an explicit user consent flow.
 
 ---
 
