@@ -28,7 +28,7 @@
 - [ ] **Account 모듈 코드(`src/accounts/`)가 아예 존재하지 않아도(빈 디렉토리여도) Display 모듈이 완전히 독립적으로 동작함을 확인**
 - [ ] Node.js가 설치되지 않은 순정 Windows에서 SEA 바이너리가 그대로 동작
 - [ ] mock stdin JSON으로 단위 테스트 통과
-- [ ] CLI 설치 스크립트(npm -g/curl/PowerShell)로 실제 배포되어 설치 가능(마켓플레이스는 Phase 3 선택 채널, MVP 완료 기준 아님)
+- [x] ~~CLI 설치 스크립트(npm -g/curl/PowerShell)로 실제 배포되어 설치 가능~~ → **2026-07-04 부분 확정**: `main` 브랜치 개설 + v0.1.9 GitHub Release로 curl/PowerShell 원라이너(`curl -fsSL .../main/install.sh | sh`, `irm .../main/install.ps1 | iex`)가 격리 환경에서 다운로드→설치→`--version` 응답까지 실측 확인됨. `npm install -g`는 프로젝트명이 아직 가제·상표 검토 전이라(01_PRD.md §7) 의도적으로 보류(마켓플레이스는 기존대로 Phase 3 선택 채널, 이번 확정과 무관)
 - [ ] **README·가이드 문서 작성 완료** (04_PROJECT_SPEC.md 요구사항 기준, "Account 모듈을 켜지 않으면 이용약관 리스크와 무관하다"는 점을 명확히 구분해서 설명)
 
 ### Phase 1 시작 프롬프트

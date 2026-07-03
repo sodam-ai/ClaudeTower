@@ -195,9 +195,19 @@ grep -r "require.*accounts" src/display && echo "FAIL: 모듈 경계 위반" || 
 ## 배포 방법 (2026-07-04 CLI 전환 반영)
 
 1. GitHub Actions 매트릭스 빌드(linux/macos/windows)로 SEA 바이너리 생성
-2. **1순위 채널(독립 CLI)**: `npm install -g claudetower-cli`(Node.js 있는 사용자) 또는 curl(`curl -fsSL .../install.sh | sh`)·PowerShell(`irm .../install.ps1 | iex`) 설치 스크립트로 SEA 바이너리 직접 배치 — teamclaude·claude-swap·caam 등 리서치된 대다수 CLI 도구와 동일한 설치 UX
+2. **1순위 채널(독립 CLI)**: `npm install -g claudetower`(Node.js 있는 사용자, 패키지명은 `claudetower-cli`가 아니라 실제 package.json 기준 `claudetower`) 또는 curl(`curl -fsSL .../install.sh | sh`)·PowerShell(`irm .../install.ps1 | iex`) 설치 스크립트로 SEA 바이너리 직접 배치 — teamclaude·claude-swap·caam 등 리서치된 대다수 CLI 도구와 동일한 설치 UX
 3. `claudetower setup` 실행 → Display 즉시 활성화, Account 모듈은 `claudetower accounts enable` 실행 전까지 비활성
 4. **3순위 채널(선택적, Phase 3)**: `plugin/.claude-plugin/`의 얇은 래퍼를 마켓플레이스로 배포 — `/claudetower:*` 슬래시 명령이 내부적으로 설치된 CLI를 호출하는 방식. 마켓플레이스 발견성을 원하는 사용자를 위한 보조 경로일 뿐, 핵심 기능은 CLI 단독으로 완결됨
+
+### 배포 현황 (2026-07-04 실측)
+
+| 채널 | 상태 | 근거 |
+|---|---|---|
+| GitHub Release 직접 다운로드 | ✅ 가능 | `github.com/sodam-ai/ClaudeTower/releases`, 최신 `v0.1.9` |
+| curl/PowerShell 원라이너 | ✅ 가능 | `main` 브랜치 개설(이전엔 브랜치 부재로 raw URL 404) + v0.1.9 릴리스. `irm .../main/install.ps1 \| iex`를 격리 환경에서 실행해 다운로드→설치→`--version` 응답까지 실측 |
+| `npm install -g` | ⏸️ 의도적 보류 | 프로젝트명("claudetower")이 아직 가제이고 상표 저촉 여부가 `01_PRD.md §7` 기준 [법무 검토 필요] 상태. npm 패키지명은 사실상 영구 점유라 이름 확정 전 발행 안 함 |
+| 마켓플레이스(Phase 3) | 미착수 | 원 계획대로 Phase 3까지 보류 |
+| 기본 브랜치 | `main`(2026-07-04부터, 이전엔 `feat/phase1-mvp-skeleton`이 기본) |  |
 
 ---
 
