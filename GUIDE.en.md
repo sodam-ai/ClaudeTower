@@ -376,13 +376,13 @@ A. It's designed for personal use and is not intended for commercial sale or del
 
 ### 17-1. License (confirmed facts)
 
-- This project has committed to the **MIT License**, a widely used open-source license that allows the source code to be freely viewed, modified, and redistributed.
+- This project uses the **Apache License 2.0**, a widely used open-source license that allows the source code to be freely viewed, modified, and redistributed, with an explicit patent grant (unlike MIT).
+- The copyright holder is **SoDam AI Studio**.
 - The full license text is in the [`LICENSE`](./LICENSE) file in the repository.
 
 ### 17-2. License (not yet finalized — stated honestly)
 
-- **The exact copyright holder name/attribution has not been finalized yet.** The current `LICENSE` file explicitly marks this as undecided. Once finalized, it will be applied consistently across `LICENSE`, `README.md`, and `package.json`.
-- The final product name has also not been decided (trademark review regarding candidate names is still in progress).
+- The final product name has not been decided yet (trademark review regarding candidate names is still in progress).
 
 ### 17-3. Commercial use — strict prohibition
 
@@ -404,7 +404,7 @@ While designing this project, several other open-source statusline/account-manag
 
 ### 17-5. Limitation of liability
 
-This program is provided **"AS IS"** under the standard terms of the MIT License, without any warranty of any kind, express or implied. The copyright holder is not liable for any damages arising from the use of this program (see the [`LICENSE`](./LICENSE) file for the exact legal text).
+This program is provided **"AS IS"** under the standard terms of the Apache License 2.0, without any warranty of any kind, express or implied. The copyright holder (SoDam AI Studio) is not liable for any damages arising from the use of this program (see the [`LICENSE`](./LICENSE) file for the exact legal text).
 
 ---
 

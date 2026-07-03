@@ -18,7 +18,7 @@
     "lint:boundary": "node scripts/check-module-boundary.js",
     "verify": "npm run lint && npm run lint:boundary && npm run test:display"
   },
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "Apache-2.0",
   "devDependencies": {
     "esbuild": "^0.28.1",
     "eslint": "^10.6.0"

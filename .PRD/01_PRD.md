@@ -121,7 +121,7 @@ CLI 설치 -> claudetower setup(Display 즉시 활성화) -> (선택) claudetowe
 ## 7. [NEEDS CLARIFICATION]
 
 - [ ] 프로젝트 최종 이름 확정 ("ClaudeTower/claudetower"은 가제 — 상태 모니터링과 계정 제어를 한 곳에서 다룬다는 의미로 제안)
-- [ ] 라이선스·저작권자 — PulseLine/QuotaSwitch와 동일 방향(MIT) 제안, 최종 확정 필요
+- [x] ~~라이선스·저작권자~~ → **2026-07-03 확정**: Apache License 2.0, 저작권자 "SoDam AI Studio"(PulseLine/QuotaSwitch 원 제안이었던 MIT에서 최종 변경, 상세는 `04_PROJECT_SPEC.md` "라이선스" 참고)
 - [ ] 배포 채널(개인 마켓플레이스 우선) — 원 결정 계승 제안
 - [ ] **(최우선, 법무 검토 필요)** 여러 계정 자동 순환이 Anthropic 이용약관과 충돌하는지 — Account 모듈이 이 플러그인에 포함되는 이상, Display 모듈만 쓰려는 사용자도 "이 플러그인 전체"가 이 리스크와 연관된 것처럼 보일 수 있음. README에서 "Account 모듈을 켜지 않으면 이 리스크와 무관하다"는 점을 명확히 구분해서 설명해야 함(신규 발견 사항)
 - [ ] Display 모듈만 쓰고 싶은 사용자를 위해 "Account 모듈 코드 자체가 포함되지 않은 경량판"을 별도로 배포할지 여부(선택적 확장 논의)

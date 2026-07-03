@@ -124,7 +124,7 @@ This program is split into two completely separate rooms. The "statusline room" 
 
 ## Legal, copyright, and license
 
-- License: MIT (copyright holder not finalized yet — see [`LICENSE`](./LICENSE))
+- License: Apache License 2.0 (copyright holder: SoDam AI Studio — see [`LICENSE`](./LICENSE))
 - This project is for personal use; there are no plans for commercial sale or a paid service.
 - For more background, see the "법률·저작권·라이선스·상업적 사용 요구사항" section in [`.PRD/04_PROJECT_SPEC.md`](./.PRD/04_PROJECT_SPEC.md).
 

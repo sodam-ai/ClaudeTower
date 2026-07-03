@@ -104,8 +104,8 @@ claudetower-cli/
 > 법률 자문이 아니다. 확인된 사실과 [법무 검토 필요]를 구분한다.
 
 ### 라이선스 (Must Have)
-- MIT 제안(PulseLine·QuotaSwitch 동일 방향 계승) — 저작권자 이름·연도 [결정 필요]
-- LICENSE·README·package.json 세 곳 표기 일치
+- **확정**: Apache License 2.0, 저작권자 "SoDam AI Studio", 연도 2026(2026-07-03 확정, 기존 "MIT 제안" 방향에서 최종 변경)
+- LICENSE·README·package.json 세 곳 표기 일치(확인 완료)
 
 ### 외부 코드·아이디어 재사용 (Must Have)
 - ccstatusline·starship-claude·claudeline·cc-statusline·CCometixLine·ccusage·teamclaude·claude-swap·caam은 **아이디어·패턴만 참고, 코드 미복사**(양 프로젝트 원 판단 계승) — 실제 차용 시 각 라이선스의 고지 의무 [법무 검토 필요]
@@ -213,7 +213,7 @@ grep -r "require.*accounts" src/display && echo "FAIL: 모듈 경계 위반" || 
 
 ## [NEEDS CLARIFICATION]
 
-- [ ] LICENSE 저작권자 이름·연도
+- [x] ~~LICENSE 저작권자 이름·연도~~ → **2026-07-03 확정**: Apache License 2.0, 저작권자 "SoDam AI Studio", 2026년(라이선스 §"라이선스 (Must Have)" 참고)
 - [ ] "cc-" 접두사·상표 저촉 여부 [법무 검토 필요]
 - [x] ~~로컬 프록시 접근 토큰 실제 구현 방식~~ → **2026-07-04 CLI 전환으로 해결**. 마켓플레이스 방식에서는 "Claude Code가 커스텀 헤더를 지원하는지" 불확실했지만, CLI가 `eval $(claudetower env) claude` 패턴으로 Claude Code를 직접 실행하므로 CLI가 요청 경로 전체(프록시 주소, 접근 토큰 전달 방식)를 스스로 통제한다 — 더 이상 Claude Code의 미문서화 동작에 의존하지 않음
 - [x] ~~프록시 포트 충돌 정책~~ → **2026-07-04 사용자 요청으로 자동 재시도+포트 변경 채택**(이전 teamclaude 단순종료 방식은 폐기). 최초 설정은 순차 자동 탐색으로 완전 자동화, 런타임 재시작 시엔 backoff 후 자동 전환하되 "재시작 필요"를 안내(ANTHROPIC_BASE_URL이 프로세스 시작 시에만 읽히는 구조적 제약 때문에 완전 무중단은 불가능 — 상세 근거·정책은 QuotaSwitch 04_PROJECT_SPEC.md "포트 충돌 처리" 섹션, ClaudeTower Account 모듈도 동일 적용)
