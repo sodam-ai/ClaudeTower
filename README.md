@@ -64,6 +64,10 @@ irm https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.ps1 | ie
 
 ### 명령어 목록 (지금 실제로 있는 것만)
 
+> **참고**: 위 5단계까지만 하면 상태표시줄은 이미 완성입니다. 아래 명령어들은 나중에 표시 항목을 바꾸는 등 추가로 필요할 때만 쓰면 되는데, 지금은 새로 여는 터미널에서 `claudetower`라고만 쳐도 바로 안 될 수 있습니다(설치 폴더가 PATH에 자동 등록되지 않는 알려진 제약, 현재 미해결). 그래서:
+> - **제일 쉬운 방법(터미널 필요 없음)**: 클로드코드 채팅창에서 `/claudetower-widgets`라고 치거나 "상태표시줄에서 비용 표시 꺼줘"처럼 그냥 말하면 됩니다.
+> - 그래도 터미널에서 직접 치고 싶다면, `claudetower` 대신 전체 경로 `~/.claudetower/bin/claudetower.exe`(macOS/Linux는 `~/.claudetower/bin/claudetower`)를 쓰면 항상 됩니다.
+
 - `claudetower --version` / `--help`
 - `claudetower setup` — 상태표시줄 항목 선택 + Claude Code 설정 자동 등록(고정 위치로 자동 정착 포함)
 - `claudetower status` — 지금 설치돼 있는지, 어떤 항목이 켜져 있는지 확인
@@ -73,6 +77,7 @@ irm https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.ps1 | ie
   ```
 - `claudetower widgets` — 지금 어떤 항목이 켜져 있는지 확인
 - `claudetower widgets off <항목...>` / `claudetower widgets on <항목...>` — 지정한 항목만 켜고 끄기(나머지는 그대로, `setup`처럼 5개 질문에 전부 다시 답할 필요 없음). 항목 이름: `model`, `location`, `context`, `cost`, `rate_limit`
+- `claudetower config statusline-refresh <초>` — 상태표시줄 갱신 주기를 조절합니다(기본 1초, 세션을 여러 개 띄워두는 경우 3~5초 이상으로 늘리면 컴퓨터 부담이 줄어듭니다). `setup`을 다시 실행해도 이 값은 유지됩니다
 - `claudetower uninstall` — 등록된 상태표시줄 설정만 안전하게 제거(다른 Claude Code 설정은 그대로 둠)
 - `claudetower statusline` — Claude Code가 내부적으로 호출하는 렌더러(직접 실행할 일 없음)
 

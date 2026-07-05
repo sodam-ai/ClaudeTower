@@ -193,7 +193,7 @@ No. **You only need to run `setup` once.** After that, the program runs automati
 
 **Easiest way**: Type `/claudetower-widgets` in the Claude Code chat, or just say something like "turn off context and cost in the statusline." No terminal needed — the AI shows you the current state and toggles it for you (this conversational command gets installed automatically whenever you run `setup`).
 
-**If you're comfortable with a terminal**: run something like `claudetower widgets off context cost` — only the widgets you name change, everything else stays as it was (no need to re-answer all 5 `setup` questions). Widget names: `model`, `location`, `context`, `cost`, `rate_limit`. Running `claudetower widgets` alone shows you what's currently on.
+**If you're comfortable with a terminal**: run something like `claudetower widgets off context cost` — only the widgets you name change, everything else stays as it was (no need to re-answer all 5 `setup` questions). Widget names: `model`, `location`, `context`, `cost`, `rate_limit`. Running `claudetower widgets` alone shows you what's currently on. (If bare `claudetower` doesn't work in a new terminal, see section 9 — use the full path, or the "easiest way" above.)
 
 **To reconfigure everything from scratch**: run `setup` again and answer the 5 questions.
 
@@ -236,6 +236,8 @@ This program **never sends anything over the internet.** All information stays e
 
 ## 9. Full command list
 
+> **Note**: Typing bare `claudetower` in a freshly opened terminal may not work yet (the install folder isn't added to your PATH automatically — a known, unresolved limitation). **If you'd rather skip the terminal entirely, use the "easiest way" from section 7** (`/claudetower-widgets`, or just asking in plain language). If you still want to use a terminal, use the full path instead of bare `claudetower`: `~/.claudetower/bin/claudetower.exe` (macOS/Linux: `~/.claudetower/bin/claudetower`).
+
 | Command | What it does | Example |
 |---|---|---|
 | `claudetower --version` | Shows the currently installed version number | `0.1.10` |
@@ -244,6 +246,7 @@ This program **never sends anything over the internet.** All information stays e
 | `claudetower widgets` | Check which widgets are currently on | Shows status only, changes nothing |
 | `claudetower widgets off <widgets...>` / `on <widgets...>` | Turn only the named widgets on/off | `claudetower widgets off context cost` |
 | `claudetower status` | Check current install status and which widgets are enabled | Shows "installed" / "not installed" / "broken" |
+| `claudetower config statusline-refresh <seconds>` | Adjusts how often the statusline refreshes (default 1 second). If you keep several windows open at once, raising it to 3-5 seconds or more reduces load on your computer | `claudetower config statusline-refresh 5` |
 | `claudetower uninstall` | Safely remove the statusline registration and the `/claudetower-widgets` chat command | Other settings are left untouched |
 | `claudetower statusline` | The renderer Claude Code calls internally | **You never need to run this yourself** |
 | `/claudetower-widgets` (in Claude Code chat) | Turn widgets on/off conversationally, no terminal needed | Just say "turn off context and cost" |

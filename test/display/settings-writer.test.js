@@ -9,6 +9,8 @@ const {
   writeStatusLineConfig,
   readExistingSettings,
   removeStatusLineConfig,
+  readExistingStatusLineConfig,
+  updateRefreshInterval,
 } = require('../../src/display/config/settings-writer');
 
 // 절대 실제 ~/.claude/settings.json을 쓰지 않는다 — 매 테스트마다 임시 디렉터리를 새로 만든다.
@@ -92,6 +94,39 @@ test('removeStatusLineConfig: statusLine 키가 원래 없으면 removed=false, 
   assert.equal(result.removed, false);
   const written = JSON.parse(fs.readFileSync(filePath, 'utf8'));
   assert.deepEqual(written, { hooks: { foo: 'bar' } });
+});
+
+test('readExistingStatusLineConfig: 기존 statusLine 값을 그대로 돌려준다', () => {
+  const filePath = tempSettingsPath();
+  fs.writeFileSync(filePath, JSON.stringify({ statusLine: { type: 'command', command: 'x', refreshInterval: 5 } }));
+  assert.deepEqual(readExistingStatusLineConfig(filePath), { type: 'command', command: 'x', refreshInterval: 5 });
+});
+
+test('readExistingStatusLineConfig: statusLine이 없으면 undefined를 반환한다', () => {
+  const filePath = tempSettingsPath();
+  fs.writeFileSync(filePath, JSON.stringify({ hooks: {} }));
+  assert.equal(readExistingStatusLineConfig(filePath), undefined);
+});
+
+test('updateRefreshInterval: refreshInterval만 바꾸고 command/type과 다른 키(hooks 등)는 그대로 둔다', () => {
+  const filePath = tempSettingsPath();
+  fs.writeFileSync(
+    filePath,
+    JSON.stringify({ hooks: { foo: 'bar' }, statusLine: { type: 'command', command: 'x', refreshInterval: 1 } })
+  );
+
+  const result = updateRefreshInterval(5, filePath);
+
+  assert.equal(result.refreshInterval, 5);
+  const written = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  assert.deepEqual(written.hooks, { foo: 'bar' });
+  assert.deepEqual(written.statusLine, { type: 'command', command: 'x', refreshInterval: 5 });
+});
+
+test('updateRefreshInterval: statusLine이 아직 없으면(설치 전) 에러를 던지고 파일을 만들지 않는다', () => {
+  const filePath = tempSettingsPath();
+  assert.throws(() => updateRefreshInterval(5, filePath), /claudetower가 설치되어 있지 않습니다/);
+  assert.equal(fs.existsSync(filePath), false);
 });
 
 test('쓰기 권한이 없어 실패해도 원본은 보존되고 .tmp 잔여물을 남기지 않는다', (t) => {

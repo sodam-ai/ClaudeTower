@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const {
+  SKILL_NAME,
   buildSkillFileContent,
   writeSkillFile,
   removeSkillFile,
@@ -126,4 +127,73 @@ test('resolveSkillsDir: CLAUDETOWER_SKILLS_DIR(테스트 오버라이드)가 CLA
   withEnv({ CLAUDETOWER_SKILLS_DIR: '/override/skills', CLAUDE_CONFIG_DIR: '/custom/cc-home' }, () => {
     assert.equal(resolveSkillsDir(), '/override/skills');
   });
+});
+
+// 2026-07-06: 05_FIELD_ISSUES_2026-07-04.md §4 "미해결"로 남았던 슬래시 명령 미등록의
+// 실제 원인 — CLAUDE_CONFIG_DIR 분기가 없던 과거 버전이 ~/.claude/skills/에 남긴
+// 낡은 스킬(그 시절엔 disable-model-invocation도 있었음)이, CLAUDE_CONFIG_DIR가
+// 설정된 지금 정답 위치($CLAUDE_CONFIG_DIR/skills/)와 별개로 계속 남아있었던 것을
+// 실제 파일로 확인. writeSkillFile/removeSkillFile이 이 낡은 후보를 정리하는지 검증.
+// "기본 위치" 후보를 실제 os.homedir()가 아니라 CLAUDETOWER_DEFAULT_HOME_DIR
+// 전용 오버라이드로 지정한다 — USERPROFILE/HOME 환경변수를 직접 바꿔치기하는 방식은
+// os.homedir()의 실제 해석 순서가 플랫폼·Node 버전에 따라 달라질 수 있어, 테스트가
+// 만에 하나라도 실제 사용자 홈 디렉터리를 계산에 끌어들일 위험이 있다(안전 최우선).
+test('writeSkillFile: CLAUDE_CONFIG_DIR가 설정된 상태에서 기본 위치(~/.claude/skills)에 낡은 스킬이 남아있으면 함께 정리한다', () => {
+  const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'claudetower-home-'));
+  const fakeConfigDir = fs.mkdtempSync(path.join(os.tmpdir(), 'claudetower-config-'));
+  const staleDir = path.join(fakeHome, '.claude', 'skills', SKILL_NAME);
+  fs.mkdirSync(staleDir, { recursive: true });
+  fs.writeFileSync(path.join(staleDir, 'SKILL.md'), 'old content with disable-model-invocation: true');
+
+  withEnv(
+    { CLAUDETOWER_SKILLS_DIR: undefined, CLAUDE_CONFIG_DIR: fakeConfigDir, CLAUDETOWER_DEFAULT_HOME_DIR: fakeHome },
+    () => {
+      const result = writeSkillFile('/fake/claudetower');
+
+      assert.equal(fs.existsSync(staleDir), false, '낡은 위치가 정리되어야 한다');
+      assert.deepEqual(result.cleanedStaleDirs, [staleDir]);
+      assert.equal(fs.existsSync(resolveSkillFilePath()), true, '정답 위치엔 새 파일이 정상 생성되어야 한다');
+      const newContent = fs.readFileSync(resolveSkillFilePath(), 'utf8');
+      assert.doesNotMatch(newContent, /disable-model-invocation/);
+    }
+  );
+});
+
+test('writeSkillFile/removeSkillFile: CLAUDETOWER_SKILLS_DIR 테스트 오버라이드가 설정되면 다른 후보 위치는 절대 건드리지 않는다(안전장치)', () => {
+  const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'claudetower-home-safety-'));
+  const staleDir = path.join(fakeHome, '.claude', 'skills', SKILL_NAME);
+  fs.mkdirSync(staleDir, { recursive: true });
+  fs.writeFileSync(path.join(staleDir, 'SKILL.md'), '절대 건드리면 안 됨');
+
+  const testSkillsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'claudetower-skill-test-'));
+
+  withEnv({ CLAUDETOWER_DEFAULT_HOME_DIR: fakeHome }, () => {
+    withSkillsDirOverride(testSkillsDir, () => {
+      const writeResult = writeSkillFile('/fake/claudetower');
+      assert.deepEqual(writeResult.cleanedStaleDirs, []);
+      assert.equal(fs.existsSync(staleDir), true, 'CLAUDETOWER_SKILLS_DIR 오버라이드 중엔 다른 후보를 건드리면 안 된다');
+
+      const removeResult = removeSkillFile();
+      assert.deepEqual(removeResult.cleanedStaleDirs, []);
+      assert.equal(fs.existsSync(staleDir), true, '제거 시에도 마찬가지로 다른 후보를 건드리면 안 된다');
+    });
+  });
+});
+
+test('removeSkillFile: 현재 위치엔 스킬이 없어도 다른 후보 위치에 낡은 스킬이 있으면 정리하고 알려준다', () => {
+  const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'claudetower-home-'));
+  const fakeConfigDir = fs.mkdtempSync(path.join(os.tmpdir(), 'claudetower-config-'));
+  const staleDir = path.join(fakeHome, '.claude', 'skills', SKILL_NAME);
+  fs.mkdirSync(staleDir, { recursive: true });
+  fs.writeFileSync(path.join(staleDir, 'SKILL.md'), 'old content');
+
+  withEnv(
+    { CLAUDETOWER_SKILLS_DIR: undefined, CLAUDE_CONFIG_DIR: fakeConfigDir, CLAUDETOWER_DEFAULT_HOME_DIR: fakeHome },
+    () => {
+      // 정답 위치(fakeConfigDir/skills)엔 아무것도 없는 상태
+      const result = removeSkillFile();
+      assert.deepEqual(result.cleanedStaleDirs, [staleDir]);
+      assert.equal(fs.existsSync(staleDir), false);
+    }
+  );
 });

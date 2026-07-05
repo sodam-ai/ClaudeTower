@@ -80,6 +80,50 @@ allowed-tools: Bash(${quotedExe} widgets *)
 `;
 }
 
+// resolveSkillsDir()과 별개로 "기본(홈 디렉터리 기준) 위치"만 따로 계산한다.
+// os.homedir()를 이 함수 하나에만 모아두고 테스트 전용 오버라이드
+// (CLAUDETOWER_DEFAULT_HOME_DIR)를 둔 이유: 정리(cleanup) 로직 테스트가 실수로
+// os.homedir()가 가리키는 실제 사용자 홈을 계산에 끌어들일 위험을 코드 차원에서
+// 원천 차단하기 위해서다(USERPROFILE/HOME 환경변수를 직접 바꿔치기하는 방식은
+// os.homedir()의 실제 해석 순서에 플랫폼·Node 버전 의존적인 불확실성이 있어
+// 이 프로젝트의 다른 설정 함수들처럼 전용 오버라이드 변수를 쓰는 쪽이 더 안전하다).
+function resolveDefaultSkillsDir() {
+  if (process.env.CLAUDETOWER_DEFAULT_HOME_DIR) {
+    return path.join(process.env.CLAUDETOWER_DEFAULT_HOME_DIR, '.claude', 'skills');
+  }
+  return path.join(os.homedir(), '.claude', 'skills');
+}
+
+// resolveSkillsDir()의 분기(CLAUDE_CONFIG_DIR 유무)가 나중에 추가된 로직이라,
+// 그 분기가 없던 과거 버전이나 CLAUDE_CONFIG_DIR 설정이 그때와 달랐던 과거 실행이
+// "지금 기준 정답이 아닌" 다른 후보 위치에 스킬을 남겨뒀을 수 있다(2026-07-04
+// 필드이슈 §4 "미해결"로 남았던 원인을 2026-07-06 재조사로 확정: 이 PC의
+// ~/.claude/skills/claudetower-widgets/SKILL.md가 CLAUDE_CONFIG_DIR 반영 이전
+// 버전이 쓴 낡은 파일로, disable-model-invocation:true까지 그대로 남아있었다).
+// 두 위치에 파일이 공존하면 어느 쪽이 실제로 읽히는지 불확실해지므로, 정답 위치가
+// 아닌 다른 후보는 항상 정리한다. 테스트 오버라이드(CLAUDETOWER_SKILLS_DIR)가
+// 설정된 동안에는 실제 사용자 홈 디렉터리를 절대 건드리면 안 되므로 통째로 건너뛴다.
+function otherCandidateSkillDirs() {
+  if (process.env.CLAUDETOWER_SKILLS_DIR) return [];
+  const current = resolveSkillsDir();
+  const candidates = [resolveDefaultSkillsDir()];
+  if (process.env.CLAUDE_CONFIG_DIR) {
+    candidates.push(path.join(process.env.CLAUDE_CONFIG_DIR, 'skills'));
+  }
+  return candidates.filter((dir) => dir !== current).map((dir) => path.join(dir, SKILL_NAME));
+}
+
+function cleanupStaleSkillDirs() {
+  const cleaned = [];
+  for (const dir of otherCandidateSkillDirs()) {
+    if (fs.existsSync(dir)) {
+      fs.rmSync(dir, { recursive: true, force: true });
+      cleaned.push(dir);
+    }
+  }
+  return cleaned;
+}
+
 // 반환값의 skillsDirExistedBefore로 "이번에 처음 생긴 폴더인지"를 판단할 수 있게 해서,
 // 호출자(setup-wizard)가 재시작 필요 여부를 사실대로 안내할 수 있게 한다.
 function writeSkillFile(exePath) {
@@ -90,16 +134,22 @@ function writeSkillFile(exePath) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, buildSkillFileContent(exePath), 'utf8');
 
-  return { filePath, skillsDirExistedBefore };
+  const cleanedStaleDirs = cleanupStaleSkillDirs();
+
+  return { filePath, skillsDirExistedBefore, cleanedStaleDirs };
 }
 
 function removeSkillFile() {
   const skillDir = path.dirname(resolveSkillFilePath());
-  if (!fs.existsSync(skillDir)) {
-    return { removed: false };
+  const removed = fs.existsSync(skillDir);
+  if (removed) {
+    fs.rmSync(skillDir, { recursive: true, force: true });
   }
-  fs.rmSync(skillDir, { recursive: true, force: true });
-  return { removed: true, skillDir };
+  const cleanedStaleDirs = cleanupStaleSkillDirs();
+  if (!removed) {
+    return { removed: false, cleanedStaleDirs };
+  }
+  return { removed: true, skillDir, cleanedStaleDirs };
 }
 
 module.exports = {

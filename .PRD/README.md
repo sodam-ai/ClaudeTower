@@ -11,6 +11,7 @@
 | [02_DATA_MODEL.md](./02_DATA_MODEL.md) | 두 모듈의 데이터 구조 + 모듈 경계 규칙 | 코드 설계할 때 |
 | [03_PHASES.md](./03_PHASES.md) | Phase 1(Display+격리구조) → Phase 2(Account) → Phase 3(고도화) | 개발 순서 정할 때 |
 | [04_PROJECT_SPEC.md](./04_PROJECT_SPEC.md) | 기술 스택, 보안·법률·README 요구사항 | AI에게 코드 시킬 때마다 |
+| [05_FIELD_ISSUES_2026-07-04.md](./05_FIELD_ISSUES_2026-07-04.md) | (현장 이슈·설계문서 아님) 재설치 잠금 경합·npm shim·PATH·슬래시 명령 미등록 등 실사용 문제 분석 + 개선 백로그(P0~P3) | 개선/버그 수정 착수할 때 |
 
 ## 다음 단계
 

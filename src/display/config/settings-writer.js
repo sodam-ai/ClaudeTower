@@ -65,6 +65,28 @@ function writeStatusLineConfig(statusLineConfig, filePath = resolveSettingsPath(
 // claudetower uninstall용 — statusLine 키만 제거하고 hooks/권한 등 나머지 설정은
 // 손대지 않는다("제거하려면 사용자가 settings.json을 손으로 고쳐야 해서 다른 설정까지
 // 실수로 지울 위험이 있다"는 실사용 피드백으로 추가).
+// .PRD/06_FIELD_ISSUE_SPAWN_STORM_2026-07-04.md FR-2: setup을 다시 실행할 때
+// 사용자가 이미 조정해둔 refreshInterval을 기본값 1로 되돌리지 않기 위해, 호출자
+// (setup-wizard)가 재실행 전 기존 값을 먼저 확인할 수 있게 노출한다.
+function readExistingStatusLineConfig(filePath = resolveSettingsPath()) {
+  return readExistingSettings(filePath).statusLine;
+}
+
+// .PRD/06_FIELD_ISSUE_SPAWN_STORM_2026-07-04.md FR-1: `claudetower config
+// statusline-refresh <초>`가 호출하는 함수 — statusLine의 command/type은 그대로
+// 두고 refreshInterval 키만 바꾼다. 아직 설치(=statusLine 등록) 자체가 안 된
+// 상태에서 이 명령을 쓰면 무엇을 바꿀지 알 수 없으므로 명확히 에러를 던진다.
+function updateRefreshInterval(refreshInterval, filePath = resolveSettingsPath()) {
+  const existing = readExistingSettings(filePath);
+  if (!existing.statusLine) {
+    throw new Error('아직 claudetower가 설치되어 있지 않습니다. 먼저 claudetower setup을 실행하세요.');
+  }
+  fs.copyFileSync(filePath, `${filePath}.bak`);
+  const merged = { ...existing, statusLine: { ...existing.statusLine, refreshInterval } };
+  atomicWriteJson(filePath, merged);
+  return { filePath, refreshInterval };
+}
+
 function removeStatusLineConfig(filePath = resolveSettingsPath()) {
   if (!fs.existsSync(filePath)) {
     return { filePath, removed: false, backedUp: false };
@@ -82,4 +104,11 @@ function removeStatusLineConfig(filePath = resolveSettingsPath()) {
   return { filePath, removed: true, backedUp: true };
 }
 
-module.exports = { resolveSettingsPath, readExistingSettings, writeStatusLineConfig, removeStatusLineConfig };
+module.exports = {
+  resolveSettingsPath,
+  readExistingSettings,
+  writeStatusLineConfig,
+  removeStatusLineConfig,
+  readExistingStatusLineConfig,
+  updateRefreshInterval,
+};
