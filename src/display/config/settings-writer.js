@@ -8,6 +8,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
+const { assertNotPartialIsolation } = require('./test-isolation');
 
 // 테스트가 실제 ~/.claude/settings.json을 건드리지 않도록 환경변수로 경로를 바꿀 수 있게 함.
 function resolveSettingsPath() {
@@ -46,7 +47,14 @@ function atomicWriteJson(filePath, data) {
   }
 }
 
-function writeStatusLineConfig(statusLineConfig, filePath = resolveSettingsPath()) {
+// 아래 세 쓰기/삭제 함수는 명시적 filePath 인자가 없을 때(실제 기본 경로 폴백)만
+// 부분 격리 방어막을 거친다 — 위젯 설정과 동일한 원칙(test-isolation.js 참고).
+// 읽기 전용인 readExistingStatusLineConfig는 막지 않는다.
+function writeStatusLineConfig(statusLineConfig, filePath) {
+  if (filePath === undefined) {
+    assertNotPartialIsolation('CLAUDETOWER_SETTINGS_PATH', 'settings.json');
+    filePath = resolveSettingsPath();
+  }
   const dir = path.dirname(filePath);
   fs.mkdirSync(dir, { recursive: true });
 
@@ -76,7 +84,11 @@ function readExistingStatusLineConfig(filePath = resolveSettingsPath()) {
 // statusline-refresh <초>`가 호출하는 함수 — statusLine의 command/type은 그대로
 // 두고 refreshInterval 키만 바꾼다. 아직 설치(=statusLine 등록) 자체가 안 된
 // 상태에서 이 명령을 쓰면 무엇을 바꿀지 알 수 없으므로 명확히 에러를 던진다.
-function updateRefreshInterval(refreshInterval, filePath = resolveSettingsPath()) {
+function updateRefreshInterval(refreshInterval, filePath) {
+  if (filePath === undefined) {
+    assertNotPartialIsolation('CLAUDETOWER_SETTINGS_PATH', 'settings.json');
+    filePath = resolveSettingsPath();
+  }
   const existing = readExistingSettings(filePath);
   if (!existing.statusLine) {
     throw new Error('아직 claudetower가 설치되어 있지 않습니다. 먼저 claudetower setup을 실행하세요.');
@@ -87,7 +99,11 @@ function updateRefreshInterval(refreshInterval, filePath = resolveSettingsPath()
   return { filePath, refreshInterval };
 }
 
-function removeStatusLineConfig(filePath = resolveSettingsPath()) {
+function removeStatusLineConfig(filePath) {
+  if (filePath === undefined) {
+    assertNotPartialIsolation('CLAUDETOWER_SETTINGS_PATH', 'settings.json');
+    filePath = resolveSettingsPath();
+  }
   if (!fs.existsSync(filePath)) {
     return { filePath, removed: false, backedUp: false };
   }

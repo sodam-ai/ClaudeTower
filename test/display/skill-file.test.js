@@ -244,3 +244,115 @@ test('ensureSkillFileExists: 없으면 즉시 재생성한다(자가복구)', ()
     assert.match(content, /claudetower/);
   });
 });
+
+// 2026-07-06 통제 재현으로 확정한 근본 원인에 대한 회귀 방지:
+// e2e가 CLAUDETOWER_SETTINGS_PATH만 격리하고 CLAUDETOWER_SKILLS_DIR을 빠뜨린 채
+// uninstall을 실행하면 실제 스킬 폴더가 지워졌다(실사용 반복 소실의 원인).
+// 격리 변수가 하나라도 있는데 스킬 격리만 없으면 어떤 스킬 작업도 하면 안 된다.
+// 안전장치: 아래 테스트들은 CLAUDE_CONFIG_DIR도 임시 폴더로 돌려두므로,
+// 만약 방어막이 깨져도 임시 폴더만 지워질 뿐 실제 사용자 홈은 절대 안 건드린다.
+test('removeSkillFile: 부분 테스트 격리(설정만 격리, 스킬 미격리)에서는 실제 스킬을 지우지 않는다', () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'claudetower-skill-test-'));
+  const configDir = path.join(base, 'config-home');
+  const skillFile = path.join(configDir, 'skills', SKILL_NAME, 'SKILL.md');
+  fs.mkdirSync(path.dirname(skillFile), { recursive: true });
+  fs.writeFileSync(skillFile, 'dummy', 'utf8');
+
+  withEnv(
+    {
+      CLAUDETOWER_SKILLS_DIR: undefined,
+      CLAUDE_CONFIG_DIR: configDir,
+      CLAUDETOWER_SETTINGS_PATH: path.join(base, 'isolated-settings.json'),
+    },
+    () => {
+      const result = removeSkillFile();
+      assert.equal(result.removed, false);
+      assert.equal(result.skipped, 'partial-test-isolation');
+      assert.equal(fs.existsSync(skillFile), true); // 살아있어야 함
+    }
+  );
+});
+
+test('ensureSkillFileExists: 부분 테스트 격리에서는 아무것도 쓰지 않는다', () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'claudetower-skill-test-'));
+  const configDir = path.join(base, 'config-home');
+
+  withEnv(
+    {
+      CLAUDETOWER_SKILLS_DIR: undefined,
+      CLAUDE_CONFIG_DIR: configDir,
+      CLAUDETOWER_WIDGET_CONFIG_PATH: path.join(base, 'isolated-config.json'),
+    },
+    () => {
+      const result = ensureSkillFileExists('/fake/claudetower');
+      assert.equal(result.wrote, false);
+      assert.equal(result.skipped, 'partial-test-isolation');
+      assert.equal(fs.existsSync(path.join(configDir, 'skills')), false); // 폴더 자체를 안 만듦
+    }
+  );
+});
+
+test('writeSkillFile: 부분 테스트 격리에서는 이유를 담은 예외를 던진다(조용한 성공 위장 금지)', () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'claudetower-skill-test-'));
+
+  withEnv(
+    {
+      CLAUDETOWER_SKILLS_DIR: undefined,
+      CLAUDE_CONFIG_DIR: path.join(base, 'config-home'),
+      CLAUDETOWER_INSTALL_DIR: path.join(base, 'bin'),
+    },
+    () => {
+      assert.throws(() => writeSkillFile('/fake/claudetower'), /CLAUDETOWER_SKILLS_DIR/);
+    }
+  );
+});
+
+test('격리 변수가 전부 없으면(실사용) 부분 격리로 오판하지 않는다 — 자가복구가 정상 작동해야 함', () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'claudetower-skill-test-'));
+  const configDir = path.join(base, 'config-home');
+
+  withEnv(
+    {
+      CLAUDETOWER_SKILLS_DIR: undefined,
+      CLAUDETOWER_SETTINGS_PATH: undefined,
+      CLAUDETOWER_WIDGET_CONFIG_PATH: undefined,
+      CLAUDETOWER_INSTALL_DIR: undefined,
+      CLAUDETOWER_DEFAULT_HOME_DIR: undefined,
+      CLAUDE_CONFIG_DIR: configDir, // 실사용과 동일한 형태로 격리(안전) — CLAUDETOWER_* 격리 변수는 아님
+    },
+    () => {
+      const result = ensureSkillFileExists('/fake/claudetower');
+      assert.equal(result.wrote, true);
+      assert.equal(fs.existsSync(path.join(configDir, 'skills', SKILL_NAME, 'SKILL.md')), true);
+    }
+  );
+});
+
+// 2026-07-06 밤(실사용 피드백): 인자 없는 호출은 체크 메뉴(AskUserQuestion)로 안내.
+// 2026-07-07(2차 실사용 피드백): "상태 설명+뒤집기" 방식이 알아보기 어렵다는 지적으로
+// 선택지 label 자체에 동사를 넣는 방식("사용 모델 끄기")으로 재설계, 질문 3개→2개.
+test('buildSkillFileContent: 인자 없는 호출용 체크 메뉴(AskUserQuestion) 지시가 있다', () => {
+  const content = buildSkillFileContent('C:/Users/Someone/.claudetower/bin/claudetower.exe');
+  assert.match(content, /AskUserQuestion/);
+  // 도구 제약(질문당 최대 4개 선택지) 때문에 위젯 5개를 두 질문으로 나누는 지시
+  assert.match(content, /표시 항목 ①/);
+  assert.match(content, /표시 항목 ②/);
+  // 가독성 핵심: label 자체에 실행될 동작을 동사로 쓴다(설명 안 읽어도 효과가 보이게)
+  assert.match(content, /사용 모델 끄기/);
+  assert.match(content, /동사로 직접 쓰는 것이 핵심/);
+  // 체크 안 한 항목은 절대 바꾸지 않는다(현상 유지 기본값)
+  assert.match(content, /체크하지 않은 항목은 절대 바꾸지 마세요/);
+  // 갱신 속도는 별도 탭이 아니라 질문 2의 선택지로 통합(탭 3개→2개 축소)
+  assert.match(content, /갱신 속도 조절/);
+});
+
+test('buildSkillFileContent: 명확한 자연어 요청은 메뉴 없이 바로 실행하는 빠른 경로가 유지된다', () => {
+  const content = buildSkillFileContent('C:/Users/Someone/.claudetower/bin/claudetower.exe');
+  assert.match(content, /빠른 경로/);
+  assert.match(content, /메뉴 없이 바로/);
+});
+
+test('buildSkillFileContent: 메뉴 도구를 못 쓰는 환경을 위한 텍스트 폴백이 명시돼 있다', () => {
+  const content = buildSkillFileContent('C:/Users/Someone/.claudetower/bin/claudetower.exe');
+  assert.match(content, /사용할 수 없는 환경이면.*텍스트로 물어보세요/);
+});

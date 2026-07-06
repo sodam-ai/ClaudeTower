@@ -15,6 +15,7 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { isPartialIsolation } = require('./test-isolation');
 
 const SKILL_NAME = 'claudetower-widgets';
 
@@ -40,6 +41,20 @@ function resolveSkillFilePath() {
   return path.join(resolveSkillsDir(), SKILL_NAME, 'SKILL.md');
 }
 
+// 2026-07-06 통제 재현으로 확정한 근본 원인에 대한 구조적 방어막:
+// e2e 검증이 CLAUDETOWER_SETTINGS_PATH/CLAUDETOWER_WIDGET_CONFIG_PATH만 격리하고
+// CLAUDETOWER_SKILLS_DIR을 빠뜨린 채 실제 exe로 uninstall을 돌리면, 설정 파일은
+// 격리본만 건드리면서 스킬 폴더는 "실제" 위치를 지워버린다 — 이게 실사용 중
+// /claudetower-widgets가 반복적으로 사라지던 바로 그 경로였다(세션마다 "테스트/검증"
+// 요청 → e2e의 uninstall이 매번 실제 스킬을 삭제). 격리 변수를 하나라도 쓰는
+// 실행(=테스트)이 스킬 격리만 빠뜨렸다면, 실제 스킬 위치는 읽기든 쓰기든 삭제든
+// 절대 건드리지 않는 것이 유일하게 안전한 동작이다.
+// 판정 로직 자체는 test-isolation.js로 일반화했다(위젯 설정 파일에서도 같은 부류의
+// 삭제 사고가 실측으로 발견되어, 모듈마다 다른 판정이 생기지 않게 한 곳으로 모음).
+function isPartialTestIsolation() {
+  return isPartialIsolation('CLAUDETOWER_SKILLS_DIR');
+}
+
 // exePath: 지금 설치된(또는 설치될) claudetower 실행 파일의 절대경로 — 그 경로만
 // Bash 실행을 허용해서(allowed-tools), 이 스킬이 임의의 명령을 실행할 수 있는
 // 넓은 권한을 갖지 않도록 범위를 좁힌다(비개발자 대상 기능이 최소 권한 원칙에서
@@ -57,12 +72,19 @@ function resolveSkillFilePath() {
 // 명령)이 터미널 전용이라, 위젯 켜고 끄기처럼 채팅으로도 조절할 수 있게 이 스킬의
 // 책임 범위를 넓힌다. allowed-tools에 `config *`도 추가해 스킬이 그 명령을 실행할
 // 수 있게 하되, widgets와 마찬가지로 이 실행 파일 하나로만 범위를 좁혀둔다.
+//
+// 2026-07-06 밤(실사용 피드백): 인자 없이 /claudetower-widgets만 치면 "어떤 항목을
+// 켜고 끌까요?"라고 글로 묻는 대신, Claude Code 내장 선택 메뉴(AskUserQuestion)로
+// 체크해서 고를 수 있게 개선. 제약: 그 도구는 질문당 선택지가 최대 4개라 위젯
+// 5개를 한 질문에 못 담는다 — 두 질문으로 나눈다. "이미 명확한 자연어 요청"은
+// 메뉴 없이 바로 실행하는 빠른 경로를 유지한다(본래 목적인 말로 조절이 후퇴하면
+// 안 됨). 메뉴 도구가 없는 환경을 위한 텍스트 폴백도 지시문에 명시한다.
 function buildSkillFileContent(exePath) {
   const quotedExe = `"${exePath.replace(/\\/g, '/')}"`;
   return `---
 description: ClaudeTower 상태표시줄(statusline) 위젯을 켜고 끄거나 갱신 속도를 조절합니다. 표시 항목은 사용 모델·프로젝트 위치·컨텍스트 사용량·비용·사용률 5가지. "상태표시줄에서 컨텍스트 꺼줘", "비용 표시 꺼줘", "상태표시줄 설정 바꿔줘", "ClaudeTower 위젯 켜/꺼", "상태표시줄 갱신을 느리게/빠르게 해줘" 같은 요청이면 반드시 이 스킬을 사용하고, config.json이나 settings.json을 직접 편집하지 마세요.
-argument-hint: [끄거나 켜고 싶은 항목, 또는 갱신 속도를 자연어로]
-allowed-tools: Bash(${quotedExe} widgets *), Bash(${quotedExe} config *)
+argument-hint: [끄거나 켜고 싶은 항목, 또는 갱신 속도를 자연어로 — 비워두면 체크 메뉴가 뜹니다]
+allowed-tools: Bash(${quotedExe} widgets *), Bash(${quotedExe} config *), AskUserQuestion
 ---
 
 사용자가 ClaudeTower 상태표시줄 위젯 표시 여부 또는 갱신 속도를 바꾸고 싶어합니다. 터미널이나 명령어를 모르는 비개발자일 수 있으니 전부 자연스러운 한국어 대화로 진행하세요.
@@ -74,17 +96,20 @@ allowed-tools: Bash(${quotedExe} widgets *), Bash(${quotedExe} config *)
 - cost → 비용
 - rate_limit → 사용률(5시간/7일)
 
-## 위젯 켜고 끄기
+## 진행 순서
 1. \`${quotedExe} widgets\`를 실행해서 지금 어떤 항목이 켜져 있는지 먼저 확인하세요.
-2. 사용자 요청(아래 참고)이 이미 명확하면 바로 반영하고, 모호하거나 없으면 "어떤 항목을 켜고 끌까요?"처럼 자연스럽게 물어보세요.
-3. 위 목록의 영어 이름으로 \`${quotedExe} widgets off <이름...>\` 또는 \`${quotedExe} widgets on <이름...>\`을 실행하세요(여러 개 동시 가능).
-4. 결과를 한국어로 짧게 알려주세요. 영어 명령어나 파일 경로는 언급하지 말고 "컨텍스트 표시를 껐습니다" 처럼 쉽게 설명하세요.
-
-## 갱신 속도 조절
-- 상태표시줄이 얼마나 자주 새로고침되는지(초 단위, 기본 3초)를 바꾸고 싶어하면 \`${quotedExe} config statusline-refresh <초>\`를 실행하세요.
-- 사용자가 정확한 숫자 없이 "느리게"/"빠르게"라고만 하면, 지금 값을 기준으로 적당한 값(예: 느리게→5초, 빠르게→1초)을 제안하고 확인받은 뒤 실행하세요.
-- 여러 창을 동시에 켜두는 사용자라면 갱신 속도를 늘리면 컴퓨터 부담이 줄어든다고 자연스럽게 안내해도 좋습니다.
-- 1 미만의 값이나 소수는 명령이 거부하니, 1 이상의 정수로만 안내하세요.
+2. **빠른 경로**: 사용자 요청(아래 참고)이 이미 명확하면 — 예: "비용 꺼줘", "갱신 5초로" — 메뉴 없이 바로 4번으로 가서 실행하세요.
+3. **체크 메뉴**: 요청이 없거나 모호하면(예: 인자 없이 호출됨) AskUserQuestion 도구 하나로 아래 두 질문을 함께 보여주세요. **선택지 label에 "무엇을 하게 되는지"를 동사로 직접 쓰는 것이 핵심입니다** — 설명을 읽지 않아도 체크의 효과가 한눈에 보이게(실사용 피드백: 상태+뒤집기 설명 방식은 알아보기 어려웠음).
+   - 질문 본문(두 질문 공통): "바꿀 것만 체크하세요 (안 바꿀 항목은 그냥 두면 됩니다)"처럼 짧게.
+   - 질문 1 — header "표시 항목 ①", multiSelect: true, 선택지 3개: 사용 모델 / 프로젝트 위치 / 컨텍스트 사용량. 1번에서 확인한 현재 상태를 반영해, **켜진 항목은 label을 "<이름> 끄기"로, 꺼진 항목은 "<이름> 켜기"로** 쓰세요(예: "사용 모델 끄기", "컨텍스트 사용량 켜기"). description은 "지금 켜져 있어요" / "지금 꺼져 있어요"로 짧게.
+   - 질문 2 — header "표시 항목 ②", multiSelect: true, 선택지 3개: 비용 / 사용률(5시간/7일)을 질문 1과 같은 방식으로 + 마지막 선택지 "갱신 속도 조절"(description: "지금 N초마다 새로고침 — 체크하면 이어서 물어봐요").
+   - "갱신 속도 조절"이 체크됐다면: 위젯 변경을 먼저 처리한 뒤, AskUserQuestion으로 속도만 한 번 더 물어보세요 — 선택지 "느리게 — 5초" / "빠르게 — 1초" / "그대로 두기", 다른 값은 기타(Other)로 직접 입력 가능하다고 안내(1 이상의 정수만 유효).
+   - **체크된 항목만 실행하고, 체크하지 않은 항목은 절대 바꾸지 마세요**(현상 유지가 기본).
+   - AskUserQuestion 도구를 사용할 수 없는 환경이면, 지금까지처럼 텍스트로 물어보세요.
+4. 결정된 변경을 실행하세요:
+   - 끌 항목: \`${quotedExe} widgets off <영어이름...>\` / 켤 항목: \`${quotedExe} widgets on <영어이름...>\` (여러 개 동시 가능)
+   - 갱신 속도: \`${quotedExe} config statusline-refresh <초>\` (1 이상의 정수만 — 0·음수·소수는 명령이 거부합니다). 사용자가 숫자 없이 "느리게"/"빠르게"라고만 말한 경우에는 느리게→5초, 빠르게→1초를 제안하고 확인받은 뒤 실행하세요. 여러 창을 동시에 켜두는 사용자라면 갱신 속도를 늘리면 컴퓨터 부담이 줄어든다고 자연스럽게 안내해도 좋습니다.
+5. 결과를 한국어로 짧게 알려주세요. 영어 명령어나 파일 경로는 언급하지 말고 "컨텍스트 표시를 켰고, 갱신 속도를 5초로 바꿨습니다"처럼 쉽게 설명하세요. 바꾼 것이 없으면 "변경 없이 그대로 뒀습니다"라고 알려주세요.
 
 사용자 요청: $ARGUMENTS
 `;
@@ -124,6 +149,7 @@ function otherCandidateSkillDirs() {
 }
 
 function cleanupStaleSkillDirs() {
+  if (isPartialTestIsolation()) return [];
   const cleaned = [];
   for (const dir of otherCandidateSkillDirs()) {
     if (fs.existsSync(dir)) {
@@ -137,6 +163,13 @@ function cleanupStaleSkillDirs() {
 // 반환값의 skillsDirExistedBefore로 "이번에 처음 생긴 폴더인지"를 판단할 수 있게 해서,
 // 호출자(setup-wizard)가 재시작 필요 여부를 사실대로 안내할 수 있게 한다.
 function writeSkillFile(exePath) {
+  if (isPartialTestIsolation()) {
+    // setup-wizard가 이 예외를 잡아 "건너뛰었습니다: <이유>"로 정직하게 안내한다 —
+    // 조용히 성공한 척하면 테스트가 실제 환경을 안 건드렸다는 사실이 가려진다.
+    throw new Error(
+      '테스트 격리 변수(CLAUDETOWER_*)가 일부만 설정되어 있어 실제 스킬 폴더를 건드리지 않습니다. 테스트라면 CLAUDETOWER_SKILLS_DIR도 함께 지정하세요.'
+    );
+  }
   const skillsDir = resolveSkillsDir();
   const skillsDirExistedBefore = fs.existsSync(skillsDir);
   const filePath = resolveSkillFilePath();
@@ -158,6 +191,9 @@ function writeSkillFile(exePath) {
 // 스스로 복구된다. 이미 있으면 손대지 않아(쓰기 자체를 안 함) 정상 상태에서는
 // 매 호출마다 존재 확인 한 번(가벼운 stat)만 추가된다.
 function ensureSkillFileExists(exePath) {
+  if (isPartialTestIsolation()) {
+    return { wrote: false, skipped: 'partial-test-isolation' };
+  }
   if (fs.existsSync(resolveSkillFilePath())) {
     return { wrote: false };
   }
@@ -165,6 +201,9 @@ function ensureSkillFileExists(exePath) {
 }
 
 function removeSkillFile() {
+  if (isPartialTestIsolation()) {
+    return { removed: false, skipped: 'partial-test-isolation', cleanedStaleDirs: [] };
+  }
   const skillDir = path.dirname(resolveSkillFilePath());
   const removed = fs.existsSync(skillDir);
   if (removed) {
@@ -185,4 +224,5 @@ module.exports = {
   writeSkillFile,
   removeSkillFile,
   ensureSkillFileExists,
+  isPartialTestIsolation,
 };

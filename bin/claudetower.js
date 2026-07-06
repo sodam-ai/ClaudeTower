@@ -120,7 +120,7 @@ async function run(args) {
     // 실수로 지울 위험이 있다"는 실사용 피드백으로 추가. statusLine 키만 안전하게
     // 제거하고 hooks/권한 등 나머지 설정은 절대 건드리지 않는다.
     const { removeStatusLineConfig } = require('../src/display/config/settings-writer');
-    const { resolveWidgetConfigPath } = require('../src/display/config/widget-config');
+    const { removeWidgetConfigFile } = require('../src/display/config/widget-config');
     const { getInstallStatus } = require('../src/display/config/status');
     const { resolveInstallTargetPath } = require('../src/display/config/install-target');
     const sea = require('node:sea');
@@ -135,10 +135,15 @@ async function run(args) {
       console.log('등록된 상태표시줄 설정이 없어 제거할 것이 없습니다.');
     }
 
-    const widgetConfigPath = resolveWidgetConfigPath();
-    if (fs.existsSync(widgetConfigPath)) {
-      fs.unlinkSync(widgetConfigPath);
-      console.log(`위젯 설정 파일도 삭제했습니다: ${widgetConfigPath}`);
+    // 부분 테스트 격리(다른 CLAUDETOWER_* 변수만 설정) 상태에서는 실제 위젯 설정을
+    // 지우지 않고 건너뛴다 — 실측으로 발견된 결함 부류(test-isolation.js 참고).
+    const widgetResult = removeWidgetConfigFile();
+    if (widgetResult.removed) {
+      console.log(`위젯 설정 파일도 삭제했습니다: ${widgetResult.filePath}`);
+    } else if (widgetResult.skipped) {
+      console.log(
+        '(위젯 설정 파일은 건너뛰었습니다 — 테스트 격리 변수가 일부만 설정되어 실제 파일을 건드리지 않습니다. 테스트라면 CLAUDETOWER_WIDGET_CONFIG_PATH도 함께 지정하세요.)'
+      );
     }
 
     // setup이 심어둔 "/claudetower-widgets" 대화형 설정도 같이 정리한다 — 안 지우면
@@ -177,7 +182,15 @@ async function run(args) {
 
 // require()로 로드될 때(예: 테스트)는 실행하지 않고, 직접 실행될 때만 CLI로 동작.
 if (require.main === module) {
-  run(process.argv.slice(2)).then((code) => process.exit(code));
+  run(process.argv.slice(2)).then(
+    (code) => process.exit(code),
+    (err) => {
+      // 방어막(부분 테스트 격리) 등 의도된 거부를 스택 트레이스 없이 사람이 읽을 수
+      // 있는 한 줄로 보여준다 — 종료 코드는 기존 미처리 rejection과 동일하게 1.
+      console.error(err && err.message ? err.message : String(err));
+      process.exit(1);
+    }
+  );
 }
 
 module.exports = { run };
