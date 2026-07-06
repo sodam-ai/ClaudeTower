@@ -149,6 +149,21 @@ function writeSkillFile(exePath) {
   return { filePath, skillsDirExistedBefore, cleanedStaleDirs };
 }
 
+// 2026-07-06: 실사용 중 스킬 파일이 원인불명으로 반복 소실되는 현상을 여러 차례
+// 직접 관찰했다(Windows Defender·제어된 폴더 접근은 원인에서 배제 확인, 이 PC에
+// 상시 떠 있는 다중 Claude Code 세션이 유력하지만 특정은 못함 — .PRD/05_FIELD_ISSUES
+// §4). 근본 원인을 아직 못 잡았어도, `claudetower statusline`이 어차피
+// refreshInterval마다 계속 호출되고 있으니 그때마다 "있는지 확인 → 없으면 즉시
+// 재생성"만 해도 사용자가 매번 setup을 다시 실행하거나 나(AI)를 불러 고칠 필요 없이
+// 스스로 복구된다. 이미 있으면 손대지 않아(쓰기 자체를 안 함) 정상 상태에서는
+// 매 호출마다 존재 확인 한 번(가벼운 stat)만 추가된다.
+function ensureSkillFileExists(exePath) {
+  if (fs.existsSync(resolveSkillFilePath())) {
+    return { wrote: false };
+  }
+  return { wrote: true, ...writeSkillFile(exePath) };
+}
+
 function removeSkillFile() {
   const skillDir = path.dirname(resolveSkillFilePath());
   const removed = fs.existsSync(skillDir);
@@ -169,4 +184,5 @@ module.exports = {
   buildSkillFileContent,
   writeSkillFile,
   removeSkillFile,
+  ensureSkillFileExists,
 };

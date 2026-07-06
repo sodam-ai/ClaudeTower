@@ -52,6 +52,21 @@ async function run(args) {
     const { render, readStdinJson } = require('../src/display/statusline');
     const session = readStdinJson();
     process.stdout.write(render(session));
+    // 실사용 중 스킬 파일(/claudetower-widgets)이 원인불명으로 반복 소실되는 현상을
+    // 관찰했다(.PRD/05_FIELD_ISSUES_2026-07-04.md §4). statusline은 refreshInterval마다
+    // 어차피 계속 호출되므로, 매번 조용히 존재만 확인하고 없으면 즉시 재생성해
+    // 스스로 복구되게 한다. 반드시 조용히 실패해야 한다 — 여기서 뭘 출력하면
+    // 상태표시줄 텍스트 자체가 오염되므로, 어떤 에러가 나도 절대 콘솔에 안 쓴다.
+    try {
+      const { resolveUsableExePath } = require('../src/display/config/statusline-command');
+      const { ensureSkillFileExists } = require('../src/display/config/skill-file');
+      const usableExePath = resolveUsableExePath();
+      if (usableExePath) {
+        ensureSkillFileExists(usableExePath);
+      }
+    } catch {
+      // 조용히 무시 — 상태표시줄은 이미 위에서 정상 출력됐다.
+    }
     return 0;
   }
 

@@ -10,6 +10,7 @@ const {
   buildSkillFileContent,
   writeSkillFile,
   removeSkillFile,
+  ensureSkillFileExists,
   resolveSkillFilePath,
   resolveSkillsDir,
 } = require('../../src/display/config/skill-file');
@@ -208,4 +209,38 @@ test('removeSkillFile: 현재 위치엔 스킬이 없어도 다른 후보 위치
       assert.equal(fs.existsSync(staleDir), false);
     }
   );
+});
+
+// 2026-07-06: 스킬 파일이 실사용 중 원인불명으로 반복 소실되는 현상에 대한
+// 자가복구(self-heal) 로직 — statusline 호출마다 조용히 확인해 없으면 즉시 재생성.
+test('ensureSkillFileExists: 이미 있으면 손대지 않는다(불필요한 쓰기 방지)', () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'claudetower-skill-test-'));
+  const skillsDir = path.join(base, 'skills');
+
+  withSkillsDirOverride(skillsDir, () => {
+    writeSkillFile('/fake/claudetower');
+    const filePath = resolveSkillFilePath();
+    const before = fs.statSync(filePath).mtimeMs;
+
+    const result = ensureSkillFileExists('/fake/claudetower');
+
+    assert.equal(result.wrote, false);
+    assert.equal(fs.statSync(filePath).mtimeMs, before); // 다시 안 씀(수정시각 그대로)
+  });
+});
+
+test('ensureSkillFileExists: 없으면 즉시 재생성한다(자가복구)', () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'claudetower-skill-test-'));
+  const skillsDir = path.join(base, 'skills'); // 존재하지 않는 폴더 — 스킬 자체가 없는 상태
+
+  withSkillsDirOverride(skillsDir, () => {
+    assert.equal(fs.existsSync(resolveSkillFilePath()), false);
+
+    const result = ensureSkillFileExists('/fake/claudetower');
+
+    assert.equal(result.wrote, true);
+    assert.equal(fs.existsSync(resolveSkillFilePath()), true);
+    const content = fs.readFileSync(resolveSkillFilePath(), 'utf8');
+    assert.match(content, /claudetower/);
+  });
 });
