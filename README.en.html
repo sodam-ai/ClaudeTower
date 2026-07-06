@@ -53,7 +53,7 @@
 
 <p>A statusline + (planned) multi-account switching CLI for Claude Code.</p>
 
-<blockquote>📖 <strong>New to computers or AI tools?</strong> We've prepared a much more detailed, beginner-friendly <a href="./GUIDE.en.html">Complete User Guide (GUIDE.en.html)</a> · <a href="./GUIDE.en.pdf">View as PDF (GUIDE.en.pdf)</a>.</blockquote>
+<blockquote>📖 <strong>New to computers or AI tools?</strong> We've prepared a much more detailed, beginner-friendly <a href="./GUIDE.en.html">Complete User Guide (GUIDE.en.html)</a>.</blockquote>
 
 <blockquote><strong>Current status (important)</strong>: Only <strong>Phase 1</strong> is implemented so far (current released version: v0.1.10). "① Statusline" below works right now. "② Account switching" <strong>does not have any code yet</strong> (it's not disabled — it simply hasn't been built). It's planned for Phase 2, gated behind an explicit user consent flow.</blockquote>
 
@@ -163,7 +163,7 @@ Widgets shown: model, project location, context usage, cost, rate limits (5h/7d)
 
 <h3 id="chat-toggle">Turn widgets on/off right from the Claude Code chat — no terminal needed</h3>
 
-<p>Running <code>setup</code> also installs a conversational command, <code>/claudetower-widgets</code>. Type <code>/claudetower-widgets</code> in the Claude Code chat, or just say something like "turn off context and cost in the statusline" or "slow down the refresh rate," and the AI shows you the current state and toggles it (or adjusts the speed) for you — no terminal, no command syntax to remember.</p>
+<p>Running <code>setup</code> also installs a conversational command, <code>/claudetower-widgets</code>. Type <code>/claudetower-widgets</code> in the Claude Code chat, or just say something like "turn off context and cost in the statusline" or "slow down the refresh rate," and the AI shows you the current state and toggles it (or adjusts the speed) for you — no terminal, no command syntax to remember. If you just type <code>/claudetower-widgets</code> with nothing after it, a check-box menu pops up so you can tick what to change (only the ticked items change — anything left unticked stays as-is).</p>
 
 <blockquote>Account-related commands like <code>accounts</code> <strong>do not exist yet</strong> (planned for Phase 2).</blockquote>
 
@@ -213,12 +213,12 @@ npm run build</code></pre>
 <p>From the initial release through gauge bars, the double-click fix, <code>uninstall</code>/<code>status</code> commands, reset-time display, and install reliability improvements — see GUIDE.en.html for full details.</p>
 </details>
 
-<blockquote><strong>Note (unreleased, in development)</strong>: <code>config statusline-refresh</code> (adjustable refresh speed), a new 3-second default refresh speed for fresh installs, the PATH registration prompt, and the skill-file self-healing fix already exist in code but haven't shipped in a numbered release yet. See GUIDE.en.html section 11 for details.</blockquote>
+<blockquote><strong>Note (unreleased, in development)</strong>: <code>config statusline-refresh</code> (adjustable refresh speed), a new 3-second default refresh speed for fresh installs, the PATH registration prompt, the skill-file self-healing fix, and the <code>/claudetower-widgets</code> check-box menu already exist in code but haven't shipped in a numbered release yet. See GUIDE.en.html section 11 for details.</blockquote>
 
 <h2 id="troubleshooting">Troubleshooting</h2>
 <ul>
 <li><strong>The statusline doesn't show up</strong>: Try one more Claude Code interaction — settings don't apply instantly, only from the next interaction onward.</li>
-<li><strong><code>/claudetower-widgets</code> (chat-based toggle) suddenly stops working</strong>: This conversational-setup file can rarely disappear for an unconfirmed reason. The statusline checks every few seconds and recreates it automatically if missing — wait a moment, fully restart Claude Code, and try again. If it still doesn't work, run <code>claudetower setup</code> once more.</li>
+<li><strong><code>/claudetower-widgets</code> (chat-based toggle) suddenly stops working</strong>: Root cause confirmed — this program's own automated verification routine had a bug that could delete the real config files by mistake (not something you did). A guard against recurrence and a self-healing fix (recreates it within seconds if it ever goes missing) have both been applied, pending the next release. If you hit this on the current version, run <code>claudetower setup</code> once more to fix it immediately.</li>
 <li><strong><code>claudetower status</code> says "registered but the executable can't be found (broken)"</strong>: You've deleted or moved the file that was installed. Run <code>claudetower setup</code> again to repair it automatically.</li>
 <li><strong>Double-clicking the exe opens a window that closes immediately</strong>: Running it with no arguments just shows help text and exits. To actually use it, open a terminal and type a command directly, e.g. <code>claudetower-win-x64.exe setup</code>.</li>
 <li><strong><code>npm run build</code> fails (for developers)</strong>: Check that <code>node --version</code> is 22 or later.</li>

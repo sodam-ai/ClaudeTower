@@ -4,7 +4,7 @@
 
 A statusline + (planned) multi-account switching CLI for Claude Code.
 
-> 📖 **New to computers or AI tools?** We've prepared a much more detailed, beginner-friendly [Complete User Guide (GUIDE.en.md)](./GUIDE.en.md) · [View as PDF (GUIDE.en.pdf)](./GUIDE.en.pdf).
+> 📖 **New to computers or AI tools?** We've prepared a much more detailed, beginner-friendly [Complete User Guide (GUIDE.en.md)](./GUIDE.en.md).
 
 > **Current status (important)**: Only **Phase 1** is implemented so far (current released version: v0.1.10). "① Statusline" below works right now. "② Account switching" **does not have any code yet** (it's not disabled — it simply hasn't been built). It's planned for Phase 2, gated behind an explicit user consent flow.
 
@@ -104,7 +104,7 @@ If you accidentally delete that fixed-location copy too and the statusline stops
 
 ### Turn widgets on/off right from the Claude Code chat — no terminal needed
 
-Running `setup` also installs a conversational command, `/claudetower-widgets`. Type `/claudetower-widgets` in the Claude Code chat, or just say something like "turn off context and cost in the statusline" or "slow down the refresh rate," and the AI shows you the current state and toggles it (or adjusts the speed) for you — no terminal, no command syntax to remember.
+Running `setup` also installs a conversational command, `/claudetower-widgets`. Type `/claudetower-widgets` in the Claude Code chat, or just say something like "turn off context and cost in the statusline" or "slow down the refresh rate," and the AI shows you the current state and toggles it (or adjusts the speed) for you — no terminal, no command syntax to remember. If you just type `/claudetower-widgets` with nothing after it, a check-box menu pops up so you can tick what to change (only the ticked items change — anything left unticked stays as-is).
 
 > Account-related commands like `accounts` **do not exist yet** (planned for Phase 2).
 
@@ -161,12 +161,12 @@ Added `claudetower widgets on/off`. Auto-installs the `/claudetower-widgets` cha
 From the initial release through gauge bars, the double-click fix, `uninstall`/`status` commands, reset-time display, and install reliability improvements — see GUIDE.en.md for full details.
 </details>
 
-> **Note (unreleased, in development)**: `config statusline-refresh` (adjustable refresh speed), a new 3-second default refresh speed for fresh installs, the PATH registration prompt, and the skill-file self-healing fix already exist in code but haven't shipped in a numbered release yet. See GUIDE.en.md section 11 for details.
+> **Note (unreleased, in development)**: `config statusline-refresh` (adjustable refresh speed), a new 3-second default refresh speed for fresh installs, the PATH registration prompt, and the skill-file self-healing fix, and the `/claudetower-widgets` check-box menu already exist in code but haven't shipped in a numbered release yet. See GUIDE.en.md section 11 for details.
 
 ## Troubleshooting
 
 - **The statusline doesn't show up**: Try one more Claude Code interaction — settings don't apply instantly, only from the next interaction onward.
-- **`/claudetower-widgets` (chat-based toggle) suddenly stops working**: This conversational-setup file can rarely disappear for an unconfirmed reason. The statusline checks every few seconds and recreates it automatically if missing — wait a moment, fully restart Claude Code, and try again. If it still doesn't work, run `claudetower setup` once more.
+- **`/claudetower-widgets` (chat-based toggle) suddenly stops working**: Root cause confirmed — this program's own automated verification routine had a bug that could delete the real config files by mistake (not something you did). A guard against recurrence and a self-healing fix (recreates it within seconds if it ever goes missing) have both been applied, pending the next release. If you hit this on the current version, run `claudetower setup` once more to fix it immediately.
 - **`claudetower status` says "registered but the executable can't be found (broken)"**: You've deleted or moved the file that was installed. Run `claudetower setup` again to repair it automatically.
 - **Double-clicking the exe opens a window that closes immediately**: Running it with no arguments just shows help text and exits. To actually use it, open a terminal and type a command directly, e.g. `claudetower-win-x64.exe setup`.
 - **`npm run build` fails (for developers)**: Check that `node --version` is 22 or later.
