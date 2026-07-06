@@ -162,6 +162,11 @@ claudetower-win-x64.exe setup
   Show cost? (Y/n):
   Show rate limits (5h/7d)? (Y/n):
   ```
+- (Windows only) One more question follows:
+  ```
+  Make "claudetower" work as a short command in the terminal? (Y/n):
+  ```
+  Answering `Y` means that from the next terminal window on, typing just `claudetower` will work. This changes a setting for your whole computer, so if you'd rather not, answer `n` — the statusline itself works identically either way (see section 9).
 - If you see "설정 완료" (setup complete) and a message about being copied to a safe location, it worked.
 
 ### 5-4. Check it in Claude Code
@@ -294,21 +299,75 @@ This program **never sends anything over the internet.** All information stays e
 
 ## 11. Version history summary
 
-This program has been rapidly refined through real-world testing. Below is an accurate summary of what actually changed in each version (current latest: **v0.1.10**).
+This program has been rapidly refined through real-world testing. Below is an accurate summary of what actually changed in each version (current latest **released** version: **v0.1.10**). Click any entry to expand it.
 
-| Version | Key changes |
-|---|---|
-| v0.1.0 | Initial release. Shows location, context, cost, and rate limits; `setup` installation wizard |
-| v0.1.1 | Added gauge-bar visuals alongside percentage numbers for easier reading |
-| v0.1.2 | Fixed an issue where double-clicking the file caused the window to close instantly |
-| v0.1.3 | Added `uninstall` command, improved gauge-bar colors, faster location updates |
-| v0.1.4 | Restored the "active model" widget; fixed a bug where usage percentages sometimes displayed messy decimals (e.g. `14.000000000000002%`) |
-| v0.1.5 | Added `status` command; `uninstall` now double-checks that removal actually completed |
-| v0.1.6 | Installed files no longer break if renamed, moved, or deleted (auto-settles into a fixed safe location) |
-| v0.1.7 | Shows the reset countdown/time once a rate limit reaches a warning level (70%+) |
-| v0.1.8 | Reset countdown is now always shown regardless of usage level (previously only shown at 70%+). Also fixed a bug where re-running `setup` to install a new version could silently fail because Claude Code kept the executable in use (now copies to a temp file first, then swaps it in safely, with automatic retry) |
-| v0.1.9 | Added `claudetower widgets on/off` for quickly toggling just the widgets you name (no need to re-answer all 5 questions). `setup` now also installs a `/claudetower-widgets` command so you can turn widgets on/off conversationally right in the Claude Code chat (no terminal needed) |
-| v0.1.10 | Fixed a bug where context/rate-limit percentages outside the normal 0-100 range showed up as impossible numbers like "-10%" or "150%". Established a `main` branch so the curl/PowerShell one-liner install actually works. Added a disclaimer stating this program is not an official Anthropic product |
+<details>
+<summary><strong>v0.1.10</strong> — Percentage display fix, one-liner install stabilized (latest release)</summary>
+
+Fixed a bug where context/rate-limit percentages outside the normal 0-100 range showed up as impossible numbers like "-10%" or "150%". Established a `main` branch so the curl/PowerShell one-liner install actually works. Added a disclaimer stating this program is not an official Anthropic product.
+</details>
+
+<details>
+<summary><strong>v0.1.9</strong> — Quick widget toggle + chat-based configuration</summary>
+
+Added `claudetower widgets on/off` for quickly toggling just the widgets you name (no need to re-answer all 5 questions). `setup` now also installs a `/claudetower-widgets` command so you can turn widgets on/off conversationally right in the Claude Code chat (no terminal needed).
+</details>
+
+<details>
+<summary><strong>v0.1.8</strong> — Always-on reset countdown, install reliability</summary>
+
+Reset countdown is now always shown regardless of usage level (previously only shown at 70%+). Also fixed a bug where re-running `setup` to install a new version could silently fail because Claude Code kept the executable in use (now copies to a temp file first, then swaps it in safely, with automatic retry).
+</details>
+
+<details>
+<summary><strong>v0.1.7</strong> — Reset countdown display</summary>
+
+Shows the reset countdown/time once a rate limit reaches a warning level (70%+).
+</details>
+
+<details>
+<summary><strong>v0.1.6</strong> — Fixed install location, auto-repair</summary>
+
+Installed files no longer break if renamed, moved, or deleted (auto-settles into a fixed safe location).
+</details>
+
+<details>
+<summary><strong>v0.1.5</strong> — Added install status check</summary>
+
+Added `status` command; `uninstall` now double-checks that removal actually completed.
+</details>
+
+<details>
+<summary><strong>v0.1.4</strong> — Model widget, cleaner percentages</summary>
+
+Restored the "active model" widget; fixed a bug where usage percentages sometimes displayed messy decimals (e.g. `14.000000000000002%`).
+</details>
+
+<details>
+<summary><strong>v0.1.3</strong> — Uninstall command, gauge improvements</summary>
+
+Added `uninstall` command, improved gauge-bar colors, faster location updates.
+</details>
+
+<details>
+<summary><strong>v0.1.2</strong> — Fixed double-click crash</summary>
+
+Fixed an issue where double-clicking the file caused the window to close instantly.
+</details>
+
+<details>
+<summary><strong>v0.1.1</strong> — Added gauge bars</summary>
+
+Added gauge-bar visuals alongside percentage numbers for easier reading.
+</details>
+
+<details>
+<summary><strong>v0.1.0</strong> — Initial release</summary>
+
+Initial release. Shows location, context, cost, and rate limits; `setup` installation wizard.
+</details>
+
+> **Note (not yet released — in development)**: The list above only covers versions officially released on GitHub. As of this writing, the following improvements **already exist in the code but have not yet shipped in a numbered release**: `claudetower config statusline-refresh <seconds>` (adjust statusline refresh speed, also available via chat), a new default refresh speed of 3 seconds instead of 1 second for new installs (reduces load on your computer), an opt-in prompt during setup to register `claudetower` as a short PATH command, and a self-healing fix so the statusline automatically restores the `/claudetower-widgets` chat command file if it ever goes missing. These will be added to the list above with a version number once the next release ships.
 
 ---
 
@@ -359,6 +418,7 @@ Here's where this program actually creates or uses files on your computer.
 | `status` says **"registered but the executable can't be found (broken)"** | You accidentally deleted the installed file. Run `setup` again to repair it automatically. |
 | **Ran `setup` to install a new version, but nothing changed** (e.g. version number stays the same) | Since v0.1.8, this retries automatically a few times, but antivirus scanning or similar can occasionally take even longer. Close Claude Code briefly and run `setup` again — with nothing actively using the file, the swap will go through reliably. |
 | **Statusline doesn't show up** in Claude Code | Settings apply starting from your *next* interaction. Try interacting with Claude Code once more. |
+| `/claudetower-widgets` (chat-based widget toggle) **used to work but suddenly doesn't** | This conversational-setup file can rarely disappear for an unconfirmed reason. The statusline program checks every few seconds whether this file exists and immediately recreates it if missing, so wait a moment and fully restart Claude Code, then try again. If it still doesn't work, run `claudetower setup` once more. |
 | **Context percentage looks off or empty** | This can happen briefly at the start of a session or right after `/compact`. This is expected, normal Claude Code behavior. |
 | For developers — `npm run build` fails | Check that `node --version` is 22 or later. |
 

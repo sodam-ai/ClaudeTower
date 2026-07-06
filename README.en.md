@@ -6,7 +6,28 @@ A statusline + (planned) multi-account switching CLI for Claude Code.
 
 > 📖 **New to computers or AI tools?** We've prepared a much more detailed, beginner-friendly [Complete User Guide (GUIDE.en.md)](./GUIDE.en.md) · [View as PDF (GUIDE.en.pdf)](./GUIDE.en.pdf).
 
-> **Current status (important)**: Only **Phase 1** is implemented so far (current version: v0.1.10). "① Statusline" below works right now. "② Account switching" **does not have any code yet** (it's not disabled — it simply hasn't been built). It's planned for Phase 2, gated behind an explicit user consent flow.
+> **Current status (important)**: Only **Phase 1** is implemented so far (current released version: v0.1.10). "① Statusline" below works right now. "② Account switching" **does not have any code yet** (it's not disabled — it simply hasn't been built). It's planned for Phase 2, gated behind an explicit user consent flow.
+
+---
+
+## Table of Contents
+
+- [① Statusline](#①-statusline-always-safe-install-and-youre-done)
+  - [Quick start (5 steps)](#quick-start--download-and-run-for-everyone-5-steps)
+  - [Installation](#installation-current-status-per-channel)
+  - [Command list](#commands-only-what-actually-exists-right-now)
+  - [Chat-based toggling](#turn-widgets-onoff-right-from-the-claude-code-chat--no-terminal-needed)
+  - [Building from source](#for-developers--building-from-source)
+  - [Security & data flow](#security--data-flow)
+  - [Architecture](#architecture-in-plain-terms)
+- [② Account switching (planned Phase 2)](#②-account-switching-planned-for-phase-2-doesnt-exist-yet)
+- [Version history summary](#version-history-summary)
+- [Troubleshooting](#troubleshooting)
+- [FAQ](#faq)
+- [Legal, copyright, and license](#legal-copyright-and-license)
+- [Full design documentation](#full-design-documentation)
+
+> 📖 For a much more detailed, beginner-friendly walkthrough (prerequisites, step-by-step screenshots-level detail, workflow diagrams, full FAQ), see the [Complete User Guide (GUIDE.en.md)](./GUIDE.en.md).
 
 ---
 
@@ -35,7 +56,7 @@ Sonnet 5  📁 my-project  컨텍스트 ██░░░ 45%  💰 $1.50  5시간
    claudetower-win-x64.exe setup
    ```
    (On macOS/Linux, prefix with `./`: `./claudetower-macos-arm64 setup`)
-   Answer Y or N to each question (model/location/context/cost/rate-limit) and you're done. The executable automatically copies itself to a fixed, safe location on your computer (`~/.claudetower/bin/`) as part of this step.
+   Answer Y or N to each question (model/location/context/cost/rate-limit) and you're done. The executable automatically copies itself to a fixed, safe location on your computer (`~/.claudetower/bin/`) as part of this step. (On Windows, one more question follows — "make claudetower work as a short command in the terminal?" — either answer works fine; the statusline itself behaves identically.)
 5. The statusline appears starting from your next Claude Code interaction — no restart needed.
 
 ### Installation (current status per channel)
@@ -118,9 +139,34 @@ This program is split into two completely separate rooms. The "statusline room" 
 
 ---
 
+## Version history summary
+
+Officially released versions (current latest: v0.1.10). Click to expand. **For the full history and detailed notes, see [GUIDE.en.md, section 11](./GUIDE.en.md#11-version-history-summary).**
+
+<details>
+<summary><strong>v0.1.10</strong> — Percentage display fix, one-liner install stabilized (latest)</summary>
+
+Fixed impossible out-of-range percentage displays. Stabilized the curl/PowerShell one-liner install. Added an "not an official Anthropic product" disclaimer.
+</details>
+
+<details>
+<summary><strong>v0.1.9</strong> — Quick widget toggle + chat-based setup</summary>
+
+Added `claudetower widgets on/off`. Auto-installs the `/claudetower-widgets` chat command.
+</details>
+
+<details>
+<summary><strong>v0.1.0 – v0.1.8</strong> — Early development</summary>
+
+From the initial release through gauge bars, the double-click fix, `uninstall`/`status` commands, reset-time display, and install reliability improvements — see GUIDE.en.md for full details.
+</details>
+
+> **Note (unreleased, in development)**: `config statusline-refresh` (adjustable refresh speed), a new 3-second default refresh speed for fresh installs, the PATH registration prompt, and the skill-file self-healing fix already exist in code but haven't shipped in a numbered release yet. See GUIDE.en.md section 11 for details.
+
 ## Troubleshooting
 
 - **The statusline doesn't show up**: Try one more Claude Code interaction — settings don't apply instantly, only from the next interaction onward.
+- **`/claudetower-widgets` (chat-based toggle) suddenly stops working**: This conversational-setup file can rarely disappear for an unconfirmed reason. The statusline checks every few seconds and recreates it automatically if missing — wait a moment, fully restart Claude Code, and try again. If it still doesn't work, run `claudetower setup` once more.
 - **`claudetower status` says "registered but the executable can't be found (broken)"**: You've deleted or moved the file that was installed. Run `claudetower setup` again to repair it automatically.
 - **Double-clicking the exe opens a window that closes immediately**: Running it with no arguments just shows help text and exits. To actually use it, open a terminal and type a command directly, e.g. `claudetower-win-x64.exe setup`.
 - **`npm run build` fails (for developers)**: Check that `node --version` is 22 or later.

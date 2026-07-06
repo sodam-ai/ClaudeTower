@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ClaudeTower Complete User Guide (English)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", Roboto, Helvetica, Arial, sans-serif;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 4rem;
+    line-height: 1.7;
+    color: #1f2328;
+    background: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { color: #e6edf3; background: #0d1117; }
+    a { color: #58a6ff; }
+    code, pre { background: #161b22 !important; color: #e6edf3 !important; }
+    table { border-color: #30363d !important; }
+    th, td { border-color: #30363d !important; }
+    blockquote { border-left-color: #30363d !important; color: #9198a1 !important; }
+    hr { border-color: #30363d !important; }
+    details { border-color: #30363d !important; background: #161b22 !important; }
+  }
+  h1 { font-size: 1.9rem; border-bottom: 1px solid #d0d7de; padding-bottom: .3rem; }
+  h2 { font-size: 1.4rem; margin-top: 2.2rem; border-bottom: 1px solid #d0d7de; padding-bottom: .3rem; }
+  h3 { font-size: 1.15rem; margin-top: 1.6rem; }
+  a { color: #0969da; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { background: #f6f8fa; padding: .15em .4em; border-radius: 4px; font-size: .92em; font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
+  pre { background: #f6f8fa; padding: .9rem 1rem; border-radius: 8px; overflow-x: auto; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; overflow-x: auto; display: block; }
+  th, td { border: 1px solid #d0d7de; padding: .5rem .75rem; text-align: left; vertical-align: top; }
+  th { background: rgba(175,184,193,.1); }
+  blockquote { border-left: 4px solid #d0d7de; margin: 1rem 0; padding: .3rem 1rem; color: #59636e; }
+  hr { border: none; border-top: 1px solid #d0d7de; margin: 2rem 0; }
+  details { border: 1px solid #d0d7de; border-radius: 8px; padding: .6rem 1rem; margin: .6rem 0; background: #f6f8fa; }
+  summary { cursor: pointer; font-weight: 500; }
+  summary strong { font-family: ui-monospace, Consolas, monospace; }
+  ul, ol { padding-left: 1.4rem; }
+  .workflow { background: #f6f8fa; padding: .9rem 1rem; border-radius: 8px; white-space: pre; overflow-x: auto; font-family: ui-monospace, Consolas, monospace; font-size: .88em; }
+</style>
+</head>
+<body>
+
+<h1>ClaudeTower Complete User Guide (English)</h1>
+
+<blockquote>This guide is written so that anyone can follow it from start to finish, even with little or no prior experience using computers, smartphones, or AI tools. Wherever a technical term appears, a plain-language explanation follows right next to it.</blockquote>
+
+<p><strong>Document version</strong>: This guide covers ClaudeTower <strong>v0.1.10</strong>.</p>
+
+<hr>
+
+<h2 id="toc">Table of Contents</h2>
+<ol>
+<li><a href="#1">What is this program?</a></li>
+<li><a href="#2">Before you start</a></li>
+<li><a href="#3">Prerequisites / required software</a></li>
+<li><a href="#4">How to download</a></li>
+<li><a href="#5">Quick start (installation)</a></li>
+<li><a href="#6">How to run it</a></li>
+<li><a href="#7">How to use it</a></li>
+<li><a href="#8">How it works (concept)</a></li>
+<li><a href="#9">Full command list</a></li>
+<li><a href="#10">Workflows (typical usage flow)</a></li>
+<li><a href="#11">Version history summary</a></li>
+<li><a href="#12">Security &amp; data flow</a></li>
+<li><a href="#13">Architecture</a></li>
+<li><a href="#14">File &amp; document locations</a></li>
+<li><a href="#15">Troubleshooting</a></li>
+<li><a href="#16">Frequently asked questions (FAQ)</a></li>
+<li><a href="#17">Legal, copyright, license &amp; commercial use</a></li>
+</ol>
+
+<hr>
+
+<h2 id="1">1. What is this program?</h2>
+
+<p><strong>ClaudeTower</strong> (working title — the final name has not been decided yet) is a small companion program that shows you a live summary at the bottom of the <strong>Claude Code</strong> screen (the tool that lets you have an AI write code for you).</p>
+
+<p>For example, it shows a single line like this at the bottom of your screen:</p>
+<pre><code>Sonnet 5  📁 my-project  컨텍스트 ██░░░ 45%  💰 $1.50  5시간 ████░ 78%·1:41  7일 ███░░ 71%·일06:00</code></pre>
+
+<p>What this line tells you:</p>
+<ul>
+<li><strong>Sonnet 5</strong> — which AI model you're currently using (the model name is shown as-is)</li>
+<li><strong>📁 my-project</strong> — the name of the folder you're currently working in</li>
+<li><strong>컨텍스트 (Context) ██░░░ 45%</strong> — how much of the AI's "memory" of your conversation is currently full (once it fills up, the AI starts forgetting earlier parts of the conversation)</li>
+<li><strong>💰 $1.50</strong> — how much this conversation has cost so far, in US dollars</li>
+<li><strong>5시간 (5-hour) ████░ 78%·1:41</strong> — you've used 78% of your 5-hour usage limit, and it resets in 1 hour 41 minutes</li>
+<li><strong>7일 (7-day) ███░░ 71%·일06:00 (Sun 06:00)</strong> — you've used 71% of your 7-day usage limit, and it resets Sunday at 6:00 AM</li>
+</ul>
+
+<p><strong>Most importantly</strong>: this program <strong>never touches your Claude account ID, password, or authentication credentials in any way.</strong> It only displays information on screen — nothing more.</p>
+
+<hr>
+
+<h2 id="2">2. Before you start</h2>
+
+<ul>
+<li>This project is still in its <strong>early development stage (Phase 1)</strong>. The "statusline" feature described here is fully working right now, but the "automatic multi-account switching" feature (Account module) <strong>does not have any code written for it yet.</strong></li>
+<li>Since the final product name hasn't been decided, it's currently referred to by the working title "ClaudeTower."</li>
+<li>This project's GitHub repository is <strong>public</strong>. You don't need to be logged into GitHub to see the download page.</li>
+<li><strong>It is free and intended for personal use only.</strong> It is not designed to be sold commercially or delivered as a paid service to a company (see Section 17 for details).</li>
+<li><strong>This program is not an official product of Anthropic</strong> (the company that makes Claude and Claude Code). It's an independent companion tool built by an individual developer, with no affiliation, sponsorship, or partnership with Anthropic (see Section 17 for details).</li>
+</ul>
+
+<hr>
+
+<h2 id="3">3. Prerequisites / required software</h2>
+
+<h3>For regular users (just want to use the program)</h3>
+
+<table>
+<thead><tr><th>Requirement</th><th>Why is it needed?</th><th>How to check if you already have it</th></tr></thead>
+<tbody>
+<tr><td>A Windows, macOS (Apple Silicon), or Linux (x64) computer</td><td>The program currently only runs on these three operating systems</td><td>If you're not sure, on Windows check Start Menu → Settings → System → About</td></tr>
+<tr><td>The latest version of <a href="https://claude.com/claude-code">Claude Code</a></td><td>This program plugs into Claude Code's "statusline" feature, so Claude Code must already be installed</td><td>If Claude Code is already running, you're set</td></tr>
+<tr><td>A web browser (Chrome, Edge, etc.)</td><td>Needed to reach the page where you download the program file (no GitHub login required)</td><td>Whatever browser you normally use is fine</td></tr>
+</tbody>
+</table>
+
+<p><strong>Important</strong>: Regular users <strong>do not need to install Node.js at all.</strong> Just download one file and you're ready to go.</p>
+
+<h3>For developers (want to modify or build the source code)</h3>
+
+<table>
+<thead><tr><th>Requirement</th><th>Version</th></tr></thead>
+<tbody>
+<tr><td><a href="https://nodejs.org">Node.js</a></td><td>22 or later</td></tr>
+<tr><td><a href="https://git-scm.com">Git</a></td><td>needed to clone the repository</td></tr>
+<tr><td>npm (installed automatically with Node.js)</td><td>—</td></tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2 id="4">4. How to download</h2>
+
+<ol>
+<li>Open your web browser (no GitHub login required).</li>
+<li>Go to:
+<pre><code>https://github.com/sodam-ai/ClaudeTower/releases/latest</code></pre>
+</li>
+<li>This is the "latest release" page. Scroll down to the <strong>"Assets"</strong> section and click the file matching your operating system.
+<table>
+<thead><tr><th>Your computer</th><th>File to download</th></tr></thead>
+<tbody>
+<tr><td>Windows (most PCs)</td><td><code>claudetower-win-x64.exe</code></td></tr>
+<tr><td>macOS, Apple Silicon (M1/M2/M3, etc.)</td><td><code>claudetower-macos-arm64</code></td></tr>
+<tr><td>Linux, 64-bit</td><td><code>claudetower-linux-x64</code></td></tr>
+</tbody>
+</table>
+</li>
+<li>Once downloaded, the file usually lands in your Downloads folder.</li>
+</ol>
+
+<blockquote>⚠️ <strong>Getting a 404 Not Found error?</strong> Double-check that you typed the URL correctly (watch for typos and capitalization).</blockquote>
+
+<h3>4-1. (Optional) Install with one terminal command — for people already comfortable with a terminal</h3>
+
+<p>If you've used a terminal before, you can skip steps 1-4 above and do the download-and-install in a single command. <strong>If this is your first time using a computer or a terminal, we recommend the "download directly" method above instead</strong> — copying and pasting a command can be confusing if it's unfamiliar.</p>
+
+<p><strong>Windows (PowerShell)</strong>:</p>
+<pre><code>irm https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.ps1 | iex</code></pre>
+
+<p><strong>macOS / Linux (terminal)</strong>:</p>
+<pre><code>curl -fsSL https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.sh | sh</code></pre>
+
+<p>This one line automatically finds and downloads the right executable for your operating system from the GitHub Release, then installs it to a fixed location on your computer (<code>~/.claudetower/bin/</code>). Once it finishes, continue with "Run the setup wizard" in Section 5.</p>
+
+<hr>
+
+<h2 id="5">5. Quick start (installation)</h2>
+
+<h3>5-1. Move the file wherever you like</h3>
+
+<p>You can place the downloaded file in any folder — for example, a folder like <code>D:\Test_Dev\test1</code>. You can also rename it if you want.</p>
+
+<h3>5-2. Open a terminal (the black command-typing window)</h3>
+
+<p>A "terminal" is a window where you type commands to instruct your computer. It may look unfamiliar at first, but it's simple once you know the steps.</p>
+
+<p><strong>Windows</strong>:</p>
+<ol>
+<li>Open File Explorer and navigate to the folder containing the file.</li>
+<li>Click the <strong>address bar</strong> at the top of the window.</li>
+<li>Clear it, type <code>cmd</code>, and press Enter.</li>
+<li>A black window opens — that's your terminal.</li>
+</ol>
+
+<p><strong>macOS</strong>:</p>
+<ol>
+<li>Open <code>Finder</code> and navigate to the folder.</li>
+<li>Right-click (or two-finger click) an empty area inside the folder and choose "New Terminal at Folder."</li>
+</ol>
+
+<h3>5-3. Run the setup wizard</h3>
+
+<p>Type this into the terminal and press Enter (replace the filename with whatever you actually downloaded):</p>
+
+<p><strong>Windows</strong>:</p>
+<pre><code>claudetower-win-x64.exe setup</code></pre>
+
+<p><strong>macOS / Linux</strong>:</p>
+<pre><code>./claudetower-macos-arm64 setup</code></pre>
+
+<ul>
+<li>On Windows, you may see a blue <strong>"Windows protected your PC"</strong> warning. This is expected — the program doesn't have an official code signature yet (it's not dangerous). Click <code>More info</code>, then <code>Run anyway</code> to continue.</li>
+<li>You'll be asked 5 questions. Press Enter to keep the default (yes), or type <code>n</code> and press Enter to turn an item off.
+<pre><code>Show active model? (Y/n):
+Show project location? (Y/n):
+Show context usage? (Y/n):
+Show cost? (Y/n):
+Show rate limits (5h/7d)? (Y/n):</code></pre>
+</li>
+<li>(Windows only) One more question follows:
+<pre><code>Make "claudetower" work as a short command in the terminal? (Y/n):</code></pre>
+Answering <code>Y</code> means that from the next terminal window on, typing just <code>claudetower</code> will work. This changes a setting for your whole computer, so if you'd rather not, answer <code>n</code> — the statusline itself works identically either way (see section 9).</li>
+<li>If you see "설정 완료" (setup complete) and a message about being copied to a safe location, it worked.</li>
+</ul>
+
+<h3>5-4. Check it in Claude Code</h3>
+
+<p>Open a new Claude Code session (or start a new conversation) and the statusline will appear at the bottom of your screen on your next interaction. <strong>You don't need to restart your computer.</strong></p>
+
+<hr>
+
+<h2 id="6">6. How to run it</h2>
+
+<h3>Can I just double-click it?</h3>
+
+<p>If you double-click the file, a black window will flash open and close almost instantly — <strong>this is not a malfunction.</strong> This program only does something useful when run together with a "command." Running it with no command just shows a brief usage message and exits.</p>
+
+<p><strong>To actually use it, you must open a terminal and type the command yourself, as described in Section 5.</strong></p>
+
+<h3>Do I need to open a terminal every time?</h3>
+
+<p>No. <strong>You only need to run <code>setup</code> once.</strong> After that, the program runs automatically and quietly in the background every time you use Claude Code, feeding information into the statusline. You'd only need to open a terminal again to:</p>
+<ul>
+<li>Change which items are shown (<code>setup</code> again)</li>
+<li>Check whether it's still correctly installed (<code>status</code>)</li>
+<li>Remove the registration (<code>uninstall</code>)</li>
+</ul>
+
+<hr>
+
+<h2 id="7">7. How to use it</h2>
+
+<h3>I want to change which items are shown later</h3>
+
+<p><strong>Easiest way</strong>: Type <code>/claudetower-widgets</code> in the Claude Code chat, or just say something like "turn off context and cost in the statusline" or "slow down the refresh rate." No terminal needed — the AI shows you the current state and toggles it (or adjusts the speed) for you (this conversational command gets installed automatically whenever you run <code>setup</code>).</p>
+
+<p><strong>If you're comfortable with a terminal</strong>: run something like <code>claudetower widgets off context cost</code> — only the widgets you name change, everything else stays as it was (no need to re-answer all 5 <code>setup</code> questions). Widget names: <code>model</code>, <code>location</code>, <code>context</code>, <code>cost</code>, <code>rate_limit</code>. Running <code>claudetower widgets</code> alone shows you what's currently on. (If bare <code>claudetower</code> doesn't work in a new terminal, see section 9 — use the full path, or the "easiest way" above.)</p>
+
+<p><strong>To reconfigure everything from scratch</strong>: run <code>setup</code> again and answer the 5 questions.</p>
+
+<h3>I want to check whether it's installed correctly</h3>
+
+<pre><code>claudetower-win-x64.exe status</code></pre>
+<p>You should see something like:</p>
+<pre><code>설치 상태: 설치됨 (claudetower 상태표시줄이 Claude Code에 등록되어 있습니다)
+표시 중인 항목: 사용 모델, 프로젝트 위치, 컨텍스트 사용량, 비용, 사용률(5시간/7일)</code></pre>
+<p>(Install status: installed — statusline registered with Claude Code / Widgets shown: model, location, context, cost, rate limits)</p>
+
+<h3>I don't want to use it anymore</h3>
+
+<pre><code>claudetower-win-x64.exe uninstall</code></pre>
+<p>This cleanly removes only the statusline registration from Claude Code. It never touches any of your other Claude Code settings.</p>
+
+<h3>Can I delete the file I originally downloaded?</h3>
+
+<p><strong>Yes, as long as you've run <code>setup</code> at least once.</strong> The moment you run <code>setup</code>, the program automatically copies itself to a fixed, safe location on your computer (<code>~/.claudetower/bin/</code>). After that, the file you originally downloaded can be safely deleted, renamed, or moved — it no longer matters.</p>
+
+<hr>
+
+<h2 id="8">8. How it works (concept)</h2>
+
+<p>In plain terms:</p>
+
+<p>Every time you interact with Claude Code, it briefly shares your "current situation" (which folder you're working in, which model you're using, how much you've spent, etc.) with this program. The program takes that information and turns it into a "nicely formatted single line," which it hands back to Claude Code. Claude Code then displays that line at the bottom of your screen.</p>
+
+<p>Think of it like having someone sit next to you whose only job is to make a little status sign — they can see where you are (your folder) and what time it is (rate-limit reset time), and they make you a sign based on that. But they never touch your wallet or ID (your account credentials).</p>
+
+<p>This program <strong>never sends anything over the internet.</strong> All information stays entirely on your own computer.</p>
+
+<hr>
+
+<h2 id="9">9. Full command list</h2>
+
+<blockquote><strong>Note</strong>: Typing bare <code>claudetower</code> in a freshly opened terminal may not work. During <code>claudetower setup</code>, answering Y to "make <code>claudetower</code> work as a short command in the terminal?" fixes this going forward; if you answered N, or installed an older version, it may still not work. <strong>If you'd rather skip the terminal entirely, use the "easiest way" from section 7</strong> (<code>/claudetower-widgets</code>, or just asking in plain language). If you still want to use a terminal, use the full path instead of bare <code>claudetower</code>: <code>~/.claudetower/bin/claudetower.exe</code> (macOS/Linux: <code>~/.claudetower/bin/claudetower</code>).</blockquote>
+
+<table>
+<thead><tr><th>Command</th><th>What it does</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td><code>claudetower --version</code></td><td>Shows the currently installed version number</td><td><code>0.1.10</code></td></tr>
+<tr><td><code>claudetower --help</code> (or run with no arguments)</td><td>Shows usage instructions</td><td>—</td></tr>
+<tr><td><code>claudetower setup</code></td><td>Choose which widgets to show and auto-register with Claude Code (also installs the <code>/claudetower-widgets</code> chat command)</td><td>Answer 5 questions with Y/n</td></tr>
+<tr><td><code>claudetower widgets</code></td><td>Check which widgets are currently on</td><td>Shows status only, changes nothing</td></tr>
+<tr><td><code>claudetower widgets off &lt;widgets...&gt;</code> / <code>on &lt;widgets...&gt;</code></td><td>Turn only the named widgets on/off</td><td><code>claudetower widgets off context cost</code></td></tr>
+<tr><td><code>claudetower status</code></td><td>Check current install status and which widgets are enabled</td><td>Shows "installed" / "not installed" / "broken"</td></tr>
+<tr><td><code>claudetower config statusline-refresh &lt;seconds&gt;</code></td><td>Adjusts how often the statusline refreshes (default 3 seconds). If you keep several windows open at once, raising it to 5 seconds or more reduces load on your computer further. You can also just say "slow down the statusline refresh" in chat instead of using a terminal</td><td><code>claudetower config statusline-refresh 5</code></td></tr>
+<tr><td><code>claudetower uninstall</code></td><td>Safely remove the statusline registration and the <code>/claudetower-widgets</code> chat command</td><td>Other settings are left untouched</td></tr>
+<tr><td><code>claudetower statusline</code></td><td>The renderer Claude Code calls internally</td><td><strong>You never need to run this yourself</strong></td></tr>
+<tr><td><code>/claudetower-widgets</code> (in Claude Code chat)</td><td>Turn widgets on/off conversationally, no terminal needed</td><td>Just say "turn off context and cost"</td></tr>
+</tbody>
+</table>
+
+<blockquote>Account-related commands like <code>accounts</code> <strong>do not exist yet</strong> (planned for Phase 2 — there is no code for them right now).</blockquote>
+
+<hr>
+
+<h2 id="10">10. Workflows (typical usage flow)</h2>
+
+<p><strong>First-time installation</strong>:</p>
+<div class="workflow">[1] Download the file from the Releases page
+      ↓
+[2] Open a terminal
+      ↓
+[3] Run "claudetower ... setup" → answer 5 questions
+      ↓
+[4] Automatically copied to a safe location + registered with Claude Code
+      ↓
+[5] Start a new conversation in Claude Code → see the statusline</div>
+
+<p><strong>Day-to-day use</strong>: You don't need to do anything. It shows up automatically every time you use Claude Code.</p>
+
+<p><strong>Changing which items are shown</strong>:</p>
+<div class="workflow">[1] Open a terminal (from any folder)
+      ↓
+[2] Run "claudetower ... setup" again → Y for what you want, n for what you don't
+      ↓
+[3] Takes effect from your next conversation</div>
+
+<p><strong>If something goes wrong</strong>:</p>
+<div class="workflow">[1] Run "claudetower ... status" to check
+      ↓
+[2] If it says "broken" → run "claudetower ... setup" again (auto-repairs)
+      ↓
+[3] Still stuck? → see Section 15, "Troubleshooting"</div>
+
+<hr>
+
+<h2 id="11">11. Version history summary</h2>
+
+<p>This program has been rapidly refined through real-world testing. Below is an accurate summary of what actually changed in each version (current latest <strong>released</strong> version: <strong>v0.1.10</strong>). Click any entry to expand it.</p>
+
+<details>
+<summary><strong>v0.1.10</strong> — Percentage display fix, one-liner install stabilized (latest release)</summary>
+<p>Fixed a bug where context/rate-limit percentages outside the normal 0-100 range showed up as impossible numbers like "-10%" or "150%". Established a <code>main</code> branch so the curl/PowerShell one-liner install actually works. Added a disclaimer stating this program is not an official Anthropic product.</p>
+</details>
+
+<details>
+<summary><strong>v0.1.9</strong> — Quick widget toggle + chat-based configuration</summary>
+<p>Added <code>claudetower widgets on/off</code> for quickly toggling just the widgets you name (no need to re-answer all 5 questions). <code>setup</code> now also installs a <code>/claudetower-widgets</code> command so you can turn widgets on/off conversationally right in the Claude Code chat (no terminal needed).</p>
+</details>
+
+<details>
+<summary><strong>v0.1.8</strong> — Always-on reset countdown, install reliability</summary>
+<p>Reset countdown is now always shown regardless of usage level (previously only shown at 70%+). Also fixed a bug where re-running <code>setup</code> to install a new version could silently fail because Claude Code kept the executable in use (now copies to a temp file first, then swaps it in safely, with automatic retry).</p>
+</details>
+
+<details>
+<summary><strong>v0.1.7</strong> — Reset countdown display</summary>
+<p>Shows the reset countdown/time once a rate limit reaches a warning level (70%+).</p>
+</details>
+
+<details>
+<summary><strong>v0.1.6</strong> — Fixed install location, auto-repair</summary>
+<p>Installed files no longer break if renamed, moved, or deleted (auto-settles into a fixed safe location).</p>
+</details>
+
+<details>
+<summary><strong>v0.1.5</strong> — Added install status check</summary>
+<p>Added <code>status</code> command; <code>uninstall</code> now double-checks that removal actually completed.</p>
+</details>
+
+<details>
+<summary><strong>v0.1.4</strong> — Model widget, cleaner percentages</summary>
+<p>Restored the "active model" widget; fixed a bug where usage percentages sometimes displayed messy decimals (e.g. <code>14.000000000000002%</code>).</p>
+</details>
+
+<details>
+<summary><strong>v0.1.3</strong> — Uninstall command, gauge improvements</summary>
+<p>Added <code>uninstall</code> command, improved gauge-bar colors, faster location updates.</p>
+</details>
+
+<details>
+<summary><strong>v0.1.2</strong> — Fixed double-click crash</summary>
+<p>Fixed an issue where double-clicking the file caused the window to close instantly.</p>
+</details>
+
+<details>
+<summary><strong>v0.1.1</strong> — Added gauge bars</summary>
+<p>Added gauge-bar visuals alongside percentage numbers for easier reading.</p>
+</details>
+
+<details>
+<summary><strong>v0.1.0</strong> — Initial release</summary>
+<p>Initial release. Shows location, context, cost, and rate limits; <code>setup</code> installation wizard.</p>
+</details>
+
+<blockquote><strong>Note (not yet released — in development)</strong>: The list above only covers versions officially released on GitHub. As of this writing, the following improvements <strong>already exist in the code but have not yet shipped in a numbered release</strong>: <code>claudetower config statusline-refresh &lt;seconds&gt;</code> (adjust statusline refresh speed, also available via chat), a new default refresh speed of 3 seconds instead of 1 second for new installs (reduces load on your computer), an opt-in prompt during setup to register <code>claudetower</code> as a short PATH command, and a self-healing fix so the statusline automatically restores the <code>/claudetower-widgets</code> chat command file if it ever goes missing. These will be added to the list above with a version number once the next release ships.</blockquote>
+
+<hr>
+
+<h2 id="12">12. Security &amp; data flow</h2>
+
+<ul>
+<li>This program <strong>never sends anything over the internet.</strong> Everything happens locally on your own computer.</li>
+<li>Your Claude account ID, password, and authentication tokens (login credentials) are <strong>structurally inaccessible to this program</strong> (see Section 13, "Architecture").</li>
+<li>The information Claude Code shares with it each time (working folder path, usage figures, etc.) is only used to render the display — it is <strong>never stored anywhere.</strong></li>
+<li>The only file this program actually saves to your computer is a small list of "which items to show" (e.g., whether to display context usage) — and that file never contains any personal or account information.</li>
+</ul>
+
+<hr>
+
+<h2 id="13">13. Architecture</h2>
+
+<p><strong>In plain terms</strong>: this program is designed as two completely separate rooms.</p>
+
+<ul>
+<li><strong>The "statusline room"</strong>: this is the part that's actually working right now. It only displays information on screen, so it's always safe.</li>
+<li><strong>The "account-switching room"</strong>: this <strong>hasn't even been built yet</strong> (no code exists for it). Once it is built, it's designed to be a completely separate room whose key won't open the statusline room's door.</li>
+</ul>
+
+<p>The reason for this separation is so that, even after the "account switching" feature is eventually added, any issues with that feature stay isolated — the "statusline" feature will keep working safely regardless. Whether this separation actually holds is automatically checked by tooling every time the program is built.</p>
+
+<hr>
+
+<h2 id="14">14. File &amp; document locations</h2>
+
+<p>Here's where this program actually creates or uses files on your computer.</p>
+
+<table>
+<thead><tr><th>File/folder</th><th>Location (Windows example)</th><th>What is it?</th></tr></thead>
+<tbody>
+<tr><td>Installed executable</td><td><code>C:\Users\YourName\.claudetower\bin\claudetower.exe</code></td><td>The file <code>setup</code> automatically copies itself to — this is the actual "real" program</td></tr>
+<tr><td>Widget settings</td><td><code>C:\Users\YourName\.claudetower\config.json</code></td><td>A small file storing which items to display</td></tr>
+<tr><td>Claude Code global settings</td><td><code>C:\Users\YourName\.claude\settings.json</code></td><td>Claude Code's own settings file. This program only uses the "statusLine" portion of it and never touches anything else in this file</td></tr>
+<tr><td>Settings backup</td><td><code>C:\Users\YourName\.claude\settings.json.bak</code></td><td>An automatic backup of your settings taken right before any change — useful if something goes wrong</td></tr>
+</tbody>
+</table>
+
+<blockquote>On macOS/Linux, replace <code>C:\Users\YourName</code> with <code>~</code> (your home folder, usually <code>/Users/YourName</code> or <code>/home/YourName</code>).</blockquote>
+
+<p><strong>For developers</strong>: detailed design rationale and decision history are kept in the <code>.PRD/</code> folder in the repository (regular users don't need to look at this).</p>
+
+<hr>
+
+<h2 id="15">15. Troubleshooting</h2>
+
+<table>
+<thead><tr><th>Symptom</th><th>Cause / fix</th></tr></thead>
+<tbody>
+<tr><td><strong>404 error</strong> on the Releases page</td><td>Double-check that you typed the URL correctly.</td></tr>
+<tr><td><strong>"Run anyway" button doesn't appear</strong> on the blue warning</td><td>You need to click "More info" first — the button appears below it.</td></tr>
+<tr><td><strong>Window closes instantly after double-clicking</strong></td><td>Not a malfunction — running with no arguments just shows help text and exits. See Section 6 and use a terminal instead.</td></tr>
+<tr><td><code>status</code> says <strong>"registered but the executable can't be found (broken)"</strong></td><td>You accidentally deleted the installed file. Run <code>setup</code> again to repair it automatically.</td></tr>
+<tr><td><strong>Ran <code>setup</code> to install a new version, but nothing changed</strong> (e.g. version number stays the same)</td><td>Since v0.1.8, this retries automatically a few times, but antivirus scanning or similar can occasionally take even longer. Close Claude Code briefly and run <code>setup</code> again — with nothing actively using the file, the swap will go through reliably.</td></tr>
+<tr><td><strong>Statusline doesn't show up</strong> in Claude Code</td><td>Settings apply starting from your <em>next</em> interaction. Try interacting with Claude Code once more.</td></tr>
+<tr><td><code>/claudetower-widgets</code> (chat-based widget toggle) <strong>used to work but suddenly doesn't</strong></td><td>This conversational-setup file can rarely disappear for an unconfirmed reason. The statusline program checks every few seconds whether this file exists and immediately recreates it if missing, so wait a moment and fully restart Claude Code, then try again. If it still doesn't work, run <code>claudetower setup</code> once more.</td></tr>
+<tr><td><strong>Context percentage looks off or empty</strong></td><td>This can happen briefly at the start of a session or right after <code>/compact</code>. This is expected, normal Claude Code behavior.</td></tr>
+<tr><td>For developers — <code>npm run build</code> fails</td><td>Check that <code>node --version</code> is 22 or later.</td></tr>
+</tbody>
+</table>
+
+<p><strong>Still stuck?</strong> Take a screenshot of the output of <code>claudetower status</code> and share it when asking for help — it makes diagnosing the issue much faster.</p>
+
+<hr>
+
+<h2 id="16">16. Frequently asked questions (FAQ)</h2>
+
+<p><strong>Q. Does installing this collect my Claude account information?</strong><br>
+A. No. Account-related code isn't included in this version (v0.1.10) at all. This program is structurally unable to see or store your ID, password, or authentication tokens.</p>
+
+<p><strong>Q. Does anything get sent over the internet?</strong><br>
+A. No. Everything runs locally, entirely on your own computer.</p>
+
+<p><strong>Q. Will account switching turn on automatically once it's built?</strong><br>
+A. No. That feature will require your explicit, deliberate consent before it can ever be enabled, and the statusline will keep working fine even if you never turn it on.</p>
+
+<p><strong>Q. Does it cost money?</strong><br>
+A. No, this program itself is free. Note that the "cost ($)" figure it <em>displays</em> is a separate thing — that's the cost of using Claude Code (the AI) itself, unrelated to this program.</p>
+
+<p><strong>Q. Is it really okay to delete the file I originally downloaded?</strong><br>
+A. Yes, as long as you've run <code>setup</code> at least once. See Section 7.</p>
+
+<p><strong>Q. Why does the name say "working title"?</strong><br>
+A. The final product name hasn't been decided yet (trademark review is still pending). We'll announce it once it's finalized.</p>
+
+<p><strong>Q. Can I use this at my company?</strong><br>
+A. It's designed for personal use and is not intended for commercial sale or delivery to a company. Please read Section 17 below carefully.</p>
+
+<hr>
+
+<h2 id="17">17. Legal, copyright, license &amp; commercial use</h2>
+
+<blockquote>⚠️ <strong>This section is not legal advice.</strong> It describes this project's current status honestly and as-is, clearly distinguishing between confirmed facts and matters that are still undecided. If you need a legally significant determination, please consult a qualified professional such as a lawyer.</blockquote>
+
+<h3>17-1. This program's relationship with Anthropic (very important)</h3>
+
+<p><strong>This program is not made or officially endorsed by Anthropic</strong> (the company that makes Claude and Claude Code). It is an independent companion tool built by an individual developer, with no affiliation, sponsorship, or partnership with Anthropic whatsoever. The word "Claude" appears in this document and in the program's description solely to describe the fact that this program works alongside Claude Code — it does not mean Anthropic created, endorses, or is responsible for this program. We state this clearly to avoid any misunderstanding.</p>
+
+<h3>17-2. License (confirmed facts)</h3>
+
+<ul>
+<li>This project uses the <strong>Apache License 2.0</strong>, a widely used open-source license that allows the source code to be freely viewed, modified, and redistributed, with an explicit patent grant (unlike MIT).</li>
+<li>The copyright holder is <strong>SoDam AI Studio</strong>.</li>
+<li>The full license text is in the <a href="./LICENSE"><code>LICENSE</code></a> file in the repository.</li>
+</ul>
+
+<h3>17-3. License (not yet finalized — stated honestly)</h3>
+
+<ul>
+<li>The final product name has not been decided yet (trademark review regarding candidate names is still in progress). Until the name is finalized, the <code>npm install -g</code> distribution channel is also deliberately not being opened (an npm package name is effectively permanent once claimed).</li>
+</ul>
+
+<h3>17-4. Commercial use — strict prohibition</h3>
+
+<p><strong>The current version of this program (v0.1.10, Phase 1 MVP) is not designed for:</strong></p>
+
+<ul>
+<li>❌ Commercial sale</li>
+<li>❌ Being offered as a paid service</li>
+<li>❌ Paid delivery to a company or organization</li>
+</ul>
+
+<p><strong>This program is distributed for free, personal use only.</strong></p>
+
+<p>Reason for this strict limitation: there are plans to eventually add an "automatic multi-account switching" feature (the Account module), which would cycle between multiple Claude accounts automatically — a pattern that <strong>could conflict with Claude's terms of service.</strong> It has been clearly established that once this feature actually ships, that risk applies to the entire program, even for users who never turn the feature on and only use the statusline. To avoid amplifying that risk through commercial expansion, the design principle from the very beginning excludes commercial use entirely.</p>
+
+<blockquote>Note: as of this writing (v0.1.10), the "account switching" feature has no code at all, so the terms-of-service conflict risk described above <strong>does not actually exist yet.</strong> However, the commercial-use prohibition itself applies to the entire project from the start, as a matter of design principle.</blockquote>
+
+<h3>17-5. On reusing external code and ideas</h3>
+
+<p>While designing this project, several other open-source statusline/account-management tools were referenced (e.g., ccstatusline, starship-claude, teamclaude, claude-swap, and others). However, <strong>this project did not copy their source code — only design ideas and patterns were referenced.</strong> If any actual code is borrowed in the future, the attribution requirements of the original project's license will be followed (this has not yet been fully reviewed legally).</p>
+
+<h3>17-6. Limitation of liability</h3>
+
+<p>This program is provided <strong>"AS IS"</strong> under the standard terms of the Apache License 2.0, without any warranty of any kind, express or implied. The copyright holder (SoDam AI Studio) is not liable for any damages arising from the use of this program (see the <a href="./LICENSE"><code>LICENSE</code></a> file for the exact legal text).</p>
+
+<hr>
+
+<p><em>This document covers ClaudeTower v0.1.10 and is an extended companion to <a href="./README.en.html"><code>README.en.md</code></a>. The Korean version is <a href="./GUIDE.html"><code>GUIDE.md</code></a>.</em></p>
+
+</body>
+</html>

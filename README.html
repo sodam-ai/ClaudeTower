@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>ClaudeTower (가제) — README</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", Roboto, Helvetica, Arial, sans-serif;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 4rem;
+    line-height: 1.7;
+    color: #1f2328;
+    background: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { color: #e6edf3; background: #0d1117; }
+    a { color: #58a6ff; }
+    code, pre { background: #161b22 !important; color: #e6edf3 !important; }
+    table { border-color: #30363d !important; }
+    th, td { border-color: #30363d !important; }
+    blockquote { border-left-color: #30363d !important; color: #9198a1 !important; }
+    hr { border-color: #30363d !important; }
+    details { border-color: #30363d !important; background: #161b22 !important; }
+  }
+  h1 { font-size: 1.9rem; border-bottom: 1px solid #d0d7de; padding-bottom: .3rem; }
+  h2 { font-size: 1.4rem; margin-top: 2.2rem; border-bottom: 1px solid #d0d7de; padding-bottom: .3rem; }
+  h3 { font-size: 1.15rem; margin-top: 1.6rem; }
+  a { color: #0969da; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { background: #f6f8fa; padding: .15em .4em; border-radius: 4px; font-size: .92em; font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
+  pre { background: #f6f8fa; padding: .9rem 1rem; border-radius: 8px; overflow-x: auto; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; overflow-x: auto; display: block; }
+  th, td { border: 1px solid #d0d7de; padding: .5rem .75rem; text-align: left; vertical-align: top; }
+  th { background: rgba(175,184,193,.1); }
+  blockquote { border-left: 4px solid #d0d7de; margin: 1rem 0; padding: .3rem 1rem; color: #59636e; }
+  hr { border: none; border-top: 1px solid #d0d7de; margin: 2rem 0; }
+  details { border: 1px solid #d0d7de; border-radius: 8px; padding: .6rem 1rem; margin: .6rem 0; background: #f6f8fa; }
+  summary { cursor: pointer; font-weight: 500; }
+  summary strong { font-family: ui-monospace, Consolas, monospace; }
+  ul, ol { padding-left: 1.4rem; }
+  .lang-switch { font-size: .95rem; }
+</style>
+</head>
+<body>
+
+<h1>ClaudeTower (가제)</h1>
+
+<p class="lang-switch"><a href="./README.html">한국어</a> | <a href="./README.en.html">English</a></p>
+
+<p>Claude Code용 상태표시줄 + (예정) 계정 자동전환 CLI 도구.</p>
+
+<blockquote>📖 <strong>컴퓨터·AI 프로그램이 처음이신가요?</strong> 이 README보다 훨씬 더 자세하고 쉬운 <a href="./GUIDE.html">완전 사용 가이드(GUIDE.html)</a> · <a href="./GUIDE.pdf">PDF로 보기(GUIDE.pdf)</a>를 준비해뒀습니다.</blockquote>
+
+<blockquote><strong>지금 상태(중요)</strong>: 이 프로젝트는 <strong>Phase 1</strong>까지만 구현되어 있습니다(현재 정식 출시 버전: v0.1.10). 아래 "① 상태표시줄"은 지금 실제로 동작합니다. "② 계정 자동전환"은 <strong>코드 자체가 아직 존재하지 않습니다</strong>(꺼져있는 게 아니라 안 만들어졌습니다) — Phase 2에서 사용자 동의 절차와 함께 추가될 예정입니다.</blockquote>
+
+<hr>
+
+<h2 id="toc">목차</h2>
+<ul>
+  <li><a href="#statusline">① 상태표시줄</a>
+    <ul>
+      <li><a href="#quickstart">빠른 시작(5단계)</a></li>
+      <li><a href="#install-methods">설치 방법</a></li>
+      <li><a href="#commands">명령어 목록</a></li>
+      <li><a href="#chat-toggle">채팅으로 켜고 끄기</a></li>
+      <li><a href="#build-source">개발자용 빌드</a></li>
+      <li><a href="#security">보안·데이터 흐름</a></li>
+      <li><a href="#architecture">아키텍처</a></li>
+    </ul>
+  </li>
+  <li><a href="#account-switching">② 계정 자동전환(Phase 2 예정)</a></li>
+  <li><a href="#changelog">업데이트 내용 요약</a></li>
+  <li><a href="#troubleshooting">트러블슈팅</a></li>
+  <li><a href="#faq">자주 묻는 질문(FAQ)</a></li>
+  <li><a href="#legal">법률·저작권·라이선스</a></li>
+  <li><a href="#more-docs">더 자세한 설계 문서</a></li>
+</ul>
+
+<blockquote>📖 훨씬 더 자세하고 초보자 친화적인 안내는 <a href="./GUIDE.html">완전 사용 가이드(GUIDE.html)</a>를 참고하세요 — 사전 준비물, 다운로드부터 실행까지 화면별 캡처 수준의 설명, 워크플로우 그림, 전체 FAQ가 담겨 있습니다.</blockquote>
+
+<hr>
+
+<h2 id="statusline">① 상태표시줄 (항상 안전, 설치만 하면 끝)</h2>
+
+<p>Claude Code 화면 아래에 지금 작업 중인 프로젝트 위치·사용 모델·컨텍스트 사용량·비용·사용률을 색과 막대 그래프로 보여줍니다. <strong>여러분의 Claude 계정 정보나 비밀번호를 전혀 다루지 않습니다.</strong></p>
+
+<p>예시:</p>
+<pre><code>Sonnet 5  📁 my-project  컨텍스트 ██░░░ 45%  💰 $1.50  5시간 ████░ 78%·1:41  7일 ███░░ 71%·일06:00</code></pre>
+<p>(사용률과 무관하게 재설정 시간이 항상 함께 표시됩니다.)</p>
+
+<h3 id="quickstart">빠른 시작 — 프로그램 다운로드해서 바로 쓰기 (일반 사용자용, 5단계)</h3>
+
+<p><strong>Node.js를 설치할 필요가 없습니다.</strong> 아래 순서만 따라 하시면 됩니다.</p>
+
+<ol>
+  <li><a href="https://github.com/sodam-ai/ClaudeTower/releases/latest">Releases 페이지</a>에서 내 컴퓨터에 맞는 파일을 내려받습니다.
+    <ul>
+      <li>Windows → <code>claudetower-win-x64.exe</code></li>
+      <li>macOS(Apple Silicon) → <code>claudetower-macos-arm64</code></li>
+      <li>Linux(x64) → <code>claudetower-linux-x64</code></li>
+    </ul>
+  </li>
+  <li>받은 파일을 아무 폴더에나 둡니다. 이름을 바꾸거나 나중에 다른 폴더로 옮겨도 괜찮습니다(아래 "설치 파일을 지우거나 옮겨도 되나요?" 참고).</li>
+  <li>그 폴더에서 터미널을 엽니다(Windows: 파일 탐색기 주소창에 <code>cmd</code> 입력 후 Enter).</li>
+  <li>아래 명령을 실행합니다.
+    <pre><code>claudetower-win-x64.exe setup</code></pre>
+    (macOS/Linux는 파일명 앞에 <code>./</code>를 붙입니다: <code>./claudetower-macos-arm64 setup</code>)
+    화면에 뜨는 질문(모델/위치/컨텍스트/비용/사용률 각각 표시할지)에 Y 또는 N으로 답하면 끝입니다. 이때 실행 파일이 컴퓨터 안의 고정된 안전한 위치(<code>~/.claudetower/bin/</code>)로 자동 복사됩니다. (Windows에서는 이어서 "터미널에서 claudetower라고 짧게 써도 되게 만들까요?"라는 질문이 한 번 더 뜹니다 — 어느 쪽으로 답해도 상태표시줄 자체는 동일하게 작동합니다.)
+  </li>
+  <li>Claude Code에서 다음 대화부터 상태표시줄이 바로 보입니다(재시작 불필요).</li>
+</ol>
+
+<h3 id="install-methods">설치 방법 (배포 채널별 현재 상태)</h3>
+
+<table>
+<thead><tr><th>방법</th><th>상태</th><th>비고</th></tr></thead>
+<tbody>
+<tr><td><strong>GitHub Release에서 직접 다운로드</strong> (위 5단계)</td><td>✅ 지금 가능</td><td>Node.js 불필요</td></tr>
+<tr><td><code>curl</code>/<code>PowerShell</code> 원라이너 (<code>install.sh</code>/<code>install.ps1</code>)</td><td>✅ 지금 가능(2026-07-04부터, <code>main</code> 브랜치 개설로 해결)</td><td>Node.js 불필요, 아래 명령 참고</td></tr>
+<tr><td>소스에서 직접 빌드</td><td>✅ 지금 가능</td><td>개발자용, Node.js 22+ 필요 — 아래 "개발자용" 참고</td></tr>
+<tr><td><code>npm install -g</code></td><td>⏸️ 의도적으로 보류</td><td>"ClaudeTower/claudetower"는 아직 가제이고 상표 저촉 여부도 [법무 검토 필요] 상태(<code>.PRD/01_PRD.md</code> §7). npm 패키지 이름은 사실상 영구 점유되는 자원이라, 이름이 확정되기 전에 발행하지 않습니다</td></tr>
+</tbody>
+</table>
+
+<p>macOS/Linux:</p>
+<pre><code>curl -fsSL https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.sh | sh</code></pre>
+<p>Windows(PowerShell):</p>
+<pre><code>irm https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.ps1 | iex</code></pre>
+
+<h3>설치 파일을 지우거나 옮겨도 되나요?</h3>
+
+<p><strong>네, 그래도 됩니다.</strong> <code>setup</code>을 한 번 실행하면 그 실행 파일은 자동으로 컴퓨터 안의 고정 위치(<code>~/.claudetower/bin/</code>)로 복사되어 안전하게 정착합니다. 그 이후로는 원래 다운로드하신 파일을 지우거나, 이름을 바꾸거나, 다른 폴더로 옮기셔도 전혀 문제없습니다.</p>
+
+<p>혹시 실수로 그 고정 위치의 파일까지 지워서 상태표시줄이 안 보이게 되더라도, <code>claudetower setup</code>을 다시 한 번 실행하면 자동으로 복구됩니다.</p>
+
+<h3 id="commands">명령어 목록 (지금 실제로 있는 것만)</h3>
+
+<blockquote>
+<strong>참고</strong>: 위 5단계까지만 하면 상태표시줄은 이미 완성입니다. 아래 명령어들은 나중에 표시 항목을 바꾸는 등 추가로 필요할 때만 쓰면 됩니다. <code>setup</code> 실행 중 "터미널에서 짧게 입력해도 실행되게 만들까요?"에 Y로 답하셨다면 새 터미널에서 <code>claudetower</code>라고 바로 쓸 수 있고, N으로 답했거나 예전 버전이라면 안 될 수 있습니다. 그래서:
+<ul>
+<li><strong>제일 쉬운 방법(터미널 필요 없음)</strong>: 클로드코드 채팅창에서 <code>/claudetower-widgets</code>라고 치거나 "상태표시줄에서 비용 표시 꺼줘"처럼 그냥 말하면 됩니다.</li>
+<li>그래도 터미널에서 직접 치고 싶다면, <code>claudetower</code> 대신 전체 경로 <code>~/.claudetower/bin/claudetower.exe</code>(macOS/Linux는 <code>~/.claudetower/bin/claudetower</code>)를 쓰면 항상 됩니다.</li>
+</ul>
+</blockquote>
+
+<ul>
+<li><code>claudetower --version</code> / <code>--help</code></li>
+<li><code>claudetower setup</code> — 상태표시줄 항목 선택 + Claude Code 설정 자동 등록(고정 위치로 자동 정착 포함)</li>
+<li><code>claudetower status</code> — 지금 설치돼 있는지, 어떤 항목이 켜져 있는지 확인
+  <pre><code>설치 상태: 설치됨 (claudetower 상태표시줄이 Claude Code에 등록되어 있습니다)
+표시 중인 항목: 사용 모델, 프로젝트 위치, 컨텍스트 사용량, 비용, 사용률(5시간/7일)</code></pre>
+</li>
+<li><code>claudetower widgets</code> — 지금 어떤 항목이 켜져 있는지 확인</li>
+<li><code>claudetower widgets off &lt;항목...&gt;</code> / <code>claudetower widgets on &lt;항목...&gt;</code> — 지정한 항목만 켜고 끄기(나머지는 그대로, <code>setup</code>처럼 5개 질문에 전부 다시 답할 필요 없음). 항목 이름: <code>model</code>, <code>location</code>, <code>context</code>, <code>cost</code>, <code>rate_limit</code></li>
+<li><code>claudetower config statusline-refresh &lt;초&gt;</code> — 상태표시줄 갱신 주기를 조절합니다(기본 3초, 세션을 여러 개 띄워두는 경우 5초 이상으로 늘리면 컴퓨터 부담이 더 줄어듭니다). <code>setup</code>을 다시 실행해도 이 값은 유지됩니다. 터미널 없이 클로드코드 채팅창에서 "상태표시줄 갱신을 느리게 해줘"처럼 말해도 됩니다</li>
+<li><code>claudetower uninstall</code> — 등록된 상태표시줄 설정만 안전하게 제거(다른 Claude Code 설정은 그대로 둠)</li>
+<li><code>claudetower statusline</code> — Claude Code가 내부적으로 호출하는 렌더러(직접 실행할 일 없음)</li>
+</ul>
+
+<h3 id="chat-toggle">터미널 없이, 클로드코드 채팅창에서 바로 켜고 끄기</h3>
+
+<p><code>setup</code>을 실행하면 <code>/claudetower-widgets</code>라는 대화형 명령도 함께 설치됩니다. 클로드코드 채팅창에 <code>/claudetower-widgets</code>라고 치거나 "상태표시줄에서 컨텍스트랑 비용 꺼줘", "갱신 속도를 느리게 해줘"처럼 말하면, AI가 지금 상태를 보여주고 대화하면서 대신 켜고 끄거나 속도를 조절해줍니다 — 터미널을 열거나 영어 명령어를 외울 필요가 없습니다.</p>
+
+<blockquote><code>accounts</code> 등 계정 관련 명령은 <strong>아직 존재하지 않습니다</strong>(Phase 2 예정).</blockquote>
+
+<h3>표시 항목을 나중에 바꾸고 싶으면</h3>
+
+<p><code>claudetower setup</code>을 다시 실행하면 됩니다. 원하는 항목만 켜고(<code>Y</code>) 나머지는 끄면(<code>n</code>) 바로 반영됩니다 — 별도의 "설정 변경" 명령은 따로 없고 <code>setup</code>이 그 역할을 겸합니다.</p>
+
+<h3 id="build-source">개발자용 — 소스에서 직접 빌드</h3>
+
+<pre><code>git clone https://github.com/sodam-ai/ClaudeTower.git
+cd ClaudeTower
+npm install
+npm run build</code></pre>
+<p><code>dist/</code> 폴더에 여러분 운영체제에 맞는 실행파일이 생깁니다. 이후 <code>npm run verify</code>로 lint·모듈경계·테스트를 한 번에 확인할 수 있습니다.</p>
+
+<h3 id="security">보안·데이터 흐름</h3>
+<ul>
+<li>아무것도 외부로 전송하지 않습니다. 여러분 컴퓨터 안에서만 동작합니다.</li>
+<li>Claude Code가 매번 상태표시줄 프로그램에 현재 상황(프로젝트 경로, 컨텍스트 사용량 등)을 전달하면, 그 값을 화면에 예쁘게 보여주기만 합니다 — 저장하지 않습니다.</li>
+</ul>
+
+<h3 id="architecture">아키텍처 (비유로 설명)</h3>
+<p>이 프로그램은 두 개의 완전히 분리된 방으로 나뉘어 있습니다. "상태표시줄 방"은 화면에 정보를 보여주기만 하는 방이라 늘 안전합니다. "계정전환 방"은 아직 지어지지도 않았습니다 — 나중에 지어지더라도 상태표시줄 방과는 열쇠가 통하지 않는 별도의 방입니다. 코드 검사 도구(ESLint)와 자동 테스트가 매번 두 방 사이에 몰래 문이 생기지 않았는지 확인합니다.</p>
+
+<hr>
+
+<h2 id="account-switching">② 계정 자동전환 (Phase 2 예정, 아직 없음)</h2>
+<p><strong>이 기능은 코드 자체가 아직 존재하지 않습니다.</strong> 완성되면 "여러분의 Claude 계정이 정지될 수도 있는 위험이 있습니다. 켜지 않아도 상태표시줄은 정상 작동합니다"라는 경고와 함께 명시적 동의 절차를 거쳐야만 켤 수 있도록 설계되어 있습니다(자세한 설계는 <code>.PRD/01_PRD.md</code> 참고).</p>
+
+<hr>
+
+<h2 id="changelog">업데이트 내용 요약</h2>
+<p>정식 출시(릴리스)된 버전별 변경 내용입니다(현재 최신: v0.1.10). 항목을 클릭하면 펼쳐집니다. <strong>전체 이력과 상세 설명은 <a href="./GUIDE.html#changelog">GUIDE.html 11장</a>을 참고하세요.</strong></p>
+
+<details>
+<summary><strong>v0.1.10</strong> — 퍼센트 표시 결함 수정, 원라이너 설치 안정화 (최신)</summary>
+<p>컨텍스트·사용률 퍼센트가 정상 범위(0~100)를 벗어나면 있을 수 없는 숫자가 그대로 표시되던 결함 수정. curl/PowerShell 한 줄 설치 안정화. "Anthropic 공식 제품 아님" 고지 추가.</p>
+</details>
+
+<details>
+<summary><strong>v0.1.9</strong> — 위젯 빠른 켜고 끄기 + 채팅 설정</summary>
+<p><code>claudetower widgets on/off</code> 추가. <code>/claudetower-widgets</code> 채팅 명령 자동 설치.</p>
+</details>
+
+<details>
+<summary><strong>v0.1.0 ~ v0.1.8</strong> — 초기 개발 단계</summary>
+<p>최초 배포부터 막대 그래프 표시, 더블클릭 오류 수정, <code>uninstall</code>/<code>status</code> 명령 추가, 사용률 재설정 시간 표시, 설치 안정성 개선까지 — 전체 상세 내용은 GUIDE.html 참고.</p>
+</details>
+
+<blockquote><strong>참고(미출시 개발 내용)</strong>: <code>config statusline-refresh</code>(갱신 속도 조절), 신규 설치 기본 갱신 속도 3초로 조정, PATH 등록 질문, 스킬 파일 자가복구는 코드로는 완성됐지만 아직 정식 릴리스 번호가 붙지 않았습니다. 자세한 내용은 GUIDE.html 11장을 참고하세요.</blockquote>
+
+<h2 id="troubleshooting">트러블슈팅</h2>
+<ul>
+<li><strong>상태표시줄이 안 보여요</strong>: Claude Code와 새로 상호작용을 한 번 해보세요(설정은 즉시 반영되지 않고 다음 상호작용부터 반영됩니다).</li>
+<li><strong><code>/claudetower-widgets</code>(채팅으로 위젯 켜고 끄기)가 갑자기 안 돼요</strong>: 이 대화형 설정 파일이 드물게 원인불명으로 사라질 수 있습니다. 상태표시줄이 몇 초마다 스스로 확인해 없으면 즉시 재생성하니, 잠시 후 클로드코드를 완전히 새로 시작해서 다시 시도하세요. 그래도 안 되면 <code>claudetower setup</code>을 다시 실행하세요.</li>
+<li><strong><code>claudetower status</code>에서 "등록은 되어 있으나 실행 파일을 찾을 수 없습니다(고장 상태)"가 떠요</strong>: 설치 파일이 있던 자리를 지웠거나 옮긴 경우입니다. <code>claudetower setup</code>을 다시 실행하면 자동으로 복구됩니다.</li>
+<li><strong>exe를 더블클릭했는데 창이 바로 꺼져요</strong>: 인자 없이 실행하면 도움말만 보여주고 끝납니다 — 실제로 쓰려면 터미널을 열어서 <code>claudetower-win-x64.exe setup</code>처럼 명령을 직접 입력해야 합니다.</li>
+<li><strong><code>npm run build</code>가 실패해요(개발자용)</strong>: <code>node --version</code>으로 22 이상인지 확인하세요.</li>
+<li><strong>Windows에서 실행파일 실행 시 경고가 떠요</strong>: 아직 디지털 서명이 없어 "알 수 없는 게시자" 경고가 뜰 수 있습니다. "추가 정보" → "실행"으로 진행하세요(정식 서명 배포 전까지는 정상입니다).</li>
+<li><strong>컨텍스트 퍼센트가 이상해요</strong>: 세션 초반이나 <code>/compact</code> 직후에는 값이 비어있을 수 있습니다(정상 동작, Claude Code 공식 동작 방식).</li>
+</ul>
+
+<h2 id="faq">자주 묻는 질문 (FAQ)</h2>
+<ul>
+<li><strong>설치하면 자동으로 제 계정 정보를 가져가나요?</strong> 아니요. 계정 관련 코드는 이 버전에 아예 포함되어 있지 않습니다.</li>
+<li><strong>인터넷으로 뭔가 전송되나요?</strong> 아니요, 전부 로컬에서만 동작합니다.</li>
+<li><strong>나중에 계정 자동전환 기능이 생기면 자동으로 켜지나요?</strong> 아니요. 여러분이 직접 동의해야만 켜지도록 설계되어 있습니다.</li>
+<li><strong>원본 다운로드 파일을 지워도 정말 괜찮나요?</strong> 네, <code>setup</code>을 한 번 실행한 뒤라면 괜찮습니다 — 위 "설치 파일을 지우거나 옮겨도 되나요?" 참고.</li>
+</ul>
+
+<h2 id="legal">법률·저작권·라이선스</h2>
+<ul>
+<li><strong>이 프로그램은 Anthropic의 공식 제품이 아닙니다.</strong> 개인이 만든 비공식 보조 도구이며, Anthropic과 제휴·후원 관계가 없습니다.</li>
+<li>라이선스: Apache License 2.0 (저작권자: SoDam AI Studio — <code>LICENSE</code> 참고)</li>
+<li>이 프로젝트는 개인 사용을 목적으로 하며, 상업적 판매·유료 서비스화는 계획에 없습니다.</li>
+<li>자세한 배경은 <code>.PRD/04_PROJECT_SPEC.md</code>의 "법률·저작권·라이선스·상업적 사용 요구사항" 참고.</li>
+</ul>
+
+<h2 id="more-docs">더 자세한 설계 문서</h2>
+<p>이 프로젝트의 설계 배경·의사결정 근거·보안 요구사항은 <code>.PRD/</code> 폴더에 전부 정리되어 있습니다.</p>
+
+</body>
+</html>
