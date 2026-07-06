@@ -112,16 +112,20 @@ async function runSetupWizard(
   // Claude Code는 기본적으로 "이벤트(대화) 발생 시"에만 상태표시줄을 다시 실행한다
   // (공식 문서 확인). refreshInterval(초 단위, 최소 1)을 지정하면 이벤트와 별개로
   // 고정 주기로도 재실행되어, 프로젝트 위치 등이 조금이라도 더 빠르게 반영된다.
-  // 기본값은 1초(스크립트 자체는 약 60ms만에 끝나 병목이 아님)지만, 사용자가
+  // 신규 설치 기본값은 3초다(.PRD/06_FIELD_ISSUE_SPAWN_STORM_2026-07-04.md FR-3,
+  // 2026-07-06 갱신) — 원래 1초였으나, 여러 Claude Code 세션을 동시에 띄우는
+  // 실사용 환경에서 "매초·세션수만큼 exe 재실행"이 프로세스 생성 폭주(0x800700e8
+  // 오류)에 상수로 기여하는 걸 실측 확인했고, 실제로 3초로 늘려도 체감 지연 없이
+  // (턴마다 이벤트 기반으로도 갱신되므로) 안정적으로 동작함을 확인했다. 사용자가
   // `claudetower config statusline-refresh`로 이미 값을 바꿔둔 적이 있다면 setup을
   // 다시 실행해도 그 값을 그대로 유지한다 — 그러지 않으면 재설치할 때마다 애써
-  // 늘려둔 주기가 1로 되돌아가 버린다(.PRD/06_FIELD_ISSUE_SPAWN_STORM_2026-07-04.md
-  // FR-2, 프로세스 폭주 완화를 위해 늘린 값이 업데이트마다 초기화되면 무의미해짐).
+  // 늘려둔 주기가 기본값으로 되돌아가 버린다(FR-2, 같은 이유로 이미 수정됨).
+  const DEFAULT_REFRESH_INTERVAL_SECONDS = 3;
   const existingStatusLine = readExistingStatusLineConfig(settingsPath);
   const refreshInterval =
     existingStatusLine && Number.isInteger(existingStatusLine.refreshInterval) && existingStatusLine.refreshInterval >= 1
       ? existingStatusLine.refreshInterval
-      : 1;
+      : DEFAULT_REFRESH_INTERVAL_SECONDS;
   const writeResult = writeStatusLineConfig({ type: 'command', command, refreshInterval }, settingsPath);
 
   log(`\n설정 완료: ${enabled.map((t) => WIDGET_LABELS[t]).join(', ')}`);

@@ -59,7 +59,19 @@ test('buildSkillFileContent: disable-model-invocation을 넣지 않는다(자연
 test('buildSkillFileContent: description에 statusline/ClaudeTower 고유 문구가 있어 범용 설정 스킬 대신 선택되게 한다', () => {
   const content = buildSkillFileContent('C:/Users/Someone/.claudetower/bin/claudetower.exe');
   assert.match(content, /statusline|상태표시줄/);
-  assert.match(content, /config\.json을 직접 편집하지 마세요/);
+  assert.match(content, /config\.json이나 settings\.json을 직접 편집하지 마세요/);
+});
+
+// 2026-07-06: .PRD/06_FIELD_ISSUE_SPAWN_STORM_2026-07-04.md FR-1 — 갱신 주기
+// 조절도 위젯 켜고 끄기처럼 채팅으로 가능해야 한다.
+test('buildSkillFileContent: allowed-tools에 config 하위명령도 허용되어 있다(갱신 주기 조절용)', () => {
+  const content = buildSkillFileContent('C:/Users/Someone/.claudetower/bin/claudetower.exe');
+  assert.match(content, /allowed-tools:.*Bash\("C:\/Users\/Someone\/\.claudetower\/bin\/claudetower\.exe" config \*\)/);
+});
+
+test('buildSkillFileContent: 갱신 속도 조절(statusline-refresh) 사용법이 안내되어 있다', () => {
+  const content = buildSkillFileContent('C:/Users/Someone/.claudetower/bin/claudetower.exe');
+  assert.match(content, /config statusline-refresh/);
 });
 
 test('writeSkillFile: SKILL.md을 올바른 위치에 쓰고, 폴더가 없었으면 skillsDirExistedBefore=false를 반환한다', () => {

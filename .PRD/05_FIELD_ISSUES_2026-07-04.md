@@ -13,7 +13,7 @@
 | 1 | 설치 파일 잠금 경합 (self-collision) | **HIGH (P0)** | **2026-07-06 코드 수정 적용**(임시파일+원자적 교체+재시도), 로직 시뮬레이션 검증 완료 / 실사용 유세션 재현 검증은 아직 없음 | install.ps1이 실행 중인 exe를 직접 덮어써서, 자기 statusLine이 자기 설치를 막음 |
 | 2 | npm -g 깨진 shim 잔재 | MEDIUM (P2) | 이번 세션에 수동 제거 완료 | 폐기된 npm-g 방식의 shim 3개가 남아 bare `claudetower`가 MODULE_NOT_FOUND |
 | 3 | `.claudetower\bin` PATH 미등록 | MEDIUM (P2) | 미해결 | 설치 스크립트가 PATH를 "안내만" 함 → 비개발자는 bare 명령을 못 씀 |
-| 4 | `/claudetower-widgets` 슬래시 명령 미등록 | **HIGH (P1)** | **2026-07-06 근본원인 확정·코드 수정 적용** | ClaudeTower가 setup 때 심는 공식 스킬이, exe만 교체하는 업데이트로는 갱신되지 않아 낡은 위치·낡은 내용으로 남아있었음 |
+| 4 | `/claudetower-widgets` 슬래시 명령 미등록 | **HIGH (P1)** | **2026-07-06 근본원인 확정·수정·실사용 검증 완료** | ClaudeTower가 setup 때 심는 공식 스킬이, exe만 교체하는 업데이트로는 갱신되지 않아 낡은 위치·낡은 내용으로 남아있었음 |
 | 5 | statusLine 스폰 모델(1초·83MB) 비효율 | MEDIUM (설계) | 관찰됨 | 매초 83MB 프로세스 스폰 = 이슈#1의 근본 토양 + 성능 부담 |
 | 6 | (환경요인) SoDamHarness 가드 오탐 | LOW | ClaudeTower 결함 아님 | 수정 적용을 반복 차단 — 교차 프로젝트 노트 |
 
@@ -140,7 +140,8 @@ because it is being used by another process.
 > - `$CLAUDE_CONFIG_DIR/skills/claudetower-widgets/SKILL.md`(이 PC는 `CLAUDE_CONFIG_DIR` 설정됨, 코드 기준 정답 위치)에는 **파일이 아예 없었다.**
 > - **결론**: §4.4의 H1(disable-model-invocation)·H3(CLAUDE_CONFIG_DIR 위치)은 이미 코드로 고쳐졌지만, **`claudetower setup`을 재실행해야만 스킬 파일이 갱신되는데, exe만 교체하는 업데이트(재설치 원라이너, `ensureInstalledAtTarget`의 자체 재배치)는 setup을 다시 부르지 않는다.** 그래서 새 코드를 설치해도 예전 setup이 심어둔 낡은 스킬 파일이 영원히 남는 것이 실제 원인이었다. 가설이 아니라 라이브 파일로 직접 확인된 사실이다.
 > - **수정**: `src/display/config/skill-file.js`에 `cleanupStaleSkillDirs()` 추가 — `writeSkillFile`/`removeSkillFile` 실행 시 정답 위치가 아닌 다른 후보 위치(기본 `~/.claude/skills`, `CLAUDE_CONFIG_DIR` 설정 시 그쪽도 포함)에 낡은 스킬이 남아있으면 함께 정리한다. 이 PC에 실제 적용해 낡은 파일 제거 + 정답 위치에 최신 스킬 재생성까지 확인(`[확인됨]`).
-> - **남은 미검증**: 이 PC에서 정리 직후 스킬 파일이 원인 미상으로 한 차례 사라졌다 재생성한 사례가 있었다(이 PC는 06번 문서가 기록한 대로 동시에 여러 Claude Code 세션이 떠 있는 환경이라, 다른 세션의 개입 가능성을 배제하지 못함 `[가능성]`). 완전 재시작 후 실제로 `/claudetower-widgets`가 뜨는지는 **사용자가 직접 확인해야 최종 완료**로 볼 수 있다.
+> - **실사용 검증 완료 `[확인됨]`**: 사용자가 새 세션에서 `/claudetower-widgets`와 자연어("상태표시줄에서 비용 꺼줘") 양쪽 모두 정상 실행됨을 직접 확인(2026-07-06). Personal Skill이 `/이름`으로 직접 호출 가능하다는 것도 공식 문서로 재확인함(claude-code-guide 조사: "custom commands have been merged into skills" — `commands/*.md`와 `skills/*/SKILL.md`가 기능적으로 동일). 애초에 H2/H3(스킬은 슬래시로 못 부른다는 가설)는 틀렸던 것으로 확정 — 진짜 원인은 낡은 스킬 파일 방치였다.
+> - **남아있는 잔여 리스크 `[확인됨, 미해결]`**: 위 검증 과정에서 스킬 파일이 원인 불명으로 **3~4차례 반복 소실**되는 현상을 직접 관찰했다(정답 위치 파일이 재현 없이 사라짐 → 재생성 → 다시 확인 시 없음, 총 3회 반복 후 4번째 재생성분은 10분간 폴링 감시로 안정 확인). Windows Defender(탐지이력 전부 무관), 제어된 폴더 접근(비활성 상태)은 원인에서 배제함 `[확인됨]`. 유력 용의자는 이 PC에 동시에 떠 있는 다른 Claude Code 세션(측정 당시 14개, 06번 문서와 동일 계열의 다중세션 환경)이지만 어느 세션·어떤 동작이 지우는지는 특정하지 못함 `[가능성]`. 이 원인 자체는 ClaudeTower 코드의 결함이 아니라(파일 쓰기 로직은 정상 동작 확인됨) 이 PC 환경의 별도 문제로 보이며, 재발 시 사용자가 `claudetower setup`을 다시 실행하면 즉시 복구된다.
 
 > 이번 세션에서 사용자의 **1차 통증**이자, **정직하게 아직 못 고친** 항목이다. 추정을 사실로 포장하지 않는다.
 
@@ -230,7 +231,7 @@ because it is being used by another process.
 |------|------|------|------|
 | ~~P0~~ ✅ | install.ps1/install.sh 임시파일→원자적 교체+재시도 — **2026-07-06 적용·시뮬레이션 검증 완료**(버전드 파일명/런처, 실사용 유세션 재현은 후속 과제로 보류) | ClaudeTower 레포 | 코드 |
 | P0 | 업데이트 전 "창 닫기" 안내 명시(임시 완화) — 근본 수정이 적용됐으므로 필요성 재검토 | install 출력·README | 문서 |
-| ~~P1~~ ✅ | `/claudetower-widgets` 근본원인 확정 — **2026-07-06**: setup 재실행 없이는 스킬이 갱신 안 되는 구조적 결함으로 확정, `cleanupStaleSkillDirs()` 추가로 수정. 실제 재시작 후 슬래시 동작 확인은 사용자 몫으로 남음 | CC 설정 / ClaudeTower 제품결정 | 조사→코드 |
+| ~~P1~~ ✅ | `/claudetower-widgets` 근본원인 확정 — **2026-07-06**: setup 재실행 없이는 스킬이 갱신 안 되는 구조적 결함으로 확정, `cleanupStaleSkillDirs()` 추가로 수정. **사용자가 실제 재시작 후 `/claudetower-widgets`·자연어 양쪽 모두 정상 동작 확인함.** 잔여 리스크(스킬 파일 원인불명 반복 소실)는 §4 갱신 참고 | CC 설정 / ClaudeTower 제품결정 | 조사→코드 |
 | P2 | installer/uninstaller가 stale npm shim 정리 | ClaudeTower 레포 | 코드 |
 | P2 | install/`setup`이 `.claudetower\bin` PATH 자동 등록(동의 하) | ClaudeTower 레포 | 코드 |
 | P3 | statusLine 스폰 모델 재평가(refreshInterval↑ / 데몬 / 바이너리 경량화) | ClaudeTower 설계 | 설계 |

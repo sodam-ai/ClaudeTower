@@ -64,7 +64,7 @@ If you accidentally delete that fixed-location copy too and the statusline stops
 
 ### Commands (only what actually exists right now)
 
-> **Note**: The 5 steps above are already the complete statusline setup. The commands below are only for later, optional tweaks — but right now, typing bare `claudetower` in a freshly opened terminal may not work (the install folder isn't added to your PATH automatically yet — a known, unresolved limitation). So:
+> **Note**: The 5 steps above are already the complete statusline setup. The commands below are only for later, optional tweaks. If you answered Y to "make `claudetower` work as a short command in the terminal?" during `setup`, bare `claudetower` already works in new terminals; if you answered N (or installed an older version), it may not yet. So:
 > - **Easiest (no terminal needed)**: in the Claude Code chat, type `/claudetower-widgets` or just say something like "turn off the cost widget".
 > - If you still want to type it in a terminal, use the full path instead of bare `claudetower`: `~/.claudetower/bin/claudetower.exe` (macOS/Linux: `~/.claudetower/bin/claudetower`).
 
@@ -77,15 +77,15 @@ If you accidentally delete that fixed-location copy too and the statusline stops
   ```
 - `claudetower widgets` — check which widgets are currently on
 - `claudetower widgets off <widgets...>` / `claudetower widgets on <widgets...>` — turn only the named widgets on/off (everything else stays as-is — no need to re-answer all 5 `setup` questions). Widget names: `model`, `location`, `context`, `cost`, `rate_limit`
-- `claudetower config statusline-refresh <seconds>` — adjusts how often the statusline refreshes (default 1s; if you keep several sessions open at once, raising it to 3-5s or more reduces load on your computer). This value is kept even if you run `setup` again
+- `claudetower config statusline-refresh <seconds>` — adjusts how often the statusline refreshes (default 3s; if you keep several sessions open at once, raising it to 5s or more reduces load on your computer further). This value is kept even if you run `setup` again. You can also just say "slow down the statusline refresh" in the Claude Code chat instead of using a terminal
 - `claudetower uninstall` — safely removes only the statusline registration (leaves your other Claude Code settings untouched)
 - `claudetower statusline` — the renderer Claude Code invokes internally (you won't run this by hand)
 
 ### Turn widgets on/off right from the Claude Code chat — no terminal needed
 
-Running `setup` also installs a conversational command, `/claudetower-widgets`. Type `/claudetower-widgets` in the Claude Code chat, or just say something like "turn off context and cost in the statusline," and the AI shows you the current state and toggles it for you — no terminal, no command syntax to remember.
+Running `setup` also installs a conversational command, `/claudetower-widgets`. Type `/claudetower-widgets` in the Claude Code chat, or just say something like "turn off context and cost in the statusline" or "slow down the refresh rate," and the AI shows you the current state and toggles it (or adjusts the speed) for you — no terminal, no command syntax to remember.
 
-> Account-related commands like `accounts` or `config` **do not exist yet** (planned for Phase 2).
+> Account-related commands like `accounts` **do not exist yet** (planned for Phase 2).
 
 ### Changing which widgets are shown later
 
