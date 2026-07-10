@@ -149,6 +149,16 @@
   로컬 프록시 서버, `claudetower accounts enable` 등 CLI 서브커맨드, `bin/claudetower.js` 라우팅
   연결) — 이 마일스톤이 그 기반이 됨.
 
+**2026-07-11 후속 정정**: 사용자가 "PRD 문서를 전부 완벽하게 읽고"를 재차 요구해 그동안
+안 읽었던 `.PRD/.archive/`의 원본 리서치 문서(PulseLine원본·QuotaSwitch원본 각 01/03/04)를
+전수 재정독. 통합 문서가 "필드 정의는 원본과 동일"이라 위임한 실제 원본
+(`QuotaSwitch원본/04_PROJECT_SPEC.md` "옵션 설정 요구사항")에서 `ProxyConfig` 검증 범위가
+제 초안(`threshold_pct: 0~100`, `port: 1~65535`)보다 엄격하다는 걸 발견 — 원본은
+`threshold: 50~100`(50 미만은 너무 잦은 전환 유발), `port: 1024~65535`(OS 예약 포트 제외)로
+명시. `src/accounts/proxy/proxy-config.js` 검증 범위를 원본 기준으로 수정하고, 이전엔
+통과했지만 지금은 막혀야 하는 경계값(threshold 30/49.9, port 500/1023)에 대한 회귀 테스트
+2건 추가. 검증: test/accounts 35/35(신규 2건 포함), 기존 verify 149/149 회귀 없음.
+
 ---
 
 ## 결정 완료 항목 (재론 불필요)
