@@ -45,6 +45,21 @@ test('formatSevenDayReset: resets_at이 없으면 null을 반환한다', () => {
   assert.equal(formatSevenDayReset(undefined, FIXED_NOW), null);
 });
 
+test('formatFiveHourReset: 24시간 이상 남은(비현실적) 값은 null을 반환한다(2026-07-11 실측 발견 — ms/s 단위 혼동 등 데이터 이상 방어)', () => {
+  const farFutureResetsAt = Math.floor(FIXED_NOW / 1000) + 25 * 3600; // 25시간 뒤
+  assert.equal(formatFiveHourReset(farFutureResetsAt, FIXED_NOW), null);
+});
+
+test('formatFiveHourReset: 24시간 바로 아래(경계값)는 정상 표시된다', () => {
+  const justUnder24h = Math.floor(FIXED_NOW / 1000) + 23 * 3600 + 59 * 60; // 23:59
+  assert.equal(formatFiveHourReset(justUnder24h, FIXED_NOW), '23:59');
+});
+
+test('formatSevenDayReset: 30일 이상 남은(비현실적) 값은 null을 반환한다(2026-07-11 실측 발견)', () => {
+  const farFutureResetsAt = Math.floor(FIXED_NOW / 1000) + 31 * 24 * 3600; // 31일 뒤
+  assert.equal(formatSevenDayReset(farFutureResetsAt, FIXED_NOW), null);
+});
+
 test('renderRateLimit: 70% 미만(안전 구간)이어도 재설정 시간을 함께 표시한다', () => {
   const resetsAt = Math.floor(FIXED_NOW / 1000) + 3600;
   const out = renderRateLimit(

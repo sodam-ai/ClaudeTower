@@ -13,10 +13,18 @@ function pad2(n) {
 // (공식 문서 확인, RESEARCH_SOURCES.md 196/272행). "H:MM" 타이머 형식으로 표시 —
 // "재설정"이라는 단어 없이도 누구나 카운트다운으로 직관적으로 읽을 수 있어서 채택
 // (사용자 선택, 8~9자짜리 "N시간 N분 후" 문구보다 훨씬 짧음).
+// 2026-07-11 실측 발견: 5시간 윈도우인데 resets_at이 비현실적으로 먼 미래(예: 초 대신
+// 밀리초 단위로 잘못 온 경우 등 데이터 이상)면 "40%·2282304:43"처럼 "H:MM" 형식이 깨져
+// 보였다. 이미 지난 시각(하한)은 방어하면서 상한을 안 막은 비대칭이 원인 — stdin을
+// 신뢰하지 않는 입력으로 취급한다는 원칙(04_PROJECT_SPEC.md)을 상한에도 동일하게 적용.
+// 5시간 윈도우가 24시간 이상 남았다고 나오면 데이터를 신뢰하지 않고 숨긴다(여유 있게 24h).
+const FIVE_HOUR_SANITY_MAX_MS = 24 * 60 * 60 * 1000;
+
 function formatFiveHourReset(resetsAt, now = Date.now()) {
   if (!Number.isFinite(resetsAt)) return null;
   const msRemaining = resetsAt * 1000 - now;
   if (msRemaining <= 0) return null; // 이미 지난 시각이면(데이터 오차 등) 표시하지 않음(방어적)
+  if (msRemaining > FIVE_HOUR_SANITY_MAX_MS) return null; // 비현실적으로 먼 미래도 동일하게 방어
   const totalMinutes = Math.floor(msRemaining / 60000);
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
@@ -25,10 +33,15 @@ function formatFiveHourReset(resetsAt, now = Date.now()) {
 
 // 7일 윈도우는 "얼마 남았는지"보다 "언제(무슨 요일 몇 시)"가 더 직관적이라
 // 상대시간 대신 절대 요일+시각으로 표시(사용자 예시 "일 오전 6:00"와 동일한 취지).
+// 7일 윈도우도 동일한 원칙(위 formatFiveHourReset 주석 참고) — 30일 이상 남았다고
+// 나오면 데이터를 신뢰하지 않고 숨긴다(여유 있게 30일, 7일 대비 넉넉한 마진).
+const SEVEN_DAY_SANITY_MAX_MS = 30 * 24 * 60 * 60 * 1000;
+
 function formatSevenDayReset(resetsAt, now = Date.now()) {
   if (!Number.isFinite(resetsAt)) return null;
   const ms = resetsAt * 1000;
   if (ms <= now) return null;
+  if (ms - now > SEVEN_DAY_SANITY_MAX_MS) return null;
   const date = new Date(ms);
   return `${DAY_LABELS[date.getDay()]}${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
 }
