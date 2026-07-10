@@ -120,6 +120,37 @@
 
 ---
 
+## M9: Phase 2 준비 작업 (게이트 준수, 2026-07-11)
+
+> 사용자가 "PRD 문서대로 전부 구현"을 지시했으나 M6 게이트(2026-07-14까지 Phase 2 착수 보류)와
+> 충돌함을 보고했고, 사용자가 **게이트 준수**를 명시적으로 선택. 위험 없는 준비 작업만 진행.
+
+- [x] **라이브러리 조사**: OS 자격증명 저장소 — `@napi-rs/keyring` 채택 확정(근거는
+      `.PRD/04_PROJECT_SPEC.md` [NEEDS CLARIFICATION] 해소 항목 참고). `npm install`은 게이트
+      이후로 의도적으로 미룸(결정만 기록, 실제 연동 없음).
+- [x] **`src/accounts/` 스캐폴딩 + 데이터 모델 코드화**: `04_PROJECT_SPEC.md` 트리 그대로 채움
+      — `module-activation-state.js`, `accounts/{account,quota-state}.js`,
+      `credential-store/{credential-ref,index}.js`(index.js는 throw만 하는 스텁),
+      `proxy/proxy-config.js`, `rotation/rotation-event.js`, `audit/.gitkeep`(비움 유지).
+      전부 순수 데이터 팩토리+검증 함수, 외부 의존성 0, OS/네트워크/OAuth 접근 없음.
+- [x] **안전 경계 구조적 강제**: `CredentialRef`는 문서화된 필드만 받는 화이트리스트라 임의의
+      `token`/`secret` 필드를 넘겨도 결과 객체에 섞이지 않음(테스트로 확인). `ProxyConfig`는
+      `bindAddress`가 `127.0.0.1`이 아니면 즉시 거부(0.0.0.0 바인딩 금지 DO NOT 규칙을 데이터
+      모델 레벨에서 강제). `credential-store/index.js`의 모든 함수는 호출 시 즉시
+      `throw`(Phase 2 게이트 대기) — 아직 실동작이 전혀 없음을 테스트로 증명.
+- [x] **CLI 미연결 확인**: 이 신규 파일들은 어디에서도 `require`되지 않음 — `bin/claudetower.js`에
+      Account 관련 라우팅을 추가하지 않았으므로 `ModuleActivationState.enabled`와 무관하게
+      코드 자체가 로드조차 안 되는, 가장 안전한 상태 유지.
+- 검증: `npm run test:accounts` 신규 테스트 전부 통과, `npm run verify`(기존 149/149) 그대로 유지,
+  `npm run lint` 통과(기존 3존 ESLint 규칙이 새 파일도 자동 적용받음, 설정 변경 없음).
+- done-when: 위 4개 체크 전부 충족 — **전부 충족**
+- 상태: **done (커밋은 사용자 확인 후 별도 진행 — 이번 계획에 커밋 단계 미포함)**
+- 다음: 게이트 종료(2026-07-14) 이후 실동작 착수(`npm install @napi-rs/keyring`, OAuth 흐름,
+  로컬 프록시 서버, `claudetower accounts enable` 등 CLI 서브커맨드, `bin/claudetower.js` 라우팅
+  연결) — 이 마일스톤이 그 기반이 됨.
+
+---
+
 ## 결정 완료 항목 (재론 불필요)
 
 | 질문 | 결론 | 근거 |
