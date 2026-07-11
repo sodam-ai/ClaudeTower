@@ -46,11 +46,11 @@ function fakeRegisterPath() {
   return impl;
 }
 
-function withPlatform(value, fn) {
+async function withPlatform(value, fn) {
   const original = Object.getOwnPropertyDescriptor(process, 'platform');
   Object.defineProperty(process, 'platform', { value, configurable: true });
   try {
-    return fn();
+    return await fn();
   } finally {
     Object.defineProperty(process, 'platform', original);
   }
