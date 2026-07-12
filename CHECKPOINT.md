@@ -159,6 +159,19 @@
   로컬 프록시 서버, `claudetower accounts enable` 등 CLI 서브커맨드, `bin/claudetower.js` 라우팅
   연결) — 이 마일스톤이 그 기반이 됨.
 
+**2026-07-12 추가 준비(게이트 준수 유지)**: 사용자가 "D-2 무시하고 진행 준비"를 지시했으나,
+이는 "게이트 종료를 기다리지 말고 안전한 준비 작업을 지금 하라"는 뜻으로 해석해(코드 실행에
+영향 없는 준비 3건) 진행 — **OS/네트워크 접근·CLI 라우팅 연결·`npm install`은 전부 여전히
+하지 않음**, 게이트 자체는 그대로 유지.
+- `src/accounts/proxy/server.js` 신설 — credential-store/index.js와 동일한 throw-스텁 패턴
+  (`startProxyServer`/`stopProxyServer`/`verifyLocalAccessToken`, 전부 미구현 명시)
+- `.PRD/07_OAUTH_FLOW_SPEC.md` 신설 — 이미 확정된 OAuth 보안 요구사항(state CSRF 검증,
+  OS 자격증명 저장소만 사용 등)을 한 곳에 정리 + 실제 구현 전 조사가 필요한 미확인 항목
+  (정확한 엔드포인트, 서드파티 클라이언트 등록 정책 등)을 추측 없이 명시적으로 남김
+- `.PRD/08_ACCOUNTS_ENABLE_CONSENT_DRAFT.md` 신설 — `claudetower accounts enable` 실행 시
+  보여줄 동의 고지 문구 초안(04_PROJECT_SPEC.md 요구사항 반영), 아직 CLI에 미연결
+- 검증: `test:accounts` 36/36(신규 1건), `npm run verify` 167/167 회귀 없음
+
 **2026-07-11 후속 정정**: 사용자가 "PRD 문서를 전부 완벽하게 읽고"를 재차 요구해 그동안
 안 읽었던 `.PRD/.archive/`의 원본 리서치 문서(PulseLine원본·QuotaSwitch원본 각 01/03/04)를
 전수 재정독. 통합 문서가 "필드 정의는 원본과 동일"이라 위임한 실제 원본
