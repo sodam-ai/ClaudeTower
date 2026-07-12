@@ -161,7 +161,7 @@ Added `claudetower widgets on/off`. Auto-installs the `/claudetower-widgets` cha
 From the initial release through gauge bars, the double-click fix, `uninstall`/`status` commands, reset-time display, and install reliability improvements — see GUIDE.en.md for full details.
 </details>
 
-> **Note (unreleased, in development)**: `config statusline-refresh` (adjustable refresh speed), a new 3-second default refresh speed for fresh installs, the PATH registration prompt, and the skill-file self-healing fix, and the `/claudetower-widgets` check-box menu already exist in code but haven't shipped in a numbered release yet. As of 2026-07-11, two more fixes exist in code but likewise haven't shipped: the five-hour/seven-day reset time no longer shows an unrealistically far-future value, and an overly long model name or folder name no longer breaks the statusline display. See GUIDE.en.md section 11 for details.
+> **Note (unreleased, in development)**: `config statusline-refresh` (adjustable refresh speed), a new 3-second default refresh speed for fresh installs, the PATH registration prompt, and the skill-file self-healing fix, and the `/claudetower-widgets` check-box menu already exist in code but haven't shipped in a numbered release yet. As of 2026-07-11, two more fixes exist in code but likewise haven't shipped: the five-hour/seven-day reset time no longer shows an unrealistically far-future value, and an overly long model name or folder name no longer breaks the statusline display. **As of 2026-07-12, a fix also landed for the cost widget so a corrupted negative value no longer displays a nonsensical number like "$-5.00"** (clamped so it never drops below zero). See GUIDE.en.md section 11 for details.
 
 ## Troubleshooting
 
