@@ -1,5 +1,10 @@
 # ClaudeTower (claudetower) — Phase 분리 계획
 
+> **[2026-07-15 결정] Phase 2(Account 모듈)는 보류 확정 — Anthropic 공식 이용약관(구독제 OAuth
+> 서드파티 사용 금지 + 자동화 접근 금지, `.PRD/07_OAUTH_FLOW_SPEC.md §3` 참고) 확인 결과 안전한
+> 구현 방법이 없다.** ClaudeTower는 Display 전용 도구로 유지한다. Phase 2에 의존하는 Phase 3
+> (계정 표시 연동 위젯 등)도 연쇄적으로 보류된다 — 아래 Phase 2·3 서술은 검토 기록으로만 남긴다.
+
 > 한 번에 다 만들면 복잡해져서 품질이 떨어집니다.
 > **이 프로젝트는 특히 중요합니다**: Phase 1에서 위험이 낮은 Display 모듈과 "모듈 격리 구조" 자체를 먼저 완성해 검증하고, 위험이 높은 Account 모듈은 그 안전한 기반 위에서 Phase 2에 추가합니다. 순서 자체가 안전장치입니다.
 

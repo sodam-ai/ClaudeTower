@@ -51,11 +51,11 @@
 
 <p class="lang-switch"><a href="./README.html">한국어</a> | <a href="./README.en.html">English</a></p>
 
-<p>A statusline + (planned) multi-account switching CLI for Claude Code.</p>
+<p>A statusline CLI for Claude Code. (The account auto-switching feature was reviewed and will not be built, for legal reasons — see "② Account switching" below.)</p>
 
 <blockquote>📖 <strong>New to computers or AI tools?</strong> We've prepared a much more detailed, beginner-friendly <a href="./GUIDE.en.html">Complete User Guide (GUIDE.en.html)</a>.</blockquote>
 
-<blockquote><strong>Current status (important)</strong>: Only <strong>Phase 1</strong> is implemented so far (current released version: v0.1.10). "① Statusline" below works right now. "② Account switching" <strong>does not have any code yet</strong> (it's not disabled — it simply hasn't been built). It's planned for Phase 2, gated behind an explicit user consent flow.</blockquote>
+<blockquote><strong>Current status (important)</strong>: This project provides the statusline (Display) feature only (current released version: v0.1.10). "① Statusline" below works right now. "② Account switching" <strong>will not be built</strong> — after reading Anthropic's official Terms of Service directly, we confirmed there is no way to implement this feature safely, so we decided not to build it (confirmed 2026-07-15; see "② Account switching" below for details).</blockquote>
 
 <hr>
 
@@ -72,7 +72,7 @@
       <li><a href="#architecture">Architecture</a></li>
     </ul>
   </li>
-  <li><a href="#account-switching">② Account switching (planned Phase 2)</a></li>
+  <li><a href="#account-switching">② Account switching (decided not to build)</a></li>
   <li><a href="#changelog">Version history summary</a></li>
   <li><a href="#troubleshooting">Troubleshooting</a></li>
   <li><a href="#faq">FAQ</a></li>
@@ -165,7 +165,7 @@ Widgets shown: model, project location, context usage, cost, rate limits (5h/7d)
 
 <p>Running <code>setup</code> also installs a conversational command, <code>/claudetower-widgets</code>. Type <code>/claudetower-widgets</code> in the Claude Code chat, or just say something like "turn off context and cost in the statusline" or "slow down the refresh rate," and the AI shows you the current state and toggles it (or adjusts the speed) for you — no terminal, no command syntax to remember. If you just type <code>/claudetower-widgets</code> with nothing after it, a check-box menu pops up so you can tick what to change (only the ticked items change — anything left unticked stays as-is).</p>
 
-<blockquote>Account-related commands like <code>accounts</code> <strong>do not exist yet</strong> (planned for Phase 2).</blockquote>
+<blockquote>Account-related commands like <code>accounts</code> <strong>do not exist</strong> (the account-switching feature has been decided against — see "② Account switching" below).</blockquote>
 
 <h3>Changing which widgets are shown later</h3>
 
@@ -186,12 +186,17 @@ npm run build</code></pre>
 </ul>
 
 <h3 id="architecture">Architecture (in plain terms)</h3>
-<p>This program is split into two completely separate rooms. The "statusline room" only displays information on screen, so it's always safe. The "account-switching room" hasn't even been built yet — and when it is, its key won't open the statusline room's door. Automated checks (ESLint) and tests verify on every change that no secret door has snuck in between the two rooms.</p>
+<p>This program was designed from the start with the "statusline" part and the "account-switching" part completely separated. The "statusline room" only displays information on screen, so it's always safe. The "account-switching room" was only ever a design sketch — it was never actually built, and for the reasons explained below, it has now been decided that it never will be.</p>
 
 <hr>
 
-<h2 id="account-switching">② Account switching (planned for Phase 2, doesn't exist yet)</h2>
-<p><strong>No code for this feature exists yet.</strong> Once built, it will require an explicit consent step with the warning "This feature carries a risk that your Claude account could be suspended. The statusline works fine without turning this on" before it can ever be enabled (see <a href="./.PRD/01_PRD.md"><code>.PRD/01_PRD.md</code></a> for the full design).</p>
+<h2 id="account-switching">② Account switching (decided not to build)</h2>
+<p>Originally, this project planned to add a feature that would let you automatically switch between multiple Claude accounts. On 2026-07-15, after reading Anthropic's official Terms of Service directly, we confirmed there is no safe way to build this feature.</p>
+<ul>
+<li>Anthropic explicitly prohibits third-party tools from logging in with subscription (Free/Pro/Max) credentials and using that account on a user's behalf. As of 2026-01-09, this is also technically blocked server-side — confirmed by multiple independent news sources.</li>
+<li>Separately, using automated scripts to access the service through anything other than an API key is also prohibited on its own. So even a workaround that avoids handling login credentials directly (e.g., leaving login to Claude Code itself and only automating which config folder is active) would still run into this rule.</li>
+</ul>
+<p>In short, there was no way to build the original goal — automatically cycling through multiple subscription accounts — without breaking the rules. So we have <strong>decided not to build this feature</strong>, with no plans to revisit it later. The statusline feature keeps working normally regardless of this decision.</p>
 
 <hr>
 
@@ -230,7 +235,7 @@ npm run build</code></pre>
 <ul>
 <li><strong>Does installing this automatically collect my account info?</strong> No. Account-related code isn't included in this version at all.</li>
 <li><strong>Does anything get sent over the internet?</strong> No, everything runs locally only.</li>
-<li><strong>Will account switching turn on automatically once it's built?</strong> No. It's designed to require your explicit consent before it can ever be enabled.</li>
+<li><strong>Are there plans to build account switching?</strong> No. After review, we decided not to build it due to legal concerns (see "② Account switching" above for details).</li>
 <li><strong>Is it really okay to delete the file I originally downloaded?</strong> Yes, as long as you've run <code>setup</code> at least once first — see "Can I delete or move the installed file?" above.</li>
 </ul>
 

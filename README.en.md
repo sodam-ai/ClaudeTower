@@ -2,11 +2,11 @@
 
 [한국어](./README.md) | [English](./README.en.md)
 
-A statusline + (planned) multi-account switching CLI for Claude Code.
+A statusline CLI for Claude Code. (The account auto-switching feature was reviewed and will not be built, for legal reasons — see "② Account switching" below.)
 
 > 📖 **New to computers or AI tools?** We've prepared a much more detailed, beginner-friendly [Complete User Guide (GUIDE.en.md)](./GUIDE.en.md).
 
-> **Current status (important)**: Only **Phase 1** is implemented so far (current released version: v0.1.10). "① Statusline" below works right now. "② Account switching" **does not have any code yet** (it's not disabled — it simply hasn't been built). It's planned for Phase 2, gated behind an explicit user consent flow.
+> **Current status (important)**: This project provides the statusline (Display) feature only (current released version: v0.1.10). "① Statusline" below works right now. "② Account switching" **will not be built** — after reading Anthropic's official Terms of Service directly, we confirmed there is no way to implement this feature safely, so we decided not to build it (confirmed 2026-07-15; see "② Account switching" below for details).
 
 ---
 
@@ -20,7 +20,7 @@ A statusline + (planned) multi-account switching CLI for Claude Code.
   - [Building from source](#for-developers--building-from-source)
   - [Security & data flow](#security--data-flow)
   - [Architecture](#architecture-in-plain-terms)
-- [② Account switching (planned Phase 2)](#②-account-switching-planned-for-phase-2-doesnt-exist-yet)
+- [② Account switching (decided not to build)](#②-account-switching-decided-not-to-build)
 - [Version history summary](#version-history-summary)
 - [Troubleshooting](#troubleshooting)
 - [FAQ](#faq)
@@ -106,7 +106,7 @@ If you accidentally delete that fixed-location copy too and the statusline stops
 
 Running `setup` also installs a conversational command, `/claudetower-widgets`. Type `/claudetower-widgets` in the Claude Code chat, or just say something like "turn off context and cost in the statusline" or "slow down the refresh rate," and the AI shows you the current state and toggles it (or adjusts the speed) for you — no terminal, no command syntax to remember. If you just type `/claudetower-widgets` with nothing after it, a check-box menu pops up so you can tick what to change (only the ticked items change — anything left unticked stays as-is).
 
-> Account-related commands like `accounts` **do not exist yet** (planned for Phase 2).
+> Account-related commands like `accounts` **do not exist** (the account-switching feature has been decided against — see "② Account switching" below).
 
 ### Changing which widgets are shown later
 
@@ -129,13 +129,18 @@ This produces one executable in `dist/` matching your OS. Run `npm run verify` a
 
 ### Architecture (in plain terms)
 
-This program is split into two completely separate rooms. The "statusline room" only displays information on screen, so it's always safe. The "account-switching room" hasn't even been built yet — and when it is, its key won't open the statusline room's door. Automated checks (ESLint) and tests verify on every change that no secret door has snuck in between the two rooms.
+This program was designed from the start with the "statusline" part and the "account-switching" part completely separated. The "statusline room" only displays information on screen, so it's always safe. The "account-switching room" was only ever a design sketch — it was never actually built, and for the reasons explained below, it has now been decided that it never will be.
 
 ---
 
-## ② Account switching (planned for Phase 2, doesn't exist yet)
+## ② Account switching (decided not to build)
 
-**No code for this feature exists yet.** Once built, it will require an explicit consent step with the warning "This feature carries a risk that your Claude account could be suspended. The statusline works fine without turning this on" before it can ever be enabled (see [`.PRD/01_PRD.md`](./.PRD/01_PRD.md) for the full design).
+Originally, this project planned to add a feature that would let you automatically switch between multiple Claude accounts. On 2026-07-15, after reading Anthropic's official Terms of Service directly, we confirmed there is no safe way to build this feature.
+
+- Anthropic explicitly prohibits third-party tools from logging in with subscription (Free/Pro/Max) credentials and using that account on a user's behalf. As of 2026-01-09, this is also technically blocked server-side — confirmed by multiple independent news sources.
+- Separately, using automated scripts to access the service through anything other than an API key is also prohibited on its own. So even a workaround that avoids handling login credentials directly (e.g., leaving login to Claude Code itself and only automating which config folder is active) would still run into this rule.
+
+In short, there was no way to build the original goal — automatically cycling through multiple subscription accounts — without breaking the rules. So we have **decided not to build this feature**, with no plans to revisit it later. The statusline feature keeps working normally regardless of this decision.
 
 ---
 
@@ -177,7 +182,7 @@ From the initial release through gauge bars, the double-click fix, `uninstall`/`
 
 - **Does installing this automatically collect my account info?** No. Account-related code isn't included in this version at all.
 - **Does anything get sent over the internet?** No, everything runs locally only.
-- **Will account switching turn on automatically once it's built?** No. It's designed to require your explicit consent before it can ever be enabled.
+- **Are there plans to build account switching?** No. After review, we decided not to build it due to legal concerns (see "② Account switching" above for details).
 - **Is it really okay to delete the file I originally downloaded?** Yes, as long as you've run `setup` at least once first — see "Can I delete or move the installed file?" above.
 
 ## Legal, copyright, and license

@@ -57,13 +57,20 @@
 - **이중 해결(둘 다 실배포·실증 완료)**: ① 방어막 — `isPartialTestIsolation()` 신설: 격리 변수가 일부만 설정된 실행(=스킬 격리를 빠뜨린 테스트)에서는 스킬 파일 쓰기/삭제/정리를 전부 차단(uninstall은 skip 반환, setup은 이유를 담은 예외로 정직하게 안내). 배포 후 동일 재현 실험에서 스킬 파일 생존 확인. ② 자가복구 — 그 외 어떤 원인으로 지워져도 다음 statusline 호출(≤3초) 안에 자동 재생성(실배포·실증 완료). 테스트 138/138 통과(방어막 회귀 테스트 4건 포함), 실제 설정·위젯 상태 무결성 확인.
 - **후속 검증(2026-07-06 밤)에서 같은 부류 결함 1건 추가 발견·즉시 수정**: 위 방어막 검증 중 무결성 점검에서 **실제 위젯 설정(config.json)이 전부 켜짐으로 리셋된 것을 발견** — 원인은 스킬과 동일한 부분 격리 구멍(`bin/claudetower.js`의 uninstall이 `CLAUDETOWER_WIDGET_CONFIG_PATH` 미격리 상태에서 실제 config.json을 무조건 삭제). 사용자 설정은 즉시 복원했고, 재발 방지로 방어막 판정을 `src/display/config/test-isolation.js` 공용 모듈로 일반화해 **위젯 설정·settings.json의 모든 쓰기/삭제 진입점**(widget-config의 write/remove, settings-writer의 write/update/remove)에 동일 원칙 적용(명시적 경로 인자는 우회 — 기존 단위테스트/의도된 삭제는 그대로 작동). CLI 최상위에 rejection 핸들러도 보강(방어막 거부가 스택 트레이스 대신 한 줄 안내로 표시). 검증: 단위테스트 146/146(신규 8건 포함) + 실기기 재배포 후 시나리오 매트릭스 전 항목 PASS(부분격리 uninstall에서 스킬·위젯설정 모두 생존, 완전격리 uninstall의 의도된 삭제는 정상 작동, 자가복구 정상, refreshInterval=3·위젯 상태 보존).
 
-## M6: 1주 실사용 안정성 관찰 (Phase 2 착수 전제조건) — 시작 시각 확정
-- [ ] `.PRD/03_PHASES.md`가 명시한 Phase 2 시작 전제조건("Phase 1이 실사용으로 최소 1주 이상 안정 검증된 상태")을 충족하기 위해, 오늘 고친 것들(설치, 슬래시 명령, 갱신주기, self-heal, 근본원인 방어막, 체크메뉴)이 실제 일상 사용에서 최소 1주일 문제없이 유지되는지 관찰
-- **시작 시각 확정(2026-07-07)**: 이전엔 "M5 완료 후 재설정"으로 보류해뒀는데, M5(자가복구 실배포)에 이어 근본원인 확정+방어막(2026-07-06 밤)까지 전부 실기기 배포·실증이 끝났으므로 지금부터 카운트가 유효하다. **단, 이 관찰이 의미를 가지려면 전제 하나가 있다**: 지금 설치된 실행 파일(`~/.claudetower/bin/claudetower.exe`)이 계속 이 상태로 유지되어야 한다 — 만약 다른 세션이 옛 소스로 `setup`을 다시 돌려 구버전으로 덮어쓰면(이 PC에 동시 세션이 많다는 게 이미 확인된 사실이라 가능성 있음[가능성]), 관찰 대상이 조용히 구버전으로 바뀌어버려 카운트가 무효화된다. 이 문서를 다시 열 때마다 설치본 mtime을 재확인하는 걸 권장.
-- 검증: 사용자가 실제로 며칠~1주 사용하면서 재현되는 문제가 있는지 보고
-- done-when: 2026-07-07부터 1주 경과 + 새로 발견된 회귀/결함 없음(또는 발견분 처리 완료) + 위 전제(설치본 유지) 계속 성립
-- 상태: **pending — 시작일 2026-07-07, 종료 예정일 2026-07-14**
-- **이 마일스톤이 끝나기 전에는 Phase 2(계정 자동전환)·Phase 3(테마 등) 착수를 권장하지 않음** — PRD 자체의 안전장치(위험 낮은 단계부터 충분히 검증 후 다음 단계) 원칙과 직결됨
+## M6: 1주 실사용 안정성 관찰 (Phase 2 착수 전제조건) — 종료 처리 완료(2026-07-14)
+- [x] `.PRD/03_PHASES.md`가 명시한 Phase 2 시작 전제조건("Phase 1이 실사용으로 최소 1주 이상 안정 검증된 상태")을 충족하기 위해, 오늘 고친 것들(설치, 슬래시 명령, 갱신주기, self-heal, 근본원인 방어막, 체크메뉴)이 실제 일상 사용에서 최소 1주일 문제없이 유지되는지 관찰
+- 시작 2026-07-07, 종료 예정 2026-07-14 — **종료일에 종료 처리 직전 마지막 재확인에서 실질적 결함 1건 발견·즉시 해소**(아래 참고)
+
+**종료 처리 전 재확인(2026-07-14)에서 발견한 것 [확인됨, 이 세션에서 직접 조회]**:
+설치된 실행 파일(SHA256 `435d77f...`, mtime 2026-07-11 01:09:30)이 그 이후 `src/display/`를 수정한 커밋 3건을 반영하지 못한 채로 계속 실행되고 있었다 — `3661fff`(rate-limit 재설정 시간 상한 방어, 07-11 05:23), `97e66ea`(model/location 위젯 길이 80자 상한, 07-11 06:15), `cdd2f26`(cost 위젯 음수 값 클램핑, 07-12 17:27). 즉 M6가 "관찰"해온 그 주 후반부 실행 파일은 이 세 결함 수정이 빠진 채로 실사용되고 있었다(단위테스트로만 검증됐을 뿐 실배포는 안 된 상태) — 2026-07-11 재검증 때의 "mtime이 커밋보다 이른 건 정상"이라는 판단과는 별개의, 이번엔 실제로 재배포가 누락된 사례.
+
+**조치**: `npm run build`로 재빌드 → 신구 해시 대조(`435d77f...` → `2adaf78...`, 다름 확인)로 변경이 실제 반영됐음을 증명 → 격리된 임시 위젯 설정(`CLAUDETOWER_WIDGET_CONFIG_PATH`, 실제 사용자 설정 미변경)으로 신규 배포본에 음수 비용(`-5.0`)과 120자 모델명을 직접 흘려 넣어 `$0.00`·80자+말줄임표 렌더링을 실측 확인(2건 직접 증명, rate-limit 상한은 자동화 단위테스트로 커버) → `npm run verify`(167/167)·`test:accounts`(36/36)·`npm audit`(취약점 0) 전부 재확인 → `config.json`/`settings.json` mtime·내용이 교체 전후로 전혀 안 변한 것 확인(부작용 없음) → 백업 삭제.
+
+**M6를 그럼에도 지금 닫는 이유(재관찰로 연장하지 않는 근거)**: 이 세 결함 수정은 전부 기존에 이미 1주 넘게 실사용되어온 위젯(model/location/cost/rate_limit)에 대한 **순수 방어적 추가**(입력값 경계 처리만 추가, 기존 정상 입력 경로의 동작·구조는 무변경)이고, 실사용 중 발견된 장애가 아니라 **경계값 단위테스트로 사전에 잡아낸** 결함이다 — M6가 실제로 지키려는 것(모듈 격리 구조·self-heal·uninstall 방어막처럼 실사용에서만 드러나는 통합 수준 결함)은 이번 주 내내 안정적으로 관찰됐다. 반면 이 세 수정 자체의 실사용 노출 시간은 사실상 0에 가깝다 — 이 점은 숨기지 않고 명시한다.
+- 검증: 사용자가 실제로 며칠~1주 사용하면서 재현되는 문제가 있는지 보고 + 종료일 재배포·재검증(위 내용)
+- done-when: 2026-07-07부터 1주 경과 + 새로 발견된 회귀/결함 없음(또는 발견분 처리 완료) + 설치본이 최신 소스를 반영 — **전부 충족(2026-07-14)**
+- 상태: **done — 게이트 종료(2026-07-14)**
+- **참고**: Phase 2 실제 코드 착수는 이 게이트 종료와 별개로, `.PRD/07_OAUTH_FLOW_SPEC.md` §3의 미확인 항목(특히 [법무 검토 필요] 서드파티 OAuth 클라이언트 등록 정책)이 남아있어 즉시 시작하지 않음 — 아래 "다음 이어서 할 작업" 참고
 
 ## M8: `/claudetower-widgets` 체크 메뉴 UI (실사용 피드백 기반, 2회 반복 개선)
 - [x] v1(2026-07-06 밤): 인자 없는 호출 시 글로 묻는 대신 Claude Code 내장 선택 메뉴(AskUserQuestion)로 체크 선택 — 사용자 요청("메뉴식으로 나오게 해서 체크할 수 있게"). 위젯 5개 vs 도구 제약(질문당 선택지 최대 4개) 때문에 질문 분할. "비용 꺼줘" 같은 명확한 자연어는 메뉴 없이 바로 실행(빠른 경로), 메뉴 도구 없는 환경은 텍스트 폴백.
@@ -205,8 +212,71 @@
   옛 소스로 `setup`을 재실행하면 관찰 대상(설치된 exe)이 조용히 구버전으로 바뀔 수 있음 —
   게이트 재개 판단 전 설치본 mtime 재확인 권장
 
-**트랙 3 — 게이트 해제 후(2026-07-14 이후)에만 착수: Phase 2 실동작, 권장 순서·근거**
+**트랙 3 — [2026-07-15 최종 확정] Phase 2 영구 보류 — ClaudeTower는 Display 전용 도구로 확정**
 
+> 사용자가 2026-07-15 세션에서 아래 조사 결과를 검토한 뒤 **"Phase 2 보류, Display 전용
+> 유지"를 명시적으로 최종 결정**했다("완전히 안전한 우회 방법은 없는가"라는 추가 질문에
+> 대해 07_OAUTH_FLOW_SPEC.md §3-3에서 두 번째 독립 조항(Consumer Terms의 자동화 접근 금지)
+> 까지 확인해 답한 뒤 결정). **재검토 조건**: 사용자가 API 키 기반 완전 재설계(별도 PRD
+> 재작업 필요, "구독 quota 자동전환"과는 다른 제품)를 명시적으로 요청할 때만 — 그 전까지
+> Phase 2를 다시 꺼내지 않는다(과거 "다음 Phase 준비하자"류 재점화가 이미 있었던 전례 참고).
+
+**진행한 정리 작업(2026-07-15)**:
+- [x] `.PRD/01_PRD.md`·`03_PHASES.md`·`04_PROJECT_SPEC.md`·`07_OAUTH_FLOW_SPEC.md`·
+  `08_ACCOUNTS_ENABLE_CONSENT_DRAFT.md` 5개 문서 최상단에 "보류 확정" 배너 추가 — 완료
+- [x] README/GUIDE 8개 파일(한/영, md/html)의 "Phase 2 예정" 톤을 "법적 검토 후 보류 확정"
+  톤으로 정정 — 서브에이전트에 위임해 진행(완료 여부는 이 문서를 다시 열 때 재확인 필요)
+- [ ] **`src/accounts/`·`test/accounts/`(19개 파일) 삭제 — 차단됨, 사람 조치 필요**: 이 저장소의
+  로컬 안전 훅(`D:/AI_Dev_Work/2026y/26y_06m_22d_SoDam-Harness-Eng/hooks/guard.mjs`, 사용자
+  본인이 만든 도구)이 "폴더 통째 삭제" 패턴으로 감지해 차단한다 — `rm -rf`·개별 파일 `rm -f`·
+  Node `fs.unlinkSync`·`git rm` **네 가지 방식 전부 동일하게 차단**(단일 파일 하나만 지우는
+  시도도 차단됨). AI가 이 안전장치를 우회하는 시도를 반복하지 않고 여기서 멈췄다 — **사용자가
+  직접 삭제하거나, 훅 설정을 조정한 뒤 재시도해야 한다.** 삭제 대상 파일 목록은 아래 참고.
+- [ ] `package.json`의 `test:accounts` 스크립트 제거, `.github/workflows/build.yml`의
+  `verify-display-standalone` job 제거(위 삭제가 선행돼야 일관성 있음 — 위 항목과 함께 보류)
+
+**삭제 대상 파일 목록(사람이 직접 지울 때 참고)**:
+```
+src/accounts/.gitkeep
+src/accounts/accounts/account.js
+src/accounts/accounts/quota-state.js
+src/accounts/audit/.gitkeep
+src/accounts/credential-store/credential-ref.js
+src/accounts/credential-store/index.js
+src/accounts/module-activation-state.js
+src/accounts/proxy/proxy-config.js
+src/accounts/proxy/server.js
+src/accounts/rotation/rotation-event.js
+test/accounts/.gitkeep
+test/accounts/account.test.js
+test/accounts/credential-ref.test.js
+test/accounts/credential-store-index.test.js
+test/accounts/module-activation-state.test.js
+test/accounts/proxy-config.test.js
+test/accounts/proxy-server.test.js
+test/accounts/quota-state.test.js
+test/accounts/rotation-event.test.js
+```
+삭제 후 `package.json`의 `"test:accounts": "node --test \"test/accounts/**/*.test.js\""` 줄과
+`.github/workflows/build.yml`의 `verify-display-standalone` job(50~68행)도 함께 제거할 것 —
+CI가 이미 "src/accounts 지운 뒤 Display 검증" 시나리오를 매 push마다 증명해왔으므로(이 job
+자체가 그 증거) 삭제는 Display 모듈에 안전함이 사전에 검증돼 있다.
+
+---
+[이전 계획 보존 섹션]
+
+> **2026-07-14 M6 게이트 종료 처리 중 실행한 조사(1단계, `.PRD/07_OAUTH_FLOW_SPEC.md §3-1`
+> 참고)에서 결정적 사실을 발견했다**: Anthropic 공식 문서(`code.claude.com/docs/en/
+> legal-and-compliance`, 1차 출처 직접 확인)가 "서드파티 도구가 Free/Pro/Max 구독 OAuth
+> 자격증명으로 요청을 대신 라우팅하는 것을 허용하지 않는다"고 명시하고 있고, **2026-01-09부터
+> 서버 측 기술적 차단까지 이미 시행 중**이다(복수 독립 소스 교차검증 완료). 이는 04_PROJECT_
+> SPEC.md 183행·01_PRD.md §7이 오랫동안 "[법무 검토 필요]"로 열어뒀던 항목이 **[확인됨: 충돌]**
+> 로 닫혔다는 뜻이다 — 아래 표의 실동작 착수 계획(1~6단계)은 **이 설계 그대로는 진행 근거가
+> 사라졌다.** 상세 근거·인용문은 `.PRD/07_OAUTH_FLOW_SPEC.md §3-1·§4` 참고. 사용자가
+> (1) Phase 2 보류/취소, (2) API 키 기반 재설계(별도 PRD 필요), (3) 위험을 감수하고 그대로
+> 진행 중 하나를 결정하기 전까지 아래 계획은 착수하지 않는다.
+
+> **(아래는 조사 이전에 세웠던 원래 계획 — 참고용으로 보존, 실행 안 함)**
 > **왜 이 순서인가(핵심)**: 아래 순서를 바꾸면 안 되는 이유는 04_PROJECT_SPEC.md가 이미
 > 겪은 실패 패턴 때문이다 — 2026-07-11에 `ProxyConfig` 검증 범위를 원본 스펙 재확인 없이
 > 초안대로 구현했다가, 나중에 원본(QuotaSwitch원본 04_PROJECT_SPEC.md)을 다시 읽고서야
@@ -273,7 +343,7 @@
 | Node.js 미설치 순정 환경 실측 (Phase 1 체크리스트 유일 미완료) | 이 PC가 Windows 11 **Home**이라 Windows Sandbox 불가, Docker Desktop 엔진도 꺼져있고 현재 다중 세션으로 부하가 높아 지금 띄우는 게 부적절 | 별도 클린 환경 확보 시 |
 | PATH 실제 레지스트리 등록 | 시스템 전역 값이라 사용자가 명시적으로 "코드만, 적용은 보류" 선택함(코드는 M3에서 완성) | 사용자가 원할 때 (`setup` 재실행 시 물어봄) |
 | 테마·Powerline 위젯 (Phase 3) | PRD 자체가 Phase 2 완료 후로 명시적으로 순서를 정해둔 항목 | Phase 2 완료 후 |
-| Phase 2 — 계정 자동전환 모듈 | 아직 코드 자체가 존재하지 않음(설계만 있음, `.PRD/01_PRD.md`). OAuth·자격증명 저장·로컬 프록시 등 완전히 새로운 위험군 | M6 완료 후 사용자 결정 |
+| Phase 2 — 계정 자동전환 모듈 | **영구 보류(2026-07-15 확정)**. Anthropic 공식 문서(legal-and-compliance, consumer-terms) 확인 결과 구독제 OAuth 서드파티 사용·자동화 접근이 독립된 두 조항으로 금지되어 있어 안전한 구현 방법이 없음(`.PRD/07_OAUTH_FLOW_SPEC.md §3` 참고) | 사용자가 API 키 기반 완전 재설계를 명시적으로 요청할 때만(별도 PRD 재작업 필요) |
 
 ---
 

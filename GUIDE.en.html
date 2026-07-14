@@ -102,7 +102,7 @@
 <h2 id="2">2. Before you start</h2>
 
 <ul>
-<li>This project is still in its <strong>early development stage (Phase 1)</strong>. The "statusline" feature described here is fully working right now, but the "automatic multi-account switching" feature (Account module) <strong>does not have any code written for it yet.</strong></li>
+<li>This project <strong>only provides the statusline (Display) feature.</strong> The "statusline" feature described here is fully working right now. We originally planned to add an "automatic multi-account switching" feature (Account module) later, but after review we <strong>decided not to build it, due to legal concerns</strong> (see Section 13, "Architecture," and Section 17, "Legal," for details).</li>
 <li>Since the final product name hasn't been decided, it's currently referred to by the working title "ClaudeTower."</li>
 <li>This project's GitHub repository is <strong>public</strong>. You don't need to be logged into GitHub to see the download page.</li>
 <li><strong>It is free and intended for personal use only.</strong> It is not designed to be sold commercially or delivered as a paid service to a company (see Section 17 for details).</li>
@@ -310,7 +310,7 @@ Answering <code>Y</code> means that from the next terminal window on, typing jus
 </tbody>
 </table>
 
-<blockquote>Account-related commands like <code>accounts</code> <strong>do not exist yet</strong> (planned for Phase 2 — there is no code for them right now).</blockquote>
+<blockquote>Account-related commands like <code>accounts</code> <strong>do not exist</strong> (the account-switching feature has been decided against — see Section 17 for details).</blockquote>
 
 <hr>
 
@@ -421,14 +421,14 @@ Answering <code>Y</code> means that from the next terminal window on, typing jus
 
 <h2 id="13">13. Architecture</h2>
 
-<p><strong>In plain terms</strong>: this program is designed as two completely separate rooms.</p>
+<p><strong>In plain terms</strong>: this program was originally planned as two completely separate rooms.</p>
 
 <ul>
 <li><strong>The "statusline room"</strong>: this is the part that's actually working right now. It only displays information on screen, so it's always safe.</li>
-<li><strong>The "account-switching room"</strong>: this <strong>hasn't even been built yet</strong> (no code exists for it). Once it is built, it's designed to be a completely separate room whose key won't open the statusline room's door.</li>
+<li><strong>The "account-switching room"</strong>: this was only ever a design sketch — it was <strong>never actually built</strong> (no code exists for it). For the reasons explained in Section 17, it has now been <strong>decided that it never will be.</strong></li>
 </ul>
 
-<p>The reason for this separation is so that, even after the "account switching" feature is eventually added, any issues with that feature stay isolated — the "statusline" feature will keep working safely regardless. Whether this separation actually holds is automatically checked by tooling every time the program is built.</p>
+<p>The reason this separation was planned from the start was so that, even if the "account switching" feature were eventually added, any issues with that feature would stay isolated — the "statusline" feature would keep working safely regardless. Now that the decision has been made not to build the account-switching feature at all, the statusline feature continues to work safely, unaffected by that decision.</p>
 
 <hr>
 
@@ -481,8 +481,8 @@ A. No. Account-related code isn't included in this version (v0.1.10) at all. Thi
 <p><strong>Q. Does anything get sent over the internet?</strong><br>
 A. No. Everything runs locally, entirely on your own computer.</p>
 
-<p><strong>Q. Will account switching turn on automatically once it's built?</strong><br>
-A. No. That feature will require your explicit, deliberate consent before it can ever be enabled, and the statusline will keep working fine even if you never turn it on.</p>
+<p><strong>Q. Are there plans to build account switching?</strong><br>
+A. No. After reviewing Anthropic's official Terms of Service, we confirmed there is no safe way to build it, so we decided not to (see Section 17 for details). The statusline feature keeps working fine regardless of this decision.</p>
 
 <p><strong>Q. Does it cost money?</strong><br>
 A. No, this program itself is free. Note that the "cost ($)" figure it <em>displays</em> is a separate thing — that's the cost of using Claude Code (the AI) itself, unrelated to this program.</p>
@@ -532,9 +532,9 @@ A. It's designed for personal use and is not intended for commercial sale or del
 
 <p><strong>This program is distributed for free, personal use only.</strong></p>
 
-<p>Reason for this strict limitation: there are plans to eventually add an "automatic multi-account switching" feature (the Account module), which would cycle between multiple Claude accounts automatically — a pattern that <strong>could conflict with Claude's terms of service.</strong> It has been clearly established that once this feature actually ships, that risk applies to the entire program, even for users who never turn the feature on and only use the statusline. To avoid amplifying that risk through commercial expansion, the design principle from the very beginning excludes commercial use entirely.</p>
+<p>Reason for this strict limitation: this project originally planned to eventually add an "automatic multi-account switching" feature (the Account module), which would have cycled between multiple Claude accounts automatically. On 2026-07-15, after reading Anthropic's official Terms of Service directly, we confirmed this pattern <strong>conflicts with Claude's terms of service</strong> and there is no safe way to build it, so we decided not to (see Section 13, "Architecture," for details). During this review, it also became clear that if this feature had shipped, that risk would have applied to the entire program — even for users who never turned the feature on and only used the statusline. The commercial-use exclusion has been a design principle from the very beginning specifically to avoid amplifying that kind of risk, and it remains in place now that the decision has been made not to build the account-switching feature at all.</p>
 
-<blockquote>Note: as of this writing (v0.1.10), the "account switching" feature has no code at all, so the terms-of-service conflict risk described above <strong>does not actually exist yet.</strong> However, the commercial-use prohibition itself applies to the entire project from the start, as a matter of design principle.</blockquote>
+<blockquote>Note: the account-switching feature has been <strong>decided against entirely</strong>, so the terms-of-service conflict risk described above will never actually materialize. However, the commercial-use prohibition itself continues to apply to the entire project, independent of this decision.</blockquote>
 
 <h3>17-5. On reusing external code and ideas</h3>
 

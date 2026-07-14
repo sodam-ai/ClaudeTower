@@ -52,7 +52,7 @@ What this line tells you:
 
 ## 2. Before you start
 
-- This project is still in its **early development stage (Phase 1)**. The "statusline" feature described here is fully working right now, but the "automatic multi-account switching" feature (Account module) **does not have any code written for it yet.**
+- This project **only provides the statusline (Display) feature.** The "statusline" feature described here is fully working right now. We originally planned to add an "automatic multi-account switching" feature (Account module) later, but after review we **decided not to build it, due to legal concerns** (see Section 13, "Architecture," and Section 17, "Legal," for details).
 - Since the final product name hasn't been decided, it's currently referred to by the working title "ClaudeTower."
 - This project's GitHub repository is **public**. You don't need to be logged into GitHub to see the download page.
 - **It is free and intended for personal use only.** It is not designed to be sold commercially or delivered as a paid service to a company (see Section 17 for details).
@@ -256,7 +256,7 @@ This program **never sends anything over the internet.** All information stays e
 | `claudetower statusline` | The renderer Claude Code calls internally | **You never need to run this yourself** |
 | `/claudetower-widgets` (in Claude Code chat) | Turn widgets on/off conversationally, no terminal needed | Just say "turn off context and cost" |
 
-> Account-related commands like `accounts` **do not exist yet** (planned for Phase 2 — there is no code for them right now).
+> Account-related commands like `accounts` **do not exist** (the account-switching feature has been decided against — see Section 17 for details).
 
 ---
 
@@ -382,12 +382,12 @@ Initial release. Shows location, context, cost, and rate limits; `setup` install
 
 ## 13. Architecture
 
-**In plain terms**: this program is designed as two completely separate rooms.
+**In plain terms**: this program was originally planned as two completely separate rooms.
 
 - **The "statusline room"**: this is the part that's actually working right now. It only displays information on screen, so it's always safe.
-- **The "account-switching room"**: this **hasn't even been built yet** (no code exists for it). Once it is built, it's designed to be a completely separate room whose key won't open the statusline room's door.
+- **The "account-switching room"**: this was only ever a design sketch — it was **never actually built** (no code exists for it). For the reasons explained in Section 17, it has now been **decided that it never will be.**
 
-The reason for this separation is so that, even after the "account switching" feature is eventually added, any issues with that feature stay isolated — the "statusline" feature will keep working safely regardless. Whether this separation actually holds is automatically checked by tooling every time the program is built.
+The reason this separation was planned from the start was so that, even if the "account switching" feature were eventually added, any issues with that feature would stay isolated — the "statusline" feature would keep working safely regardless. Now that the decision has been made not to build the account-switching feature at all, the statusline feature continues to work safely, unaffected by that decision.
 
 ---
 
@@ -434,8 +434,8 @@ A. No. Account-related code isn't included in this version (v0.1.10) at all. Thi
 **Q. Does anything get sent over the internet?**
 A. No. Everything runs locally, entirely on your own computer.
 
-**Q. Will account switching turn on automatically once it's built?**
-A. No. That feature will require your explicit, deliberate consent before it can ever be enabled, and the statusline will keep working fine even if you never turn it on.
+**Q. Are there plans to build account switching?**
+A. No. After reviewing Anthropic's official Terms of Service, we confirmed there is no safe way to build it, so we decided not to (see Section 17 for details). The statusline feature keeps working fine regardless of this decision.
 
 **Q. Does it cost money?**
 A. No, this program itself is free. Note that the "cost ($)" figure it *displays* is a separate thing — that's the cost of using Claude Code (the AI) itself, unrelated to this program.
@@ -479,9 +479,9 @@ A. It's designed for personal use and is not intended for commercial sale or del
 
 **This program is distributed for free, personal use only.**
 
-Reason for this strict limitation: there are plans to eventually add an "automatic multi-account switching" feature (the Account module), which would cycle between multiple Claude accounts automatically — a pattern that **could conflict with Claude's terms of service.** It has been clearly established that once this feature actually ships, that risk applies to the entire program, even for users who never turn the feature on and only use the statusline. To avoid amplifying that risk through commercial expansion, the design principle from the very beginning excludes commercial use entirely.
+Reason for this strict limitation: this project originally planned to eventually add an "automatic multi-account switching" feature (the Account module), which would have cycled between multiple Claude accounts automatically. On 2026-07-15, after reading Anthropic's official Terms of Service directly, we confirmed this pattern **conflicts with Claude's terms of service** and there is no safe way to build it, so we decided not to (see Section 13, "Architecture," for details). During this review, it also became clear that if this feature had shipped, that risk would have applied to the entire program — even for users who never turned the feature on and only used the statusline. The commercial-use exclusion has been a design principle from the very beginning specifically to avoid amplifying that kind of risk, and it remains in place now that the decision has been made not to build the account-switching feature at all.
 
-> Note: as of this writing (v0.1.10), the "account switching" feature has no code at all, so the terms-of-service conflict risk described above **does not actually exist yet.** However, the commercial-use prohibition itself applies to the entire project from the start, as a matter of design principle.
+> Note: the account-switching feature has been **decided against entirely**, so the terms-of-service conflict risk described above will never actually materialize. However, the commercial-use prohibition itself continues to apply to the entire project, independent of this decision.
 
 ### 17-5. On reusing external code and ideas
 
