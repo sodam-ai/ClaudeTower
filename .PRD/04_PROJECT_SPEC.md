@@ -230,7 +230,18 @@ grep -r "require.*accounts" src/display && echo "FAIL: 모듈 경계 위반" || 
 ## [NEEDS CLARIFICATION]
 
 - [x] ~~LICENSE 저작권자 이름·연도~~ → **2026-07-03 확정**: Apache License 2.0, 저작권자 "SoDam AI Studio", 2026년(라이선스 §"라이선스 (Must Have)" 참고)
-- [ ] "cc-" 접두사·상표 저촉 여부 [법무 검토 필요]
+- [x] ~~"cc-" 접두사·상표 저촉 여부~~ → **2026-07-15 조사 완료, 결정: 이름 유지(낮은 우선순위
+  잔존 리스크로 기록)**. Anthropic 공식 Trademark Guidelines(`anthropic.com/legal/
+  trademark-guidelines`, 1차 출처 직접 확인, 2024-08-01 발효) — "You may only use our
+  trademarks as specifically permitted by us" — 허가제 구조라 "ClaudeTower"라는 이름이 이
+  가이드라인 문언 기준으로는 안전을 보장받지 못함(이론적 리스크는 확인됨). 다만 실질 위험은
+  낮게 평가: (1) 이 프로젝트가 참고한 경쟁 도구 다수(`teamclaude`/`claude-swap`/`ClaudeLine`/
+  `starship-claude`/`CCometixLine`)도 이름에 "Claude"를 포함한 채 계속 운영 중 — 소규모
+  커뮤니티 도구 이름까지 적극 단속하는 정황은 확인 안 됨. (2) 오늘 확인한 Anthropic의 실제
+  집행 사례(OAuth 서버측 차단)는 약관 우회 사용에 대한 조치였지 이름 문제가 아니었음(종류가
+  다른 리스크). (3) 비상업적 배포. (4) GUIDE.md에 이미 "Anthropic과 무관함" 비제휴 고지
+  존재. **재검토 조건**: 프로젝트 사용자 규모가 크게 늘거나, Anthropic으로부터 직접 연락이
+  오는 경우. 참고용 정리이며 법적 효력을 보장하지 않음 — 실제 확정 판단은 변호사 확인 권장.
 - [x] ~~로컬 프록시 접근 토큰 실제 구현 방식~~ → **2026-07-04 CLI 전환으로 해결**. 마켓플레이스 방식에서는 "Claude Code가 커스텀 헤더를 지원하는지" 불확실했지만, CLI가 `eval $(claudetower env) claude` 패턴으로 Claude Code를 직접 실행하므로 CLI가 요청 경로 전체(프록시 주소, 접근 토큰 전달 방식)를 스스로 통제한다 — 더 이상 Claude Code의 미문서화 동작에 의존하지 않음
 - [x] ~~프록시 포트 충돌 정책~~ → **2026-07-04 사용자 요청으로 자동 재시도+포트 변경 채택**(이전 teamclaude 단순종료 방식은 폐기). 최초 설정은 순차 자동 탐색으로 완전 자동화, 런타임 재시작 시엔 backoff 후 자동 전환하되 "재시작 필요"를 안내(ANTHROPIC_BASE_URL이 프로세스 시작 시에만 읽히는 구조적 제약 때문에 완전 무중단은 불가능 — 상세 근거·정책은 QuotaSwitch 04_PROJECT_SPEC.md "포트 충돌 처리" 섹션, ClaudeTower Account 모듈도 동일 적용)
 - [x] ~~OS별 자격증명 저장소 라이브러리 최종 선택~~ → **2026-07-11 확정**: `@napi-rs/keyring`(Rust 기반, keyring-rs 바인딩). 근거: `keytar`(atom/node-keytar)는 2022-12 아카이브로 사실상 죽음, 활성 포크 `@github/keytar`도 구식 C++ 애드온이라 Linux에서 여전히 `libsecret` 외부 시스템 의존성이 필요해 01_PRD.md 핵심가치("설치 한 번으로 끝")와 충돌. `@napi-rs/keyring`은 Windows Credential Manager/DPAPI·macOS Keychain·Linux Secret Service를 전부 지원하면서 Linux libsecret 의존성이 없고(자체 완결), 최근까지 활발히 유지보수되며 Azure SDK·Microsoft Authentication Library가 keytar에서 이 라이브러리로 이전 중임을 확인(WebSearch 근거). `cross-keychain`(이 라이브러리를 감싸는 추상화 계층)은 YAGNI로 채택하지 않음. **`npm install`은 아직 하지 않음** — M6 게이트(2026-07-14까지 Phase 2 실동작 착수 보류) 준수 중이므로 결정만 기록하고 실제 설치·연동은 게이트 이후로 미룸. 결정 근거와 인터페이스 스텁은 `src/accounts/credential-store/index.js` 참고.

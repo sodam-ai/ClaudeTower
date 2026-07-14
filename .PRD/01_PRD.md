@@ -130,7 +130,7 @@ CLI 설치 -> claudetower setup(Display 즉시 활성화) -> (선택) claudetowe
 
 ## 7. [NEEDS CLARIFICATION]
 
-- [ ] 프로젝트 최종 이름 확정 ("ClaudeTower/claudetower"은 가제 — 상태 모니터링과 계정 제어를 한 곳에서 다룬다는 의미로 제안)
+- [ ] 프로젝트 최종 이름 확정 ("ClaudeTower/claudetower"은 가제 — 상태 모니터링과 계정 제어를 한 곳에서 다룬다는 의미로 제안) — **2026-07-15**: 상표 리스크 조사 완료, 지금은 이름 유지로 결정(낮은 우선순위 잔존 리스크, 상세는 `04_PROJECT_SPEC.md` NEEDS CLARIFICATION "cc- 접두사·상표 저촉" 참고). "최종" 확정 자체는 여전히 열려있으나 상표 문제가 이름 변경을 강제하는 상태는 아님.
 - [x] ~~라이선스·저작권자~~ → **2026-07-03 확정**: Apache License 2.0, 저작권자 "SoDam AI Studio"(PulseLine/QuotaSwitch 원 제안이었던 MIT에서 최종 변경, 상세는 `04_PROJECT_SPEC.md` "라이선스" 참고)
 - [ ] 배포 채널(개인 마켓플레이스 우선) — 원 결정 계승 제안
 - [x] ~~(최우선, 법무 검토 필요) 여러 계정 자동 순환이 Anthropic 이용약관과 충돌하는지~~ → **2026-07-14 확인됨(충돌)**: `code.claude.com/docs/en/legal-and-compliance`(1차 출처 직접 확인) — "Anthropic does not permit third-party developers to offer Claude.ai login or to route requests through Free, Pro, or Max plan credentials on behalf of their users." 2026-01-09부터 서버 측 기술적 차단까지 이미 시행 중(복수 독립 소스 교차검증). 상세 근거·권고는 `.PRD/07_OAUTH_FLOW_SPEC.md §3-1·§4` 참고. **Account 모듈을 현재 명세(OAuth 기반 구독 quota 자동전환)대로 구현하는 것은 권장하지 않음** — Phase 2 보류/재설계/위험감수 진행 중 사용자가 선택해야 함(CHECKPOINT.md 트랙3 참고).
