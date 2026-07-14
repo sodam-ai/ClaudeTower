@@ -30,9 +30,9 @@
 - 없음(Display 모듈은 자격증명을 다루지 않음)
 
 ### "진짜 제품" 체크리스트
-- [ ] **Account 모듈 코드(`src/accounts/`)가 아예 존재하지 않아도(빈 디렉토리여도) Display 모듈이 완전히 독립적으로 동작함을 확인**
-- [ ] Node.js가 설치되지 않은 순정 Windows에서 SEA 바이너리가 그대로 동작
-- [ ] mock stdin JSON으로 단위 테스트 통과
+- [x] **Account 모듈 코드(`src/accounts/`)가 아예 존재하지 않아도(빈 디렉토리여도) Display 모듈이 완전히 독립적으로 동작함을 확인** → **2026-07-15 재확인**: `.github/workflows/build.yml`의 `verify-display-standalone` job이 매 push마다 `src/accounts/`를 지운 뒤 `npm run verify` 통과를 증명
+- [ ] Node.js가 설치되지 않은 순정 Windows에서 SEA 바이너리가 그대로 동작 (CHECKPOINT.md 보류 백로그 — Windows 11 Home이라 Sandbox 불가, 별도 클린 환경 확보 시 재검토)
+- [x] mock stdin JSON으로 단위 테스트 통과 → 167개 테스트 대부분이 mock stdin JSON 기반 위젯 테스트(`npm run test:display`로 상시 확인)
 - [x] ~~CLI 설치 스크립트(npm -g/curl/PowerShell)로 실제 배포되어 설치 가능~~ → **2026-07-04 부분 확정**: `main` 브랜치 개설 + v0.1.9 GitHub Release로 curl/PowerShell 원라이너(`curl -fsSL .../main/install.sh | sh`, `irm .../main/install.ps1 | iex`)가 격리 환경에서 다운로드→설치→`--version` 응답까지 실측 확인됨. `npm install -g`는 프로젝트명이 아직 가제·상표 검토 전이라(01_PRD.md §7) 의도적으로 보류(마켓플레이스는 기존대로 Phase 3 선택 채널, 이번 확정과 무관)
 - [x] ~~README·가이드 문서 작성 완료~~ → **2026-07-06 확인**: 04_PROJECT_SPEC.md Must Have 9개 항목 대조 완료(①/② 분리, 위험고지, FAQ·트러블슈팅·법률 모두 존재). 대조 중 실제 결함 발견: 명령어 목록이 PATH 미등록 상태(05번 문서 이슈#3, 아직 코드로는 미해결)를 반영 못 해 새 터미널에서 `claudetower` 명령이 안 먹히는 걸 README/GUIDE 어디도 경고하지 않았음 → README.md·README.en.md·GUIDE.md·GUIDE.en.md 4개 파일 모두 수정. **미완료로 남는 것**: GUIDE.pdf·GUIDE.en.pdf는 이번 .md 수정을 반영하지 못한 채 그대로임(재생성 필요, 이번 세션 범위 밖). 워크플로우 그림(①/② 시각 다이어그램)도 텍스트 설명만 있고 실제 그림은 없음(Should Have 수준으로 판단, 후속 과제).
 
