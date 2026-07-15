@@ -66,7 +66,7 @@ Sonnet 5  📁 my-project  컨텍스트 ██░░░ 45%  💰 $1.50  5시간
 | **Download directly from GitHub Releases** (5 steps above) | ✅ Works now | No Node.js required |
 | `curl`/`PowerShell` one-liner (`install.sh`/`install.ps1`) | ✅ Works now (fixed 2026-07-04 — a `main` branch now exists) | No Node.js required, see commands below |
 | Build from source | ✅ Works now | For developers, requires Node.js 22+ — see "For developers" below |
-| `npm install -g` | ⏸️ Deliberately deferred | "ClaudeTower/claudetower" is still a working title, and trademark clearance is unresolved (`.PRD/01_PRD.md` §7, `[legal review needed]`). An npm package name is effectively permanent once claimed, so we won't publish until the name is final |
+| `npm install -g` | ⏸️ Deliberately deferred | Trademark clearance for "ClaudeTower/claudetower" was reviewed and resolved on 2026-07-15 — we decided to keep the name, accepting a low-priority residual risk (`.PRD/01_PRD.md` §7). It's still not a fully, permanently final decision, though, so an npm package name — a resource that's effectively permanent once claimed — won't be published until the name is completely finalized |
 
 macOS/Linux:
 ```bash

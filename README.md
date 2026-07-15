@@ -66,7 +66,7 @@ Sonnet 5  📁 my-project  컨텍스트 ██░░░ 45%  💰 $1.50  5시간
 | **GitHub Release에서 직접 다운로드** (위 5단계) | ✅ 지금 가능 | Node.js 불필요 |
 | `curl`/`PowerShell` 원라이너 (`install.sh`/`install.ps1`) | ✅ 지금 가능(2026-07-04부터, `main` 브랜치 개설로 해결) | Node.js 불필요, 아래 명령 참고 |
 | 소스에서 직접 빌드 | ✅ 지금 가능 | 개발자용, Node.js 22+ 필요 — 아래 "개발자용" 참고 |
-| `npm install -g` | ⏸️ 의도적으로 보류 | "ClaudeTower/claudetower"는 아직 가제이고 상표 저촉 여부도 [법무 검토 필요] 상태(`.PRD/01_PRD.md` §7). npm 패키지 이름은 사실상 영구 점유되는 자원이라, 이름이 확정되기 전에 발행하지 않습니다 |
+| `npm install -g` | ⏸️ 의도적으로 보류 | "ClaudeTower/claudetower"의 상표 저촉 여부 법률 검토는 2026-07-15에 끝났고, 낮은 우선순위 잔존 리스크를 감수하고 이 이름을 유지하기로 결정했습니다(`.PRD/01_PRD.md` §7). 다만 완전히 영구 확정된 상태는 아니라서, 사실상 영구 점유되는 자원인 npm 패키지 이름은 이름이 완전히 확정되기 전까지 발행하지 않습니다 |
 
 macOS/Linux:
 ```bash
