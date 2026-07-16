@@ -1,6 +1,6 @@
 {
   "name": "claudetower",
-  "version": "0.1.10",
+  "version": "0.2.0",
   "private": true,
   "description": "Claude Code statusline CLI — shows project location, active model, context usage, cost, and rate limit",
   "bin": {
