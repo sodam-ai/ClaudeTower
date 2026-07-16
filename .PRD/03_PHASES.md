@@ -1,5 +1,10 @@
 # ClaudeTower (claudetower) — Phase 분리 계획
 
+> **[2026-07-15 결정] Phase 2(Account 모듈)는 보류 확정 — Anthropic 공식 이용약관(구독제 OAuth
+> 서드파티 사용 금지 + 자동화 접근 금지, `.PRD/07_OAUTH_FLOW_SPEC.md §3` 참고) 확인 결과 안전한
+> 구현 방법이 없다.** ClaudeTower는 Display 전용 도구로 유지한다. Phase 2에 의존하는 Phase 3
+> (계정 표시 연동 위젯 등)도 연쇄적으로 보류된다 — 아래 Phase 2·3 서술은 검토 기록으로만 남긴다.
+
 > 한 번에 다 만들면 복잡해져서 품질이 떨어집니다.
 > **이 프로젝트는 특히 중요합니다**: Phase 1에서 위험이 낮은 Display 모듈과 "모듈 격리 구조" 자체를 먼저 완성해 검증하고, 위험이 높은 Account 모듈은 그 안전한 기반 위에서 Phase 2에 추가합니다. 순서 자체가 안전장치입니다.
 
@@ -25,11 +30,11 @@
 - 없음(Display 모듈은 자격증명을 다루지 않음)
 
 ### "진짜 제품" 체크리스트
-- [ ] **Account 모듈 코드(`src/accounts/`)가 아예 존재하지 않아도(빈 디렉토리여도) Display 모듈이 완전히 독립적으로 동작함을 확인**
-- [ ] Node.js가 설치되지 않은 순정 Windows에서 SEA 바이너리가 그대로 동작
-- [ ] mock stdin JSON으로 단위 테스트 통과
+- [x] **Account 모듈 코드(`src/accounts/`)가 아예 존재하지 않아도(빈 디렉토리여도) Display 모듈이 완전히 독립적으로 동작함을 확인** → **2026-07-15 재확인**: `.github/workflows/build.yml`의 `verify-display-standalone` job이 매 push마다 `src/accounts/`를 지운 뒤 `npm run verify` 통과를 증명
+- [ ] Node.js가 설치되지 않은 순정 Windows에서 SEA 바이너리가 그대로 동작 (CHECKPOINT.md 보류 백로그 — Windows 11 Home이라 Sandbox 불가, 별도 클린 환경 확보 시 재검토)
+- [x] mock stdin JSON으로 단위 테스트 통과 → 167개 테스트 대부분이 mock stdin JSON 기반 위젯 테스트(`npm run test:display`로 상시 확인)
 - [x] ~~CLI 설치 스크립트(npm -g/curl/PowerShell)로 실제 배포되어 설치 가능~~ → **2026-07-04 부분 확정**: `main` 브랜치 개설 + v0.1.9 GitHub Release로 curl/PowerShell 원라이너(`curl -fsSL .../main/install.sh | sh`, `irm .../main/install.ps1 | iex`)가 격리 환경에서 다운로드→설치→`--version` 응답까지 실측 확인됨. `npm install -g`는 프로젝트명이 아직 가제·상표 검토 전이라(01_PRD.md §7) 의도적으로 보류(마켓플레이스는 기존대로 Phase 3 선택 채널, 이번 확정과 무관)
-- [ ] **README·가이드 문서 작성 완료** (04_PROJECT_SPEC.md 요구사항 기준, "Account 모듈을 켜지 않으면 이용약관 리스크와 무관하다"는 점을 명확히 구분해서 설명)
+- [x] ~~README·가이드 문서 작성 완료~~ → **2026-07-06 확인**: 04_PROJECT_SPEC.md Must Have 9개 항목 대조 완료(①/② 분리, 위험고지, FAQ·트러블슈팅·법률 모두 존재). 대조 중 실제 결함 발견: 명령어 목록이 PATH 미등록 상태(05번 문서 이슈#3, 아직 코드로는 미해결)를 반영 못 해 새 터미널에서 `claudetower` 명령이 안 먹히는 걸 README/GUIDE 어디도 경고하지 않았음 → README.md·README.en.md·GUIDE.md·GUIDE.en.md 4개 파일 모두 수정. **미완료로 남는 것**: GUIDE.pdf·GUIDE.en.pdf는 이번 .md 수정을 반영하지 못한 채 그대로임(재생성 필요, 이번 세션 범위 밖). 워크플로우 그림(①/② 시각 다이어그램)도 텍스트 설명만 있고 실제 그림은 없음(Should Have 수준으로 판단, 후속 과제).
 
 ### Phase 1 시작 프롬프트
 ```

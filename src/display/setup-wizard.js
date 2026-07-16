@@ -4,10 +4,11 @@
 // 실제 TTY 없이도(파이프·테스트용 스트림) 재현 가능하다(Step 5에서 검증한 패턴).
 
 const { ALL_WIDGET_TYPES, writeEnabledWidgets } = require('./config/widget-config');
-const { writeStatusLineConfig } = require('./config/settings-writer');
+const { writeStatusLineConfig, readExistingStatusLineConfig } = require('./config/settings-writer');
 const { buildStatuslineCommand, resolveUsableExePath } = require('./config/statusline-command');
-const { ensureInstalledAtTarget } = require('./config/install-target');
+const { ensureInstalledAtTarget, resolveInstallDir } = require('./config/install-target');
 const { writeSkillFile } = require('./config/skill-file');
+const { addDirToUserPath } = require('./config/path-registration');
 
 const WIDGET_LABELS = {
   model: '사용 모델',
@@ -32,7 +33,10 @@ function askQuestion(rl, lineIterator, prompt) {
   return lineIterator.next().then(({ value, done }) => (done ? '' : value));
 }
 
-async function runSetupWizard(rl, { widgetConfigPath, settingsPath, log = () => {} } = {}) {
+async function runSetupWizard(
+  rl,
+  { widgetConfigPath, settingsPath, log = () => {}, registerPath = addDirToUserPath } = {}
+) {
   log('claudetower setup — 상태표시줄에 표시할 항목을 골라주세요.\n');
 
   const lineIterator = rl[Symbol.asyncIterator]();
@@ -76,13 +80,53 @@ async function runSetupWizard(rl, { widgetConfigPath, settingsPath, log = () => 
     log('(Claude Code를 잠깐 닫아두고 claudetower setup을 다시 실행해보시면 대부분 해결됩니다. 지금은 현재 파일 위치로 등록됩니다.)');
   }
 
+  // .PRD/05_FIELD_ISSUES_2026-07-04.md 이슈#3(P2): 지금까지는 설치 폴더를
+  // PATH에 "등록하라고 안내만" 했고 실제로 등록하지는 않아서, 비개발자는 이 단계를
+  // 건너뛰고 터미널에서 bare `claudetower` 명령을 못 쓰는 문제가 있었다. PATH는
+  // 이 프로그램 전용이 아니라 시스템 전체가 공유하는 값이라(다른 모든 프로그램에
+  // 영향), 위젯 질문과 달리 **명확하게 "y"라고 답했을 때만** 진행한다 — 엔터만
+  // 치거나 애매하게 답하면 안전하게 "안 함"으로 처리한다(위젯 질문의 기본값 Y와
+  // 의도적으로 다른 정책). macOS/Linux는 셸 rc 파일(.bashrc 등)마다 방식이 달라
+  // 안전하게 자동화하기 어려워 이번 범위에서 제외하고 Windows만 지원한다.
+  if (process.platform === 'win32') {
+    const pathAnswer = await askQuestion(
+      rl,
+      lineIterator,
+      '\n터미널에서 "claudetower"라고 짧게만 입력해도 실행되게 만들까요? (Y/n): '
+    );
+    if (pathAnswer.trim().toLowerCase() === 'y' || pathAnswer.trim().toLowerCase() === 'yes') {
+      try {
+        const pathResult = registerPath(resolveInstallDir());
+        if (pathResult.changed) {
+          log('등록했습니다. (지금 열려 있는 터미널이 아니라, 새로 여는 터미널부터 적용됩니다)');
+        } else if (pathResult.reason === 'already-present') {
+          log('이미 등록되어 있어서 따로 할 일이 없습니다.');
+        }
+      } catch (err) {
+        log(`PATH 등록에 실패했습니다: ${err.message} (터미널 없이 "/claudetower-widgets" 대화형 설정으로도 충분히 쓰실 수 있습니다)`);
+      }
+    }
+  }
+
   const command = buildStatuslineCommand();
   // Claude Code는 기본적으로 "이벤트(대화) 발생 시"에만 상태표시줄을 다시 실행한다
   // (공식 문서 확인). refreshInterval(초 단위, 최소 1)을 지정하면 이벤트와 별개로
   // 고정 주기로도 재실행되어, 프로젝트 위치 등이 조금이라도 더 빠르게 반영된다.
-  // 최소값 1초로 설정 — 우리 스크립트 자체는 약 60ms만에 끝나 병목이 아니므로
-  // 매초 재실행해도 체감 부담이 없다.
-  const writeResult = writeStatusLineConfig({ type: 'command', command, refreshInterval: 1 }, settingsPath);
+  // 신규 설치 기본값은 3초다(.PRD/06_FIELD_ISSUE_SPAWN_STORM_2026-07-04.md FR-3,
+  // 2026-07-06 갱신) — 원래 1초였으나, 여러 Claude Code 세션을 동시에 띄우는
+  // 실사용 환경에서 "매초·세션수만큼 exe 재실행"이 프로세스 생성 폭주(0x800700e8
+  // 오류)에 상수로 기여하는 걸 실측 확인했고, 실제로 3초로 늘려도 체감 지연 없이
+  // (턴마다 이벤트 기반으로도 갱신되므로) 안정적으로 동작함을 확인했다. 사용자가
+  // `claudetower config statusline-refresh`로 이미 값을 바꿔둔 적이 있다면 setup을
+  // 다시 실행해도 그 값을 그대로 유지한다 — 그러지 않으면 재설치할 때마다 애써
+  // 늘려둔 주기가 기본값으로 되돌아가 버린다(FR-2, 같은 이유로 이미 수정됨).
+  const DEFAULT_REFRESH_INTERVAL_SECONDS = 3;
+  const existingStatusLine = readExistingStatusLineConfig(settingsPath);
+  const refreshInterval =
+    existingStatusLine && Number.isInteger(existingStatusLine.refreshInterval) && existingStatusLine.refreshInterval >= 1
+      ? existingStatusLine.refreshInterval
+      : DEFAULT_REFRESH_INTERVAL_SECONDS;
+  const writeResult = writeStatusLineConfig({ type: 'command', command, refreshInterval }, settingsPath);
 
   log(`\n설정 완료: ${enabled.map((t) => WIDGET_LABELS[t]).join(', ')}`);
   log(`상태표시줄 명령이 Claude Code 설정에 등록됐습니다: ${writeResult.filePath}`);
@@ -100,7 +144,7 @@ async function runSetupWizard(rl, { widgetConfigPath, settingsPath, log = () => 
   const usableExePath = resolveUsableExePath();
   if (usableExePath) {
     try {
-      writeSkillFile(usableExePath);
+      const skillResult = writeSkillFile(usableExePath);
       // 원래는 "~/.claude/skills/ 폴더가 이미 있었으면 재시작 없이 바로 인식된다"는
       // 공식 문서를 근거로 조건부 안내였다 — 그런데 실사용 테스트에서 폴더가 이미
       // 있던 환경에서도 재시작 전까지는 인식되지 않는 게 2회 재현됐다(setup을 실행한
@@ -109,6 +153,12 @@ async function runSetupWizard(rl, { widgetConfigPath, settingsPath, log = () => 
       // "왜 안 되지"에 갇히게 하는 것보다 매번 안내하는 쪽이 안전하다.
       log(`\n클로드코드 채팅창에서 "/claudetower-widgets"라고 치면 위젯을 대화로 켜고 끌 수 있습니다.`);
       log('(지금 이 창에서는 바로 안 될 수 있습니다 — 이 창을 완전히 닫고 클로드코드를 새로 시작한 뒤에 써보세요.)');
+      if (skillResult.cleanedStaleDirs.length > 0) {
+        // 과거 버전이 다른 위치(예: CLAUDE_CONFIG_DIR 미반영 시절의 ~/.claude/skills)에
+        // 남긴 낡은 스킬 파일이 새 파일과 공존하면 어느 쪽이 실제로 읽히는지 불확실해져
+        // "설치했는데도 안 됨"이 재현된다(2026-07-04 필드이슈 §4 → 2026-07-06 근본원인 확정).
+        log(`(이전 버전이 다른 위치에 남겨둔 낡은 설정을 정리했습니다: ${skillResult.cleanedStaleDirs.join(', ')})`);
+      }
     } catch (err) {
       log(`\n("/claudetower-widgets" 대화형 설정 등록은 건너뛰었습니다: ${err.message} — 상태표시줄 자체는 정상 작동합니다)`);
     }

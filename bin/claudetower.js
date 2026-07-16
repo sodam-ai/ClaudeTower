@@ -13,9 +13,9 @@ async function run(args) {
   }
 
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
-    console.log(`${CLI_NAME} — Claude Code statusline + account switching CLI`);
+    console.log(`${CLI_NAME} — Claude Code statusline CLI`);
     console.log('Usage: claudetower <command>');
-    console.log('Commands: setup, statusline, status, uninstall, widgets');
+    console.log('Commands: setup, statusline, status, uninstall, widgets, config');
     // 인자 없이 실행된 경우(대표적으로 exe 더블클릭)는 Windows가 새 콘솔 창을 열고,
     // 프로세스가 끝나자마자 그 창도 함께 닫혀버려 사용자가 위 안내를 읽을 새도 없이
     // 창이 사라진다("켜졌다 바로 꺼짐" 버그 리포트로 발견). stdin/stdout이 둘 다
@@ -52,6 +52,21 @@ async function run(args) {
     const { render, readStdinJson } = require('../src/display/statusline');
     const session = readStdinJson();
     process.stdout.write(render(session));
+    // 실사용 중 스킬 파일(/claudetower-widgets)이 원인불명으로 반복 소실되는 현상을
+    // 관찰했다(.PRD/05_FIELD_ISSUES_2026-07-04.md §4). statusline은 refreshInterval마다
+    // 어차피 계속 호출되므로, 매번 조용히 존재만 확인하고 없으면 즉시 재생성해
+    // 스스로 복구되게 한다. 반드시 조용히 실패해야 한다 — 여기서 뭘 출력하면
+    // 상태표시줄 텍스트 자체가 오염되므로, 어떤 에러가 나도 절대 콘솔에 안 쓴다.
+    try {
+      const { resolveUsableExePath } = require('../src/display/config/statusline-command');
+      const { ensureSkillFileExists } = require('../src/display/config/skill-file');
+      const usableExePath = resolveUsableExePath();
+      if (usableExePath) {
+        ensureSkillFileExists(usableExePath);
+      }
+    } catch {
+      // 조용히 무시 — 상태표시줄은 이미 위에서 정상 출력됐다.
+    }
     return 0;
   }
 
@@ -94,12 +109,18 @@ async function run(args) {
     return result.applied === false ? 1 : 0;
   }
 
+  if (command === 'config') {
+    const { runConfigCommand } = require('../src/display/config-command');
+    const result = runConfigCommand(args.slice(1), { log: (msg) => console.log(msg) });
+    return result.applied === false ? 1 : 0;
+  }
+
   if (command === 'uninstall') {
     // setup 반대 방향 — "제거하려면 settings.json을 손으로 고쳐야 해서 다른 설정까지
     // 실수로 지울 위험이 있다"는 실사용 피드백으로 추가. statusLine 키만 안전하게
     // 제거하고 hooks/권한 등 나머지 설정은 절대 건드리지 않는다.
     const { removeStatusLineConfig } = require('../src/display/config/settings-writer');
-    const { resolveWidgetConfigPath } = require('../src/display/config/widget-config');
+    const { removeWidgetConfigFile } = require('../src/display/config/widget-config');
     const { getInstallStatus } = require('../src/display/config/status');
     const { resolveInstallTargetPath } = require('../src/display/config/install-target');
     const sea = require('node:sea');
@@ -114,10 +135,15 @@ async function run(args) {
       console.log('등록된 상태표시줄 설정이 없어 제거할 것이 없습니다.');
     }
 
-    const widgetConfigPath = resolveWidgetConfigPath();
-    if (fs.existsSync(widgetConfigPath)) {
-      fs.unlinkSync(widgetConfigPath);
-      console.log(`위젯 설정 파일도 삭제했습니다: ${widgetConfigPath}`);
+    // 부분 테스트 격리(다른 CLAUDETOWER_* 변수만 설정) 상태에서는 실제 위젯 설정을
+    // 지우지 않고 건너뛴다 — 실측으로 발견된 결함 부류(test-isolation.js 참고).
+    const widgetResult = removeWidgetConfigFile();
+    if (widgetResult.removed) {
+      console.log(`위젯 설정 파일도 삭제했습니다: ${widgetResult.filePath}`);
+    } else if (widgetResult.skipped) {
+      console.log(
+        '(위젯 설정 파일은 건너뛰었습니다 — 테스트 격리 변수가 일부만 설정되어 실제 파일을 건드리지 않습니다. 테스트라면 CLAUDETOWER_WIDGET_CONFIG_PATH도 함께 지정하세요.)'
+      );
     }
 
     // setup이 심어둔 "/claudetower-widgets" 대화형 설정도 같이 정리한다 — 안 지우면
@@ -126,6 +152,9 @@ async function run(args) {
     const skillRemoveResult = removeSkillFile();
     if (skillRemoveResult.removed) {
       console.log(`"/claudetower-widgets" 대화형 설정도 삭제했습니다: ${skillRemoveResult.skillDir}`);
+    }
+    if (skillRemoveResult.cleanedStaleDirs.length > 0) {
+      console.log(`이전 버전이 다른 위치에 남겨둔 낡은 설정도 함께 정리했습니다: ${skillRemoveResult.cleanedStaleDirs.join(', ')}`);
     }
 
     // "제거 여부를 확실히 알 수 있게" — 지우고 끝내는 대신, 설정 파일을 다시 읽어서
@@ -153,7 +182,15 @@ async function run(args) {
 
 // require()로 로드될 때(예: 테스트)는 실행하지 않고, 직접 실행될 때만 CLI로 동작.
 if (require.main === module) {
-  run(process.argv.slice(2)).then((code) => process.exit(code));
+  run(process.argv.slice(2)).then(
+    (code) => process.exit(code),
+    (err) => {
+      // 방어막(부분 테스트 격리) 등 의도된 거부를 스택 트레이스 없이 사람이 읽을 수
+      // 있는 한 줄로 보여준다 — 종료 코드는 기존 미처리 rejection과 동일하게 1.
+      console.error(err && err.message ? err.message : String(err));
+      process.exit(1);
+    }
+  );
 }
 
 module.exports = { run };

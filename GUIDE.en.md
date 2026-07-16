@@ -52,7 +52,7 @@ What this line tells you:
 
 ## 2. Before you start
 
-- This project is still in its **early development stage (Phase 1)**. The "statusline" feature described here is fully working right now, but the "automatic multi-account switching" feature (Account module) **does not have any code written for it yet.**
+- This project **only provides the statusline (Display) feature.** The "statusline" feature described here is fully working right now. We originally planned to add an "automatic multi-account switching" feature (Account module) later, but after review we **decided not to build it, due to legal concerns** (see Section 13, "Architecture," and Section 17, "Legal," for details).
 - Since the final product name hasn't been decided, it's currently referred to by the working title "ClaudeTower."
 - This project's GitHub repository is **public**. You don't need to be logged into GitHub to see the download page.
 - **It is free and intended for personal use only.** It is not designed to be sold commercially or delivered as a paid service to a company (see Section 17 for details).
@@ -162,6 +162,11 @@ claudetower-win-x64.exe setup
   Show cost? (Y/n):
   Show rate limits (5h/7d)? (Y/n):
   ```
+- (Windows only) One more question follows:
+  ```
+  Make "claudetower" work as a short command in the terminal? (Y/n):
+  ```
+  Answering `Y` means that from the next terminal window on, typing just `claudetower` will work. This changes a setting for your whole computer, so if you'd rather not, answer `n` — the statusline itself works identically either way (see section 9).
 - If you see "설정 완료" (setup complete) and a message about being copied to a safe location, it worked.
 
 ### 5-4. Check it in Claude Code
@@ -191,9 +196,9 @@ No. **You only need to run `setup` once.** After that, the program runs automati
 
 ### I want to change which items are shown later
 
-**Easiest way**: Type `/claudetower-widgets` in the Claude Code chat, or just say something like "turn off context and cost in the statusline." No terminal needed — the AI shows you the current state and toggles it for you (this conversational command gets installed automatically whenever you run `setup`).
+**Easiest way**: Type `/claudetower-widgets` in the Claude Code chat, or just say something like "turn off context and cost in the statusline" or "slow down the refresh rate." No terminal needed — the AI shows you the current state and toggles it (or adjusts the speed) for you (this conversational command gets installed automatically whenever you run `setup`). If you just type `/claudetower-widgets` with nothing else, a check-box menu pops up (tick with your mouse or arrow keys + space) so you can pick what to change — only ticked items change, everything else stays as-is.
 
-**If you're comfortable with a terminal**: run something like `claudetower widgets off context cost` — only the widgets you name change, everything else stays as it was (no need to re-answer all 5 `setup` questions). Widget names: `model`, `location`, `context`, `cost`, `rate_limit`. Running `claudetower widgets` alone shows you what's currently on.
+**If you're comfortable with a terminal**: run something like `claudetower widgets off context cost` — only the widgets you name change, everything else stays as it was (no need to re-answer all 5 `setup` questions). Widget names: `model`, `location`, `context`, `cost`, `rate_limit`. Running `claudetower widgets` alone shows you what's currently on. (If bare `claudetower` doesn't work in a new terminal, see section 9 — use the full path, or the "easiest way" above.)
 
 **To reconfigure everything from scratch**: run `setup` again and answer the 5 questions.
 
@@ -236,6 +241,8 @@ This program **never sends anything over the internet.** All information stays e
 
 ## 9. Full command list
 
+> **Note**: Typing bare `claudetower` in a freshly opened terminal may not work. During `claudetower setup`, answering Y to "make `claudetower` work as a short command in the terminal?" fixes this going forward; if you answered N, or installed an older version, it may still not work. **If you'd rather skip the terminal entirely, use the "easiest way" from section 7** (`/claudetower-widgets`, or just asking in plain language). If you still want to use a terminal, use the full path instead of bare `claudetower`: `~/.claudetower/bin/claudetower.exe` (macOS/Linux: `~/.claudetower/bin/claudetower`).
+
 | Command | What it does | Example |
 |---|---|---|
 | `claudetower --version` | Shows the currently installed version number | `0.1.10` |
@@ -244,11 +251,12 @@ This program **never sends anything over the internet.** All information stays e
 | `claudetower widgets` | Check which widgets are currently on | Shows status only, changes nothing |
 | `claudetower widgets off <widgets...>` / `on <widgets...>` | Turn only the named widgets on/off | `claudetower widgets off context cost` |
 | `claudetower status` | Check current install status and which widgets are enabled | Shows "installed" / "not installed" / "broken" |
+| `claudetower config statusline-refresh <seconds>` | Adjusts how often the statusline refreshes (default 3 seconds). If you keep several windows open at once, raising it to 5 seconds or more reduces load on your computer further. You can also just say "slow down the statusline refresh" in chat instead of using a terminal | `claudetower config statusline-refresh 5` |
 | `claudetower uninstall` | Safely remove the statusline registration and the `/claudetower-widgets` chat command | Other settings are left untouched |
 | `claudetower statusline` | The renderer Claude Code calls internally | **You never need to run this yourself** |
 | `/claudetower-widgets` (in Claude Code chat) | Turn widgets on/off conversationally, no terminal needed | Just say "turn off context and cost" |
 
-> Account-related commands like `accounts` or `config` **do not exist yet** (planned for Phase 2 — there is no code for them right now).
+> Account-related commands like `accounts` **do not exist** (the account-switching feature has been decided against — see Section 17 for details).
 
 ---
 
@@ -291,21 +299,75 @@ This program **never sends anything over the internet.** All information stays e
 
 ## 11. Version history summary
 
-This program has been rapidly refined through real-world testing. Below is an accurate summary of what actually changed in each version (current latest: **v0.1.10**).
+This program has been rapidly refined through real-world testing. Below is an accurate summary of what actually changed in each version (current latest **released** version: **v0.1.10**). Click any entry to expand it.
 
-| Version | Key changes |
-|---|---|
-| v0.1.0 | Initial release. Shows location, context, cost, and rate limits; `setup` installation wizard |
-| v0.1.1 | Added gauge-bar visuals alongside percentage numbers for easier reading |
-| v0.1.2 | Fixed an issue where double-clicking the file caused the window to close instantly |
-| v0.1.3 | Added `uninstall` command, improved gauge-bar colors, faster location updates |
-| v0.1.4 | Restored the "active model" widget; fixed a bug where usage percentages sometimes displayed messy decimals (e.g. `14.000000000000002%`) |
-| v0.1.5 | Added `status` command; `uninstall` now double-checks that removal actually completed |
-| v0.1.6 | Installed files no longer break if renamed, moved, or deleted (auto-settles into a fixed safe location) |
-| v0.1.7 | Shows the reset countdown/time once a rate limit reaches a warning level (70%+) |
-| v0.1.8 | Reset countdown is now always shown regardless of usage level (previously only shown at 70%+). Also fixed a bug where re-running `setup` to install a new version could silently fail because Claude Code kept the executable in use (now copies to a temp file first, then swaps it in safely, with automatic retry) |
-| v0.1.9 | Added `claudetower widgets on/off` for quickly toggling just the widgets you name (no need to re-answer all 5 questions). `setup` now also installs a `/claudetower-widgets` command so you can turn widgets on/off conversationally right in the Claude Code chat (no terminal needed) |
-| v0.1.10 | Fixed a bug where context/rate-limit percentages outside the normal 0-100 range showed up as impossible numbers like "-10%" or "150%". Established a `main` branch so the curl/PowerShell one-liner install actually works. Added a disclaimer stating this program is not an official Anthropic product |
+<details>
+<summary><strong>v0.1.10</strong> — Percentage display fix, one-liner install stabilized (latest release)</summary>
+
+Fixed a bug where context/rate-limit percentages outside the normal 0-100 range showed up as impossible numbers like "-10%" or "150%". Established a `main` branch so the curl/PowerShell one-liner install actually works. Added a disclaimer stating this program is not an official Anthropic product.
+</details>
+
+<details>
+<summary><strong>v0.1.9</strong> — Quick widget toggle + chat-based configuration</summary>
+
+Added `claudetower widgets on/off` for quickly toggling just the widgets you name (no need to re-answer all 5 questions). `setup` now also installs a `/claudetower-widgets` command so you can turn widgets on/off conversationally right in the Claude Code chat (no terminal needed).
+</details>
+
+<details>
+<summary><strong>v0.1.8</strong> — Always-on reset countdown, install reliability</summary>
+
+Reset countdown is now always shown regardless of usage level (previously only shown at 70%+). Also fixed a bug where re-running `setup` to install a new version could silently fail because Claude Code kept the executable in use (now copies to a temp file first, then swaps it in safely, with automatic retry).
+</details>
+
+<details>
+<summary><strong>v0.1.7</strong> — Reset countdown display</summary>
+
+Shows the reset countdown/time once a rate limit reaches a warning level (70%+).
+</details>
+
+<details>
+<summary><strong>v0.1.6</strong> — Fixed install location, auto-repair</summary>
+
+Installed files no longer break if renamed, moved, or deleted (auto-settles into a fixed safe location).
+</details>
+
+<details>
+<summary><strong>v0.1.5</strong> — Added install status check</summary>
+
+Added `status` command; `uninstall` now double-checks that removal actually completed.
+</details>
+
+<details>
+<summary><strong>v0.1.4</strong> — Model widget, cleaner percentages</summary>
+
+Restored the "active model" widget; fixed a bug where usage percentages sometimes displayed messy decimals (e.g. `14.000000000000002%`).
+</details>
+
+<details>
+<summary><strong>v0.1.3</strong> — Uninstall command, gauge improvements</summary>
+
+Added `uninstall` command, improved gauge-bar colors, faster location updates.
+</details>
+
+<details>
+<summary><strong>v0.1.2</strong> — Fixed double-click crash</summary>
+
+Fixed an issue where double-clicking the file caused the window to close instantly.
+</details>
+
+<details>
+<summary><strong>v0.1.1</strong> — Added gauge bars</summary>
+
+Added gauge-bar visuals alongside percentage numbers for easier reading.
+</details>
+
+<details>
+<summary><strong>v0.1.0</strong> — Initial release</summary>
+
+Initial release. Shows location, context, cost, and rate limits; `setup` installation wizard.
+</details>
+
+> **Note (not yet released — in development)**: The list above only covers versions officially released on GitHub. As of this writing, the following improvements **already exist in the code but have not yet shipped in a numbered release**: `claudetower config statusline-refresh <seconds>` (adjust statusline refresh speed, also available via chat), a new default refresh speed of 3 seconds instead of 1 second for new installs (reduces load on your computer), an opt-in prompt during setup to register `claudetower` as a short PATH command, a self-healing fix so the statusline automatically restores the `/claudetower-widgets` chat command file if it ever goes missing, a confirmed root cause (and a fix) for why that file kept disappearing in the first place, and a check-box menu for `/claudetower-widgets` when run with no arguments (tick items instead of answering in plain text). **Also fixed as of 2026-07-11**: the usage-limit (five-hour/seven-day) reset time could show a broken, unrealistically far-future value (e.g. "2282304:43") when the incoming data was abnormal, and an overly long model name or folder name could break the entire statusline display — both are fixed and tested in code, but likewise still without a release number. **Also fixed as of 2026-07-12**: the cost widget could display a nonsensical number like "$-5.00" if it received a negative value from corrupted data — fixed (clamped so it never drops below zero) with dedicated tests (6 new cases), also still without a release number. These will be added to the list above with a version number once the next release ships.
 
 ---
 
@@ -320,12 +382,12 @@ This program has been rapidly refined through real-world testing. Below is an ac
 
 ## 13. Architecture
 
-**In plain terms**: this program is designed as two completely separate rooms.
+**In plain terms**: this program was originally planned as two completely separate rooms.
 
 - **The "statusline room"**: this is the part that's actually working right now. It only displays information on screen, so it's always safe.
-- **The "account-switching room"**: this **hasn't even been built yet** (no code exists for it). Once it is built, it's designed to be a completely separate room whose key won't open the statusline room's door.
+- **The "account-switching room"**: this was only ever a design sketch — it was **never actually built** (no code exists for it). For the reasons explained in Section 17, it has now been **decided that it never will be.**
 
-The reason for this separation is so that, even after the "account switching" feature is eventually added, any issues with that feature stay isolated — the "statusline" feature will keep working safely regardless. Whether this separation actually holds is automatically checked by tooling every time the program is built.
+The reason this separation was planned from the start was so that, even if the "account switching" feature were eventually added, any issues with that feature would stay isolated — the "statusline" feature would keep working safely regardless. Now that the decision has been made not to build the account-switching feature at all, the statusline feature continues to work safely, unaffected by that decision.
 
 ---
 
@@ -356,6 +418,7 @@ Here's where this program actually creates or uses files on your computer.
 | `status` says **"registered but the executable can't be found (broken)"** | You accidentally deleted the installed file. Run `setup` again to repair it automatically. |
 | **Ran `setup` to install a new version, but nothing changed** (e.g. version number stays the same) | Since v0.1.8, this retries automatically a few times, but antivirus scanning or similar can occasionally take even longer. Close Claude Code briefly and run `setup` again — with nothing actively using the file, the swap will go through reliably. |
 | **Statusline doesn't show up** in Claude Code | Settings apply starting from your *next* interaction. Try interacting with Claude Code once more. |
+| `/claudetower-widgets` (chat-based widget toggle) **used to work but suddenly doesn't** | Root cause confirmed — this program's own automated verification routine had a bug that could delete the real config file by mistake (not something you did). A guard against recurrence and a self-healing fix (recreates it within seconds if it ever goes missing) have both been applied, pending the next release. If you hit this on the current version, run `claudetower setup` once more to fix it immediately. |
 | **Context percentage looks off or empty** | This can happen briefly at the start of a session or right after `/compact`. This is expected, normal Claude Code behavior. |
 | For developers — `npm run build` fails | Check that `node --version` is 22 or later. |
 
@@ -371,8 +434,8 @@ A. No. Account-related code isn't included in this version (v0.1.10) at all. Thi
 **Q. Does anything get sent over the internet?**
 A. No. Everything runs locally, entirely on your own computer.
 
-**Q. Will account switching turn on automatically once it's built?**
-A. No. That feature will require your explicit, deliberate consent before it can ever be enabled, and the statusline will keep working fine even if you never turn it on.
+**Q. Are there plans to build account switching?**
+A. No. After reviewing Anthropic's official Terms of Service, we confirmed there is no safe way to build it, so we decided not to (see Section 17 for details). The statusline feature keeps working fine regardless of this decision.
 
 **Q. Does it cost money?**
 A. No, this program itself is free. Note that the "cost ($)" figure it *displays* is a separate thing — that's the cost of using Claude Code (the AI) itself, unrelated to this program.
@@ -381,7 +444,7 @@ A. No, this program itself is free. Note that the "cost ($)" figure it *displays
 A. Yes, as long as you've run `setup` at least once. See Section 7.
 
 **Q. Why does the name say "working title"?**
-A. The final product name hasn't been decided yet (trademark review is still pending). We'll announce it once it's finalized.
+A. Trademark review finished on 2026-07-15. The result: we decided to keep the name "ClaudeTower" as-is, accepting a low-priority residual risk (see Section 17 for details). That said, we haven't fully ruled out changing the name later — if the user base grows significantly, or if Anthropic reaches out directly — so it's still labeled a "working title" rather than a fully final name.
 
 **Q. Can I use this at my company?**
 A. It's designed for personal use and is not intended for commercial sale or delivery to a company. Please read Section 17 below carefully.
@@ -404,7 +467,7 @@ A. It's designed for personal use and is not intended for commercial sale or del
 
 ### 17-3. License (not yet finalized — stated honestly)
 
-- The final product name has not been decided yet (trademark review regarding candidate names is still in progress). Until the name is finalized, the `npm install -g` distribution channel is also deliberately not being opened (an npm package name is effectively permanent once claimed).
+- The final product name isn't in a fully, permanently finalized state. Trademark review for the name "ClaudeTower" was completed on 2026-07-15, and the decision was to keep this name, accepting a low-priority residual risk (to be revisited only if the user base grows significantly or Anthropic reaches out directly). Until this "working title" status is fully resolved, the `npm install -g` distribution channel is also deliberately not being opened (an npm package name is effectively permanent once claimed).
 
 ### 17-4. Commercial use — strict prohibition
 
@@ -416,9 +479,9 @@ A. It's designed for personal use and is not intended for commercial sale or del
 
 **This program is distributed for free, personal use only.**
 
-Reason for this strict limitation: there are plans to eventually add an "automatic multi-account switching" feature (the Account module), which would cycle between multiple Claude accounts automatically — a pattern that **could conflict with Claude's terms of service.** It has been clearly established that once this feature actually ships, that risk applies to the entire program, even for users who never turn the feature on and only use the statusline. To avoid amplifying that risk through commercial expansion, the design principle from the very beginning excludes commercial use entirely.
+Reason for this strict limitation: this project originally planned to eventually add an "automatic multi-account switching" feature (the Account module), which would have cycled between multiple Claude accounts automatically. On 2026-07-15, after reading Anthropic's official Terms of Service directly, we confirmed this pattern **conflicts with Claude's terms of service** and there is no safe way to build it, so we decided not to (see Section 13, "Architecture," for details). During this review, it also became clear that if this feature had shipped, that risk would have applied to the entire program — even for users who never turned the feature on and only used the statusline. The commercial-use exclusion has been a design principle from the very beginning specifically to avoid amplifying that kind of risk, and it remains in place now that the decision has been made not to build the account-switching feature at all.
 
-> Note: as of this writing (v0.1.10), the "account switching" feature has no code at all, so the terms-of-service conflict risk described above **does not actually exist yet.** However, the commercial-use prohibition itself applies to the entire project from the start, as a matter of design principle.
+> Note: the account-switching feature has been **decided against entirely**, so the terms-of-service conflict risk described above will never actually materialize. However, the commercial-use prohibition itself continues to apply to the entire project, independent of this decision.
 
 ### 17-5. On reusing external code and ideas
 
