@@ -13,7 +13,7 @@ async function run(args) {
   }
 
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
-    console.log(`${CLI_NAME} — Claude Code statusline + account switching CLI`);
+    console.log(`${CLI_NAME} — Claude Code statusline CLI`);
     console.log('Usage: claudetower <command>');
     console.log('Commands: setup, statusline, status, uninstall, widgets, config');
     // 인자 없이 실행된 경우(대표적으로 exe 더블클릭)는 Windows가 새 콘솔 창을 열고,
