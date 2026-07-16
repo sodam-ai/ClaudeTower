@@ -6,7 +6,7 @@ A statusline CLI for Claude Code. (The account auto-switching feature was review
 
 > 📖 **New to computers or AI tools?** We've prepared a much more detailed, beginner-friendly [Complete User Guide (GUIDE.en.md)](./GUIDE.en.md).
 
-> **Current status (important)**: This project provides the statusline (Display) feature only (current released version: v0.1.10). "① Statusline" below works right now. "② Account switching" **will not be built** — after reading Anthropic's official Terms of Service directly, we confirmed there is no way to implement this feature safely, so we decided not to build it (confirmed 2026-07-15; see "② Account switching" below for details).
+> **Current status (important)**: This project provides the statusline (Display) feature only (current released version: v0.2.0). "① Statusline" below works right now. "② Account switching" **will not be built** — after reading Anthropic's official Terms of Service directly, we confirmed there is no way to implement this feature safely, so we decided not to build it (confirmed 2026-07-15; see "② Account switching" below for details).
 
 ---
 
@@ -146,10 +146,16 @@ In short, there was no way to build the original goal — automatically cycling 
 
 ## Version history summary
 
-Officially released versions (current latest: v0.1.10). Click to expand. **For the full history and detailed notes, see [GUIDE.en.md, section 11](./GUIDE.en.md#11-version-history-summary).**
+Officially released versions (current latest: v0.2.0). Click to expand. **For the full history and detailed notes, see [GUIDE.en.md, section 11](./GUIDE.en.md#11-version-history-summary).**
 
 <details>
-<summary><strong>v0.1.10</strong> — Percentage display fix, one-liner install stabilized (latest)</summary>
+<summary><strong>v0.2.0</strong> — Install stabilization, self-healing, widget menu (latest)</summary>
+
+Fixed file corruption when the install script and statusline ran at the same time, and fixed the root cause of the `/claudetower-widgets` command disappearing, adding a self-healing fix. Added a Windows PATH auto-registration option and a `config statusline-refresh` command to adjust refresh speed (default refresh interval also changed from 1s to 3s), and closed a gap where `uninstall` could accidentally delete config/skill files. Running `/claudetower-widgets` with no arguments now shows a check-box menu for toggling widgets, and boundary-value bugs in the context, cost, model-name/folder-name, and reset-time displays were fixed. After reviewing Anthropic's Terms of Service, the account auto-switching feature was permanently decided against, so ClaudeTower remains a statusline-only (Display) tool.
+</details>
+
+<details>
+<summary><strong>v0.1.10</strong> — Percentage display fix, one-liner install stabilized</summary>
 
 Fixed impossible out-of-range percentage displays. Stabilized the curl/PowerShell one-liner install. Added an "not an official Anthropic product" disclaimer.
 </details>
@@ -165,8 +171,6 @@ Added `claudetower widgets on/off`. Auto-installs the `/claudetower-widgets` cha
 
 From the initial release through gauge bars, the double-click fix, `uninstall`/`status` commands, reset-time display, and install reliability improvements — see GUIDE.en.md for full details.
 </details>
-
-> **Note (unreleased, in development)**: `config statusline-refresh` (adjustable refresh speed), a new 3-second default refresh speed for fresh installs, the PATH registration prompt, and the skill-file self-healing fix, and the `/claudetower-widgets` check-box menu already exist in code but haven't shipped in a numbered release yet. As of 2026-07-11, two more fixes exist in code but likewise haven't shipped: the five-hour/seven-day reset time no longer shows an unrealistically far-future value, and an overly long model name or folder name no longer breaks the statusline display. **As of 2026-07-12, a fix also landed for the cost widget so a corrupted negative value no longer displays a nonsensical number like "$-5.00"** (clamped so it never drops below zero). See GUIDE.en.md section 11 for details.
 
 ## Troubleshooting
 

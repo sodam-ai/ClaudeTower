@@ -55,7 +55,7 @@
 
 <blockquote>📖 <strong>컴퓨터·AI 프로그램이 처음이신가요?</strong> 이 README보다 훨씬 더 자세하고 쉬운 <a href="./GUIDE.html">완전 사용 가이드(GUIDE.html)</a>를 준비해뒀습니다.</blockquote>
 
-<blockquote><strong>지금 상태(중요)</strong>: 이 프로젝트는 상태표시줄(Display) 기능만 제공합니다(현재 정식 출시 버전: v0.1.10). 아래 "① 상태표시줄"은 지금 실제로 잘 동작합니다. "② 계정 자동전환"은 <strong>만들지 않기로 확정되었습니다</strong> — Anthropic의 공식 이용약관을 직접 확인한 결과 이 기능을 안전하게 구현할 방법이 없다는 것이 확인되었기 때문입니다(2026-07-15 확정, 자세한 이유는 아래 "② 계정 자동전환" 참고).</blockquote>
+<blockquote><strong>지금 상태(중요)</strong>: 이 프로젝트는 상태표시줄(Display) 기능만 제공합니다(현재 정식 출시 버전: v0.2.0). 아래 "① 상태표시줄"은 지금 실제로 잘 동작합니다. "② 계정 자동전환"은 <strong>만들지 않기로 확정되었습니다</strong> — Anthropic의 공식 이용약관을 직접 확인한 결과 이 기능을 안전하게 구현할 방법이 없다는 것이 확인되었기 때문입니다(2026-07-15 확정, 자세한 이유는 아래 "② 계정 자동전환" 참고).</blockquote>
 
 <hr>
 
@@ -201,10 +201,15 @@ npm run build</code></pre>
 <hr>
 
 <h2 id="changelog">업데이트 내용 요약</h2>
-<p>정식 출시(릴리스)된 버전별 변경 내용입니다(현재 최신: v0.1.10). 항목을 클릭하면 펼쳐집니다. <strong>전체 이력과 상세 설명은 <a href="./GUIDE.html#changelog">GUIDE.html 11장</a>을 참고하세요.</strong></p>
+<p>정식 출시(릴리스)된 버전별 변경 내용입니다(현재 최신: v0.2.0). 항목을 클릭하면 펼쳐집니다. <strong>전체 이력과 상세 설명은 <a href="./GUIDE.html#changelog">GUIDE.html 11장</a>을 참고하세요.</strong></p>
 
 <details>
-<summary><strong>v0.1.10</strong> — 퍼센트 표시 결함 수정, 원라이너 설치 안정화 (최신)</summary>
+<summary><strong>v0.2.0</strong> — 설치 안정화, 자가복구, 위젯 메뉴 (최신)</summary>
+<p>설치 스크립트가 상태표시줄과 동시에 실행될 때 파일이 손상되던 결함과 <code>/claudetower-widgets</code> 명령이 사라지는 근본 원인을 수정하고 자가복구 기능을 추가했습니다. Windows PATH 자동등록 옵션과 갱신 속도 조절 명령(<code>config statusline-refresh</code>, 기본 갱신주기 1초→3초)을 신설했고, <code>uninstall</code>이 설정·스킬 파일을 실수로 지우던 결함도 막았습니다. <code>/claudetower-widgets</code>를 인자 없이 실행하면 체크박스로 위젯을 켜고 끌 수 있으며, 컨텍스트·비용·모델명·폴더명·재설정 시간 표시의 경계값 결함도 함께 수정했습니다. 계정 자동전환 기능은 Anthropic 이용약관 검토 결과 만들지 않기로 확정되어, ClaudeTower는 상태표시줄 전용 도구로 남습니다.</p>
+</details>
+
+<details>
+<summary><strong>v0.1.10</strong> — 퍼센트 표시 결함 수정, 원라이너 설치 안정화</summary>
 <p>컨텍스트·사용률 퍼센트가 정상 범위(0~100)를 벗어나면 있을 수 없는 숫자가 그대로 표시되던 결함 수정. curl/PowerShell 한 줄 설치 안정화. "Anthropic 공식 제품 아님" 고지 추가.</p>
 </details>
 
@@ -217,8 +222,6 @@ npm run build</code></pre>
 <summary><strong>v0.1.0 ~ v0.1.8</strong> — 초기 개발 단계</summary>
 <p>최초 배포부터 막대 그래프 표시, 더블클릭 오류 수정, <code>uninstall</code>/<code>status</code> 명령 추가, 사용률 재설정 시간 표시, 설치 안정성 개선까지 — 전체 상세 내용은 GUIDE.html 참고.</p>
 </details>
-
-<blockquote><strong>참고(미출시 개발 내용)</strong>: <code>config statusline-refresh</code>(갱신 속도 조절), 신규 설치 기본 갱신 속도 3초로 조정, PATH 등록 질문, 스킬 파일 자가복구, <code>/claudetower-widgets</code> 체크 메뉴는 코드로는 완성됐지만 아직 정식 릴리스 번호가 붙지 않았습니다. 2026-07-11에는 5시간/7일 재설정 시간이 비현실적으로 먼 미래로 표시되던 결함, 모델명·폴더명이 지나치게 길면 화면이 깨지던 결함도 코드로는 수정됐으나 역시 아직 정식 릴리스에는 포함되지 않았습니다. <strong>2026-07-12에는 비용(cost) 위젯이 손상된 데이터로 음수 값을 받으면 "$-5.00"처럼 말이 안 되는 숫자를 그대로 보여주던 결함도 수정</strong>됐습니다(0 밑으로 내려가지 않도록 고정). 자세한 내용은 GUIDE.html 11장을 참고하세요.</blockquote>
 
 <h2 id="troubleshooting">트러블슈팅</h2>
 <ul>

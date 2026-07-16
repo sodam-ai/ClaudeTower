@@ -2,7 +2,7 @@
 
 > This guide is written so that anyone can follow it from start to finish, even with little or no prior experience using computers, smartphones, or AI tools. Wherever a technical term appears, a plain-language explanation follows right next to it.
 
-**Document version**: This guide covers ClaudeTower **v0.1.10**.
+**Document version**: This guide covers ClaudeTower **v0.2.0**.
 
 ---
 
@@ -299,10 +299,22 @@ This program **never sends anything over the internet.** All information stays e
 
 ## 11. Version history summary
 
-This program has been rapidly refined through real-world testing. Below is an accurate summary of what actually changed in each version (current latest **released** version: **v0.1.10**). Click any entry to expand it.
+This program has been rapidly refined through real-world testing. Below is an accurate summary of what actually changed in each version (current latest **released** version: **v0.2.0**). Click any entry to expand it.
 
 <details>
-<summary><strong>v0.1.10</strong> — Percentage display fix, one-liner install stabilized (latest release)</summary>
+<summary><strong>v0.2.0</strong> — Install stabilization, self-healing, widget menu (latest release)</summary>
+
+- Fixed a lock-contention (self-collision) bug where the install scripts (`install.ps1`/`install.sh`) could overwrite and corrupt files when run at the same time as the statusline.
+- Fixed the root cause of the `/claudetower-widgets` chat command disappearing, and added a self-healing fix that restores it automatically within seconds if it ever goes missing again.
+- Added a Windows PATH auto-registration option so you can type `claudetower` for short, and a new `claudetower config statusline-refresh` command to adjust refresh speed directly (also changed the default refresh interval for new installs from 1 second to 3 seconds).
+- Added defensive code that fundamentally prevents `claudetower uninstall` from accidentally deleting real config/skill files under certain conditions.
+- Running `/claudetower-widgets` with no arguments now shows a new check-box menu screen for turning widgets on/off (improved to a second version based on real-world feedback).
+- Fixed boundary-value bugs across the displayed widgets: odd-looking output when context/cost values were abnormal, broken display when model names or folder names were too long, and unrealistically far-future reset-time values.
+- After directly reviewing Anthropic's official Terms of Service, we confirmed there is no safe way to build the account auto-switching feature (Account module), so it has been **permanently decided against**. ClaudeTower remains a statusline (Display)-only tool going forward.
+</details>
+
+<details>
+<summary><strong>v0.1.10</strong> — Percentage display fix, one-liner install stabilized</summary>
 
 Fixed a bug where context/rate-limit percentages outside the normal 0-100 range showed up as impossible numbers like "-10%" or "150%". Established a `main` branch so the curl/PowerShell one-liner install actually works. Added a disclaimer stating this program is not an official Anthropic product.
 </details>
@@ -367,8 +379,6 @@ Added gauge-bar visuals alongside percentage numbers for easier reading.
 Initial release. Shows location, context, cost, and rate limits; `setup` installation wizard.
 </details>
 
-> **Note (not yet released — in development)**: The list above only covers versions officially released on GitHub. As of this writing, the following improvements **already exist in the code but have not yet shipped in a numbered release**: `claudetower config statusline-refresh <seconds>` (adjust statusline refresh speed, also available via chat), a new default refresh speed of 3 seconds instead of 1 second for new installs (reduces load on your computer), an opt-in prompt during setup to register `claudetower` as a short PATH command, a self-healing fix so the statusline automatically restores the `/claudetower-widgets` chat command file if it ever goes missing, a confirmed root cause (and a fix) for why that file kept disappearing in the first place, and a check-box menu for `/claudetower-widgets` when run with no arguments (tick items instead of answering in plain text). **Also fixed as of 2026-07-11**: the usage-limit (five-hour/seven-day) reset time could show a broken, unrealistically far-future value (e.g. "2282304:43") when the incoming data was abnormal, and an overly long model name or folder name could break the entire statusline display — both are fixed and tested in code, but likewise still without a release number. **Also fixed as of 2026-07-12**: the cost widget could display a nonsensical number like "$-5.00" if it received a negative value from corrupted data — fixed (clamped so it never drops below zero) with dedicated tests (6 new cases), also still without a release number. These will be added to the list above with a version number once the next release ships.
-
 ---
 
 ## 12. Security & data flow
@@ -429,7 +439,7 @@ Here's where this program actually creates or uses files on your computer.
 ## 16. Frequently asked questions (FAQ)
 
 **Q. Does installing this collect my Claude account information?**
-A. No. Account-related code isn't included in this version (v0.1.10) at all. This program is structurally unable to see or store your ID, password, or authentication tokens.
+A. No. Account-related code isn't included in this version (v0.2.0) at all. This program is structurally unable to see or store your ID, password, or authentication tokens.
 
 **Q. Does anything get sent over the internet?**
 A. No. Everything runs locally, entirely on your own computer.
@@ -471,7 +481,7 @@ A. It's designed for personal use and is not intended for commercial sale or del
 
 ### 17-4. Commercial use — strict prohibition
 
-**The current version of this program (v0.1.10, Phase 1 MVP) is not designed for:**
+**The current version of this program (v0.2.0, Phase 1 MVP) is not designed for:**
 
 - ❌ Commercial sale
 - ❌ Being offered as a paid service
@@ -493,4 +503,4 @@ This program is provided **"AS IS"** under the standard terms of the Apache Lice
 
 ---
 
-*This document covers ClaudeTower v0.1.10 and is an extended companion to [`README.en.md`](./README.en.md). The Korean version is [`GUIDE.md`](./GUIDE.md).*
+*This document covers ClaudeTower v0.2.0 and is an extended companion to [`README.en.md`](./README.en.md). The Korean version is [`GUIDE.md`](./GUIDE.md).*
