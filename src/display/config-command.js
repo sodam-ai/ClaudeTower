@@ -7,12 +7,32 @@
 // 기여 요인이었으므로, 주기를 늘려 부하를 줄일 수 있는 안전한 경로를 제공한다.
 
 const { updateRefreshInterval } = require('./config/settings-writer');
+const { writePowerlineSeparator } = require('./config/widget-config');
 
-function runConfigCommand(args, { settingsPath, log = () => {} } = {}) {
+// claudetower config powerline <on|off> — 위젯 사이 구분자를 공백 2칸에서 Powerline
+// 화살표로 바꾸는 opt-in 설정. 색상 테마·위젯 재배치는 범위 밖(별도 논의 전까지는
+// 만들지 않음, PRD가 "복잡"으로 분류한 부분).
+function runConfigCommand(args, { settingsPath, widgetConfigPath, log = () => {} } = {}) {
   const [sub, value] = args;
 
+  if (sub === 'powerline') {
+    if (value !== 'on' && value !== 'off') {
+      log('사용법: claudetower config powerline <on|off>');
+      return { applied: false };
+    }
+    try {
+      writePowerlineSeparator(value === 'on', widgetConfigPath);
+      log(`Powerline 구분자를 ${value === 'on' ? '켰습니다' : '껐습니다'}.`);
+      log('다음 상태표시줄 갱신부터 적용됩니다.');
+      return { applied: true, powerlineSeparator: value === 'on' };
+    } catch (err) {
+      log(err.message);
+      return { applied: false };
+    }
+  }
+
   if (sub !== 'statusline-refresh') {
-    log('사용법: claudetower config statusline-refresh <1 이상의 정수(초)>');
+    log('사용법: claudetower config statusline-refresh <1 이상의 정수(초)> 또는 claudetower config powerline <on|off>');
     return { applied: false };
   }
 

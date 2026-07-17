@@ -158,3 +158,26 @@ test('enabledWidgets에서 제외된 위젯은 유효한 값이 있어도 렌더
   assert.match(out, /x/);
   assert.doesNotMatch(out, /50%/);
 });
+
+// render()의 세 번째 인자(powerlineEnabled)도 위 enabledWidgets와 같은 이유로 항상
+// 명시한다(2026-07-18 신설, 위 8~11행과 동일 원칙).
+
+test('powerlineEnabled=false(기본값)면 위젯 사이 구분자가 공백 2칸이다', () => {
+  const out = render(
+    { model: { display_name: 'M' }, workspace: { current_dir: '/x' } },
+    ['model', 'location'],
+    false
+  );
+  assert.equal(out, 'M  📁 x');
+});
+
+test('powerlineEnabled=true면 위젯 사이 구분자가 Powerline 화살표로 바뀐다', () => {
+  const out = render(
+    { model: { display_name: 'M' }, workspace: { current_dir: '/x' } },
+    ['model', 'location'],
+    true
+  );
+  assert.notEqual(out, 'M  📁 x'); // 기본 구분자가 아님
+  assert.match(out, /^M/);
+  assert.match(out, /📁 x$/);
+});

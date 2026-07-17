@@ -61,3 +61,45 @@ test('config statusline-refresh <n>: 아직 설치 전(statusLine 없음)이면 
   assert.ok(logs.some((l) => l.includes('claudetower가 설치되어 있지 않습니다')));
   assert.equal(fs.existsSync(settingsPath), false);
 });
+
+function tempWidgetConfigPath(initial) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'claudetower-config-cmd-test-'));
+  const widgetConfigPath = path.join(dir, 'config.json');
+  if (initial !== undefined) {
+    fs.writeFileSync(widgetConfigPath, JSON.stringify(initial));
+  }
+  return widgetConfigPath;
+}
+
+test('config powerline on/off: 정상적으로 켜고 끈다', () => {
+  const widgetConfigPath = tempWidgetConfigPath();
+
+  const on = runConfigCommand(['powerline', 'on'], { widgetConfigPath });
+  assert.equal(on.applied, true);
+  assert.equal(JSON.parse(fs.readFileSync(widgetConfigPath, 'utf8')).powerline_separator, true);
+
+  const off = runConfigCommand(['powerline', 'off'], { widgetConfigPath });
+  assert.equal(off.applied, true);
+  assert.equal(JSON.parse(fs.readFileSync(widgetConfigPath, 'utf8')).powerline_separator, false);
+});
+
+test('config powerline on: 기존 enabled_widgets 설정을 지우지 않는다(read-merge-write 회귀 방지)', () => {
+  const widgetConfigPath = tempWidgetConfigPath({ enabled_widgets: ['model', 'cost'] });
+
+  runConfigCommand(['powerline', 'on'], { widgetConfigPath });
+
+  const written = JSON.parse(fs.readFileSync(widgetConfigPath, 'utf8'));
+  assert.deepEqual(written.enabled_widgets, ['model', 'cost']);
+  assert.equal(written.powerline_separator, true);
+});
+
+test('config powerline <on/off 아닌 값>: 사용법을 보여주고 거부한다', () => {
+  const widgetConfigPath = tempWidgetConfigPath();
+  const logs = [];
+
+  const result = runConfigCommand(['powerline', 'maybe'], { widgetConfigPath, log: (msg) => logs.push(msg) });
+
+  assert.equal(result.applied, false);
+  assert.ok(logs.some((l) => l.includes('claudetower config powerline <on|off>')));
+  assert.equal(fs.existsSync(widgetConfigPath), false);
+});

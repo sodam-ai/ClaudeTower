@@ -157,6 +157,7 @@ Widgets shown: model, project location, context usage, cost, rate limits (5h/7d)
 <li><code>claudetower widgets</code> — check which widgets are currently on</li>
 <li><code>claudetower widgets off &lt;widgets...&gt;</code> / <code>claudetower widgets on &lt;widgets...&gt;</code> — turn only the named widgets on/off (everything else stays as-is — no need to re-answer all 5 <code>setup</code> questions). Widget names: <code>model</code>, <code>location</code>, <code>context</code>, <code>cost</code>, <code>rate_limit</code></li>
 <li><code>claudetower config statusline-refresh &lt;seconds&gt;</code> — adjusts how often the statusline refreshes (default 3s; if you keep several sessions open at once, raising it to 5s or more reduces load on your computer further). This value is kept even if you run <code>setup</code> again. You can also just say "slow down the statusline refresh" in the Claude Code chat instead of using a terminal</li>
+<li><code>claudetower config powerline &lt;on|off&gt;</code> (new) — switches the separator between widgets from two spaces to Powerline-style arrows (just the divider glyphs, no color theme; off by default). If your terminal doesn't have a Nerd Font installed, the arrows may render as broken glyphs, so check after turning it on</li>
 <li><code>claudetower uninstall</code> — safely removes only the statusline registration (leaves your other Claude Code settings untouched)</li>
 <li><code>claudetower statusline</code> — the renderer Claude Code invokes internally (you won't run this by hand)</li>
 </ul>

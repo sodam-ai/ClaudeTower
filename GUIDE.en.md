@@ -252,6 +252,7 @@ This program **never sends anything over the internet.** All information stays e
 | `claudetower widgets off <widgets...>` / `on <widgets...>` | Turn only the named widgets on/off | `claudetower widgets off context cost` |
 | `claudetower status` | Check current install status and which widgets are enabled | Shows "installed" / "not installed" / "broken" |
 | `claudetower config statusline-refresh <seconds>` | Adjusts how often the statusline refreshes (default 3 seconds). If you keep several windows open at once, raising it to 5 seconds or more reduces load on your computer further. You can also just say "slow down the statusline refresh" in chat instead of using a terminal | `claudetower config statusline-refresh 5` |
+| `claudetower config powerline <on\|off>` | Switches the separator between widgets from two spaces to Powerline-style arrow glyphs (only the divider changes — no color theme; off by default). If you don't have a Nerd Font installed (a terminal font bundled with special icon glyphs), the arrows may show up as broken boxes, so check your screen after turning it on | `claudetower config powerline on` |
 | `claudetower uninstall` | Safely remove the statusline registration and the `/claudetower-widgets` chat command | Other settings are left untouched |
 | `claudetower statusline` | The renderer Claude Code calls internally | **You never need to run this yourself** |
 | `/claudetower-widgets` (in Claude Code chat) | Turn widgets on/off conversationally, no terminal needed | Just say "turn off context and cost" |

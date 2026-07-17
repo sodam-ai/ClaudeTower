@@ -99,6 +99,7 @@ irm https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.ps1 | ie
 - `claudetower widgets` — 지금 어떤 항목이 켜져 있는지 확인
 - `claudetower widgets off <항목...>` / `claudetower widgets on <항목...>` — 지정한 항목만 켜고 끄기(나머지는 그대로, `setup`처럼 5개 질문에 전부 다시 답할 필요 없음). 항목 이름: `model`, `location`, `context`, `cost`, `rate_limit`
 - `claudetower config statusline-refresh <초>` — 상태표시줄 갱신 주기를 조절합니다(기본 3초, 세션을 여러 개 띄워두는 경우 5초 이상으로 늘리면 컴퓨터 부담이 더 줄어듭니다). `setup`을 다시 실행해도 이 값은 유지됩니다. 터미널 없이 클로드코드 채팅창에서 "상태표시줄 갱신을 느리게 해줘"처럼 말해도 됩니다
+- `claudetower config powerline <on|off>`(신규) — 위젯 사이 구분자를 공백 2칸에서 Powerline 스타일 화살표로 바꿉니다(색상 테마 없이 구분 기호만, 기본은 꺼짐). Nerd Font가 설치돼 있지 않은 터미널에서는 화살표가 깨져 보일 수 있으니 켜본 뒤 확인하세요
 - `claudetower uninstall` — 등록된 상태표시줄 설정만 안전하게 제거(다른 Claude Code 설정은 그대로 둠)
 - `claudetower statusline` — Claude Code가 내부적으로 호출하는 렌더러(직접 실행할 일 없음)
 

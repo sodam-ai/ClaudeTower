@@ -99,6 +99,7 @@ If you accidentally delete that fixed-location copy too and the statusline stops
 - `claudetower widgets` — check which widgets are currently on
 - `claudetower widgets off <widgets...>` / `claudetower widgets on <widgets...>` — turn only the named widgets on/off (everything else stays as-is — no need to re-answer all 5 `setup` questions). Widget names: `model`, `location`, `context`, `cost`, `rate_limit`
 - `claudetower config statusline-refresh <seconds>` — adjusts how often the statusline refreshes (default 3s; if you keep several sessions open at once, raising it to 5s or more reduces load on your computer further). This value is kept even if you run `setup` again. You can also just say "slow down the statusline refresh" in the Claude Code chat instead of using a terminal
+- `claudetower config powerline <on|off>` (new) — switches the separator between widgets from two spaces to Powerline-style arrows (just the divider glyphs, no color theme; off by default). If your terminal doesn't have a Nerd Font installed, the arrows may render as broken glyphs, so check after turning it on
 - `claudetower uninstall` — safely removes only the statusline registration (leaves your other Claude Code settings untouched)
 - `claudetower statusline` — the renderer Claude Code invokes internally (you won't run this by hand)
 

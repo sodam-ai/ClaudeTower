@@ -6,7 +6,14 @@ const { renderLocation } = require('./widgets/location');
 const { renderContext } = require('./widgets/context');
 const { renderCost } = require('./widgets/cost');
 const { renderRateLimit } = require('./widgets/rate-limit');
-const { readEnabledWidgets } = require('./config/widget-config');
+const { readEnabledWidgets, readPowerlineSeparator } = require('./config/widget-config');
+
+// 위젯 사이 기본 구분자는 공백 2칸. Powerline 구분자를 켜면(claudetower config
+// powerline on) 이 화살표로 바뀐다 — 배경색 블록은 없음(테마 시스템 아님, 순수
+// 구분 기호만). U+E0B1(얇은 화살표)을 골랐다: U+E0B0(꽉 찬 삼각형)은 배경색이
+// 없으면 어색해 보이지만 이건 텍스트 사이에 그대로 둬도 자연스럽다.
+const DEFAULT_SEPARATOR = '  ';
+const POWERLINE_SEPARATOR = '  ';
 
 // Phase 1 기본 활성 위젯 순서(.PRD/01_PRD.md §3). type은 claudetower setup이 쓰는
 // widget-config.js의 enabled_widgets 값과 일치해야 한다. model이 맨 앞인 이유는
@@ -44,7 +51,11 @@ function readStdinJson() {
 // 나머지 위젯·전체 상태표시줄 렌더링은 계속돼야 한다.
 // enabledWidgets를 명시적으로 받게 해서(기본값은 실제 설정 파일 읽기) 테스트가
 // 이 머신의 실제 ~/.claudetower/config.json 상태와 무관하게 결정적으로 동작하게 한다.
-function render(session, enabledWidgets = readEnabledWidgets()) {
+function render(
+  session,
+  enabledWidgets = readEnabledWidgets(),
+  powerlineEnabled = readPowerlineSeparator()
+) {
   const parts = [];
   for (const widget of WIDGETS) {
     if (!enabledWidgets.includes(widget.type)) continue;
@@ -58,7 +69,7 @@ function render(session, enabledWidgets = readEnabledWidgets()) {
       parts.push(result);
     }
   }
-  return parts.join('  ');
+  return parts.join(powerlineEnabled ? POWERLINE_SEPARATOR : DEFAULT_SEPARATOR);
 }
 
 if (require.main === module) {
