@@ -201,6 +201,9 @@ From the initial release through gauge bars, the double-click fix, `uninstall`/`
 - **This program is not an official Anthropic product.** It's an unofficial companion tool built by an individual, with no affiliation or sponsorship from Anthropic.
 - License: Apache License 2.0 (copyright holder: SoDam AI Studio — see [`LICENSE`](./LICENSE))
 - This project is for personal use; there are no plans for commercial sale or a paid service.
+- The license (Apache 2.0) does not legally prohibit commercial use. That said, this project does not recommend commercial use — see [`GUIDE.en.md`](./GUIDE.en.md) section 17-7 for the distinction.
+- Some of this project's code and docs were written with the help of AI (Claude Code) — see the "Co-Authored-By: Claude" trailers in the commit history. Whether AI-assisted content is copyrightable and where it derives from is a legally unsettled area — verify independently if it matters to you.
+- There is no separate `NOTICE` file, since the distributed executable has zero runtime dependencies and redistributes no third-party code.
 - For more background, see the "법률·저작권·라이선스·상업적 사용 요구사항" section in [`.PRD/04_PROJECT_SPEC.md`](./.PRD/04_PROJECT_SPEC.md).
 
 ## Full design documentation
