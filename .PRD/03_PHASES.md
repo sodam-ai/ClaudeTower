@@ -15,12 +15,21 @@
 ### 목표
 플러그인을 설치하면 즉시 안전한 상태표시줄이 동작하고, Account 모듈이 나중에 추가될 자리(격리된 구조)가 미리 마련되어 있다.
 
-### 기능 (2026-07-04 CLI 전환 반영)
-- [ ] 크로스플랫폼 자동 설치/감지 (Windows PowerShell 단독 환경 포함)
-- [ ] Node.js SEA 바이너리 빌드(linux/macos/windows, CI 매트릭스)
-- [ ] **CLI 설치 스크립트**(npm -g / curl / PowerShell 원라이너) — Claude Code 플러그인이 아니라 독립 CLI로 우선 배포
-- [ ] `claudetower setup` — 프로젝트 위치 위젯, 임계값 색상 경고 등 Display 설정을 대화형으로
-- [ ] **모듈 격리 구조 자체를 코드로 확정**: `src/display/`와 `src/accounts/`(Phase 2에서 채울 빈 디렉토리) 분리, `ModuleActivationState` 기본값 `enabled: false`로 고정
+### 기능 (2026-07-04 CLI 전환 반영, 2026-07-18 완료 확인)
+- [x] 크로스플랫폼 자동 설치/감지 (Windows PowerShell 단독 환경 포함) → `install.ps1`은 순수
+  PowerShell 문법(`irm .../install.ps1 | iex`)으로 작성돼 있어 Git Bash/WSL 없이도 동작,
+  이 세션에서도 여러 차례 PowerShell 도구로 직접 실행해 확인
+- [x] Node.js SEA 바이너리 빌드(linux/macos/windows, CI 매트릭스) → `.github/workflows/build.yml`
+  `matrix.include`에 windows-latest·macos-latest·ubuntu-latest 3개 전부 존재, 최신 커밋까지
+  `gh run watch`로 3플랫폼 전부 success 직접 확인(2026-07-16)
+- [x] **CLI 설치 스크립트**(curl / PowerShell 원라이너) — `install.ps1`/`install.sh` 실측 동작
+  확인(37행 기존 기록). `npm -g`만 이름 미확정으로 의도적 보류(계획적 제외, 결함 아님)
+- [x] `claudetower setup` — 격리 환경에서 설치→상태확인→위젯 켜고끄기→해제 전체 lifecycle을
+  실제 실행해 정상 동작 확인(2026-07-17 QA 세션, 실사용자 파일 무영향까지 mtime 대조로 증명)
+- [x] **모듈 격리 구조 자체를 코드로 확정**: `.github/workflows/build.yml`의
+  `verify-display-standalone` job(53행)이 매 push마다 `src/accounts/`를 삭제한 뒤
+  `npm run verify` 통과를 증명 + `lint:boundary`(`scripts/check-module-boundary.js`)가
+  Display 코드의 Account import를 정적으로 차단
 
 ### 데이터
 - Display 모듈 전체 엔티티(PlatformProfile, StatuslineConfig, QuickSetup, Threshold, Widget, CacheEntry는 Phase 2)
