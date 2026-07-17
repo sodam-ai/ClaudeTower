@@ -511,6 +511,31 @@ While designing this project, several other open-source statusline/account-manag
 
 This program is provided **"AS IS"** under the standard terms of the Apache License 2.0, without any warranty of any kind, express or implied. The copyright holder (SoDam AI Studio) is not liable for any damages arising from the use of this program (see the [`LICENSE`](./LICENSE) file for the exact legal text).
 
+### 17-7. What the license actually permits vs. what this project recommends (Important — needs legal review)
+
+> ⚠️ This is not legal advice — it describes the general content of the license terms as written. If you plan actual commercial use, consult a lawyer or other qualified professional.
+
+**Apache License 2.0 itself contains no "no commercial use" clause.** As long as you comply with its conditions (keeping copyright and license notices, etc.), modification, copying, redistribution, and commercial use are, in principle, permitted — it is a widely used permissive license. In other words, the statement elsewhere in this section that this project is "not designed for commercial sale, paid services, or paid delivery to companies" does **not mean the license legally forbids it — it means this project does not recommend it (a design intent).** To avoid confusing the two:
+
+| What you want to do | Does the license allow it? | Does this project recommend it? |
+|---|---|---|
+| Modify the code | Allowed | Recommended (keep copyright/license notices) |
+| Copy or fork it as-is | Allowed | Recommended |
+| Redistribute a modified version | Allowed (with license copy + copyright notice) | Recommended |
+| Use it as educational material | Allowed | Recommended |
+| Sell it / turn it into a paid service | Permitted by the license terms alone | Not recommended (see the commercial-use subsection above) |
+| Deliver it to a company/client | Permitted by the license terms alone | Not recommended (see the commercial-use subsection above) |
+
+Where "license allows" and "project recommends" diverge, it is **not a legal barrier — it reflects this project's design intent.** **Decision needed**: if the project owner wants to legally restrict commercial use with binding force, switching away from Apache 2.0 to a different license scheme (e.g. one with a non-commercial condition) would be required — this review did not change the existing license, so that decision is left to the project owner.
+
+### 17-8. About AI's involvement in development
+
+A substantial part of this project's code and documentation was written with the help of an AI coding tool (Claude Code) — this is recorded in the repository's commit history via "Co-Authored-By: Claude" trailers. Whether AI-generated or AI-assisted content is copyrightable, what training data it derives from, and whether it might resemble or infringe existing works are all legal questions that differ by jurisdiction and remain unsettled. If you plan to use, redistribute, or commercially exploit this project as-is or modified, please be aware that it includes AI-assisted content, and verify copyright, provenance, and commercial-use eligibility yourself where needed (needs legal review).
+
+### 17-9. About the NOTICE file
+
+This project does not include a separate `NOTICE` file. Apache License 2.0 Section 4(d) only requires you to carry forward a `NOTICE` file's contents if the Work you are distributing already includes one; the executable ClaudeTower actually distributes has zero runtime dependencies, so there is no third-party code being redistributed at all (confirmed — `package.json` has no `dependencies` entry; the build tools (esbuild, eslint) are development-only and are not included in the distributed executable). We therefore determined a `NOTICE` file is not currently required. This determination should be revisited if third-party code is ever actually included.
+
 ---
 
 *This document covers ClaudeTower v0.3.0 and is an extended companion to [`README.en.md`](./README.en.md). The Korean version is [`GUIDE.md`](./GUIDE.md).*
