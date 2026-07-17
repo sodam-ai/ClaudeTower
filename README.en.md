@@ -6,7 +6,7 @@ A statusline CLI for Claude Code. (The account auto-switching feature was review
 
 > 📖 **New to computers or AI tools?** We've prepared a much more detailed, beginner-friendly [Complete User Guide (GUIDE.en.md)](./GUIDE.en.md).
 
-> **Current status (important)**: This project provides the statusline (Display) feature only (current released version: v0.2.0). "① Statusline" below works right now. "② Account switching" **will not be built** — after reading Anthropic's official Terms of Service directly, we confirmed there is no way to implement this feature safely, so we decided not to build it (confirmed 2026-07-15; see "② Account switching" below for details).
+> **Current status (important)**: This project provides the statusline (Display) feature only (current released version: v0.3.0). "① Statusline" below works right now. "② Account switching" **will not be built** — after reading Anthropic's official Terms of Service directly, we confirmed there is no way to implement this feature safely, so we decided not to build it (confirmed 2026-07-15; see "② Account switching" below for details).
 
 ---
 
@@ -147,10 +147,16 @@ In short, there was no way to build the original goal — automatically cycling 
 
 ## Version history summary
 
-Officially released versions (current latest: v0.2.0). Click to expand. **For the full history and detailed notes, see [GUIDE.en.md, section 11](./GUIDE.en.md#11-version-history-summary).**
+Officially released versions (current latest: v0.3.0). Click to expand. **For the full history and detailed notes, see [GUIDE.en.md, section 11](./GUIDE.en.md#11-version-history-summary).**
 
 <details>
-<summary><strong>v0.2.0</strong> — Install stabilization, self-healing, widget menu (latest)</summary>
+<summary><strong>v0.3.0</strong> — Added Powerline separator command (latest)</summary>
+
+A new `claudetower config powerline <on|off>` command lets you switch the separator between statusline widgets from the default plain double-space to a Powerline-style arrow glyph (U+E0B1). There's no color theme, just the glyph, and it defaults to OFF (opt-in), so existing users see zero behavior change unless they turn it on. This glyph uses a Nerd Font Private-Use-Area character, so terminals without a Nerd Font installed may show it as a broken or blank character — try it and check before committing to it.
+</details>
+
+<details>
+<summary><strong>v0.2.0</strong> — Install stabilization, self-healing, widget menu</summary>
 
 Fixed file corruption when the install script and statusline ran at the same time, and fixed the root cause of the `/claudetower-widgets` command disappearing, adding a self-healing fix. Added a Windows PATH auto-registration option and a `config statusline-refresh` command to adjust refresh speed (default refresh interval also changed from 1s to 3s), and closed a gap where `uninstall` could accidentally delete config/skill files. Running `/claudetower-widgets` with no arguments now shows a check-box menu for toggling widgets, and boundary-value bugs in the context, cost, model-name/folder-name, and reset-time displays were fixed. After reviewing Anthropic's Terms of Service, the account auto-switching feature was permanently decided against, so ClaudeTower remains a statusline-only (Display) tool.
 </details>
