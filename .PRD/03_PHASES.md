@@ -15,12 +15,21 @@
 ### 목표
 플러그인을 설치하면 즉시 안전한 상태표시줄이 동작하고, Account 모듈이 나중에 추가될 자리(격리된 구조)가 미리 마련되어 있다.
 
-### 기능 (2026-07-04 CLI 전환 반영)
-- [ ] 크로스플랫폼 자동 설치/감지 (Windows PowerShell 단독 환경 포함)
-- [ ] Node.js SEA 바이너리 빌드(linux/macos/windows, CI 매트릭스)
-- [ ] **CLI 설치 스크립트**(npm -g / curl / PowerShell 원라이너) — Claude Code 플러그인이 아니라 독립 CLI로 우선 배포
-- [ ] `claudetower setup` — 프로젝트 위치 위젯, 임계값 색상 경고 등 Display 설정을 대화형으로
-- [ ] **모듈 격리 구조 자체를 코드로 확정**: `src/display/`와 `src/accounts/`(Phase 2에서 채울 빈 디렉토리) 분리, `ModuleActivationState` 기본값 `enabled: false`로 고정
+### 기능 (2026-07-04 CLI 전환 반영, 2026-07-18 완료 확인)
+- [x] 크로스플랫폼 자동 설치/감지 (Windows PowerShell 단독 환경 포함) → `install.ps1`은 순수
+  PowerShell 문법(`irm .../install.ps1 | iex`)으로 작성돼 있어 Git Bash/WSL 없이도 동작,
+  이 세션에서도 여러 차례 PowerShell 도구로 직접 실행해 확인
+- [x] Node.js SEA 바이너리 빌드(linux/macos/windows, CI 매트릭스) → `.github/workflows/build.yml`
+  `matrix.include`에 windows-latest·macos-latest·ubuntu-latest 3개 전부 존재, 최신 커밋까지
+  `gh run watch`로 3플랫폼 전부 success 직접 확인(2026-07-16)
+- [x] **CLI 설치 스크립트**(curl / PowerShell 원라이너) — `install.ps1`/`install.sh` 실측 동작
+  확인(37행 기존 기록). `npm -g`만 이름 미확정으로 의도적 보류(계획적 제외, 결함 아님)
+- [x] `claudetower setup` — 격리 환경에서 설치→상태확인→위젯 켜고끄기→해제 전체 lifecycle을
+  실제 실행해 정상 동작 확인(2026-07-17 QA 세션, 실사용자 파일 무영향까지 mtime 대조로 증명)
+- [x] **모듈 격리 구조 자체를 코드로 확정**: `.github/workflows/build.yml`의
+  `verify-display-standalone` job(53행)이 매 push마다 `src/accounts/`를 삭제한 뒤
+  `npm run verify` 통과를 증명 + `lint:boundary`(`scripts/check-module-boundary.js`)가
+  Display 코드의 Account import를 정적으로 차단
 
 ### 데이터
 - Display 모듈 전체 엔티티(PlatformProfile, StatuslineConfig, QuickSetup, Threshold, Widget, CacheEntry는 Phase 2)
@@ -97,7 +106,8 @@ Phase 1 범위:
 Display 모듈과 Account 모듈이 "현재 활성 계정 표시"로 자연스럽게 연동되고, 각자의 고급 기능이 추가된다.
 
 ### 기능 (2026-07-04 CLI 전환 반영)
-- [ ] Display: Powerline 위젯 시스템, Git/PR 위젯, `active_account` 위젯(ActiveAccountHandle 읽기)
+- [x] Display: Powerline **구분자 스타일**(색상 테마 없이 위젯 사이 구분 기호만 전환, `claudetower config powerline <on|off>`, 기본 꺼짐) — 2026-07-18 구현·테스트(179개)·커밋 완료(`5c81c3a`). Account 모듈에 의존하지 않는다는 게 확인되어 Phase 2 완료 전에 선구현함. **단, 작업 브랜치(`docs-and-fixes/2026-07-06`)에만 있고 아직 main 미병합·릴리스 미발행**
+- [ ] Display: Powerline **색상 테마**, Git/PR 위젯, `active_account` 위젯(ActiveAccountHandle 읽기) — `active_account`는 Account 모듈 완성이 전제라 계속 보류. 색상 테마·Git 위젯은 구조적으로는 독립 착수 가능하나 아직 미착수
 - [ ] Account: TUI 대시보드(계정 테이블·할당량 진행률·활동 로그, teamclaude 실측 키 조작 벤치마킹), **핫 리로드**(재시작 없이 계정 추가, teamclaude `R` 키 패턴), 수동 강제 전환, **영구 셸 별칭 등록(opt-in)** — `claude` 명령 자체를 `claudetower` 경유로 바꿔 `claudetower`이라 타이핑할 필요조차 없앰(기본 실행은 이미 Phase 2부터 `claudetower`이므로 이 단계는 "그마저도 생략"하는 선택 사항), sub-100ms 전환 최적화(caam 벤치마킹 — 토큰 파일 사전 준비 후 교체 방식)
 - [ ] `subagentStatusLine` 커스터마이징(Display, 경쟁 도구 미제공 영역)
 - [ ] `claudetower accounts --history`(신규, 격하) — 과거 여러 날의 사용 패턴 참고용 로컬 집계(ccusage 벤치마킹, UsageHistory 엔티티) — 2026-07-04 재확인으로 MVP에서 Phase 3 부가 기능으로 조정

@@ -51,7 +51,7 @@
 
 <blockquote>This guide is written so that anyone can follow it from start to finish, even with little or no prior experience using computers, smartphones, or AI tools. Wherever a technical term appears, a plain-language explanation follows right next to it.</blockquote>
 
-<p><strong>Document version</strong>: This guide covers ClaudeTower <strong>v0.2.0</strong>.</p>
+<p><strong>Document version</strong>: This guide covers ClaudeTower <strong>v0.3.0</strong>.</p>
 
 <hr>
 
@@ -304,6 +304,7 @@ Answering <code>Y</code> means that from the next terminal window on, typing jus
 <tr><td><code>claudetower widgets off &lt;widgets...&gt;</code> / <code>on &lt;widgets...&gt;</code></td><td>Turn only the named widgets on/off</td><td><code>claudetower widgets off context cost</code></td></tr>
 <tr><td><code>claudetower status</code></td><td>Check current install status and which widgets are enabled</td><td>Shows "installed" / "not installed" / "broken"</td></tr>
 <tr><td><code>claudetower config statusline-refresh &lt;seconds&gt;</code></td><td>Adjusts how often the statusline refreshes (default 3 seconds). If you keep several windows open at once, raising it to 5 seconds or more reduces load on your computer further. You can also just say "slow down the statusline refresh" in chat instead of using a terminal</td><td><code>claudetower config statusline-refresh 5</code></td></tr>
+<tr><td><code>claudetower config powerline &lt;on|off&gt;</code></td><td>Switches the separator between widgets from two spaces to Powerline-style arrow glyphs (only the divider changes — no color theme; off by default). If you don't have a Nerd Font installed (a terminal font bundled with special icon glyphs), the arrows may show up as broken boxes, so check your screen after turning it on</td><td><code>claudetower config powerline on</code></td></tr>
 <tr><td><code>claudetower uninstall</code></td><td>Safely remove the statusline registration and the <code>/claudetower-widgets</code> chat command</td><td>Other settings are left untouched</td></tr>
 <tr><td><code>claudetower statusline</code></td><td>The renderer Claude Code calls internally</td><td><strong>You never need to run this yourself</strong></td></tr>
 <tr><td><code>/claudetower-widgets</code> (in Claude Code chat)</td><td>Turn widgets on/off conversationally, no terminal needed</td><td>Just say "turn off context and cost"</td></tr>
@@ -347,10 +348,20 @@ Answering <code>Y</code> means that from the next terminal window on, typing jus
 
 <h2 id="11">11. Version history summary</h2>
 
-<p>This program has been rapidly refined through real-world testing. Below is an accurate summary of what actually changed in each version (current latest <strong>released</strong> version: <strong>v0.2.0</strong>). Click any entry to expand it.</p>
+<p>This program has been rapidly refined through real-world testing. Below is an accurate summary of what actually changed in each version (current latest <strong>released</strong> version: <strong>v0.3.0</strong>). Click any entry to expand it.</p>
 
 <details>
-<summary><strong>v0.2.0</strong> — Install stabilization, self-healing, widget menu (latest release)</summary>
+<summary><strong>v0.3.0</strong> — Added Powerline separator command (latest release)</summary>
+<ul>
+<li>Added a new <code>claudetower config powerline &lt;on|off&gt;</code> command that switches the separator between statusline widgets from the default plain double-space (<code>  </code>) to a Powerline-style arrow glyph (U+E0B1).</li>
+<li>No color theme is included — this only toggles the glyph.</li>
+<li>Defaults to OFF, an opt-in feature, so existing users see zero change in statusline behavior unless they turn it on themselves.</li>
+<li>This glyph uses a Nerd Font Private-Use-Area character. Terminals without a Nerd Font installed may show it as a broken or blank character, so we recommend trying it and checking that it actually renders correctly before committing to it.</li>
+</ul>
+</details>
+
+<details>
+<summary><strong>v0.2.0</strong> — Install stabilization, self-healing, widget menu</summary>
 <ul>
 <li>Fixed a lock-contention (self-collision) bug where the install scripts (<code>install.ps1</code>/<code>install.sh</code>) could overwrite and corrupt files when run at the same time as the statusline.</li>
 <li>Fixed the root cause of the <code>/claudetower-widgets</code> chat command disappearing, and added a self-healing fix that restores it automatically within seconds if it ever goes missing again.</li>
@@ -487,7 +498,7 @@ Answering <code>Y</code> means that from the next terminal window on, typing jus
 <h2 id="16">16. Frequently asked questions (FAQ)</h2>
 
 <p><strong>Q. Does installing this collect my Claude account information?</strong><br>
-A. No. Account-related code isn't included in this version (v0.2.0) at all. This program is structurally unable to see or store your ID, password, or authentication tokens.</p>
+A. No. Account-related code isn't included in this version (v0.3.0) at all. This program is structurally unable to see or store your ID, password, or authentication tokens.</p>
 
 <p><strong>Q. Does anything get sent over the internet?</strong><br>
 A. No. Everything runs locally, entirely on your own computer.</p>
@@ -533,7 +544,7 @@ A. It's designed for personal use and is not intended for commercial sale or del
 
 <h3>17-4. Commercial use — strict prohibition</h3>
 
-<p><strong>The current version of this program (v0.2.0, Phase 1 MVP) is not designed for:</strong></p>
+<p><strong>The current version of this program (v0.3.0, Phase 1 MVP) is not designed for:</strong></p>
 
 <ul>
 <li>❌ Commercial sale</li>
@@ -557,7 +568,7 @@ A. It's designed for personal use and is not intended for commercial sale or del
 
 <hr>
 
-<p><em>This document covers ClaudeTower v0.2.0 and is an extended companion to <a href="./README.en.html"><code>README.en.md</code></a>. The Korean version is <a href="./GUIDE.html"><code>GUIDE.md</code></a>.</em></p>
+<p><em>This document covers ClaudeTower v0.3.0 and is an extended companion to <a href="./README.en.html"><code>README.en.md</code></a>. The Korean version is <a href="./GUIDE.html"><code>GUIDE.md</code></a>.</em></p>
 
 </body>
 </html>

@@ -2,7 +2,7 @@
 
 > This guide is written so that anyone can follow it from start to finish, even with little or no prior experience using computers, smartphones, or AI tools. Wherever a technical term appears, a plain-language explanation follows right next to it.
 
-**Document version**: This guide covers ClaudeTower **v0.2.0**.
+**Document version**: This guide covers ClaudeTower **v0.3.0**.
 
 ---
 
@@ -252,6 +252,7 @@ This program **never sends anything over the internet.** All information stays e
 | `claudetower widgets off <widgets...>` / `on <widgets...>` | Turn only the named widgets on/off | `claudetower widgets off context cost` |
 | `claudetower status` | Check current install status and which widgets are enabled | Shows "installed" / "not installed" / "broken" |
 | `claudetower config statusline-refresh <seconds>` | Adjusts how often the statusline refreshes (default 3 seconds). If you keep several windows open at once, raising it to 5 seconds or more reduces load on your computer further. You can also just say "slow down the statusline refresh" in chat instead of using a terminal | `claudetower config statusline-refresh 5` |
+| `claudetower config powerline <on\|off>` | Switches the separator between widgets from two spaces to Powerline-style arrow glyphs (only the divider changes — no color theme; off by default). If you don't have a Nerd Font installed (a terminal font bundled with special icon glyphs), the arrows may show up as broken boxes, so check your screen after turning it on | `claudetower config powerline on` |
 | `claudetower uninstall` | Safely remove the statusline registration and the `/claudetower-widgets` chat command | Other settings are left untouched |
 | `claudetower statusline` | The renderer Claude Code calls internally | **You never need to run this yourself** |
 | `/claudetower-widgets` (in Claude Code chat) | Turn widgets on/off conversationally, no terminal needed | Just say "turn off context and cost" |
@@ -299,10 +300,19 @@ This program **never sends anything over the internet.** All information stays e
 
 ## 11. Version history summary
 
-This program has been rapidly refined through real-world testing. Below is an accurate summary of what actually changed in each version (current latest **released** version: **v0.2.0**). Click any entry to expand it.
+This program has been rapidly refined through real-world testing. Below is an accurate summary of what actually changed in each version (current latest **released** version: **v0.3.0**). Click any entry to expand it.
 
 <details>
-<summary><strong>v0.2.0</strong> — Install stabilization, self-healing, widget menu (latest release)</summary>
+<summary><strong>v0.3.0</strong> — Added Powerline separator command (latest release)</summary>
+
+- Added a new `claudetower config powerline <on|off>` command that switches the separator between statusline widgets from the default plain double-space (`  `) to a Powerline-style arrow glyph (U+E0B1).
+- No color theme is included — this only toggles the glyph.
+- Defaults to OFF, an opt-in feature, so existing users see zero change in statusline behavior unless they turn it on themselves.
+- This glyph uses a Nerd Font Private-Use-Area character. Terminals without a Nerd Font installed may show it as a broken or blank character, so we recommend trying it and checking that it actually renders correctly before committing to it.
+</details>
+
+<details>
+<summary><strong>v0.2.0</strong> — Install stabilization, self-healing, widget menu</summary>
 
 - Fixed a lock-contention (self-collision) bug where the install scripts (`install.ps1`/`install.sh`) could overwrite and corrupt files when run at the same time as the statusline.
 - Fixed the root cause of the `/claudetower-widgets` chat command disappearing, and added a self-healing fix that restores it automatically within seconds if it ever goes missing again.
@@ -439,7 +449,7 @@ Here's where this program actually creates or uses files on your computer.
 ## 16. Frequently asked questions (FAQ)
 
 **Q. Does installing this collect my Claude account information?**
-A. No. Account-related code isn't included in this version (v0.2.0) at all. This program is structurally unable to see or store your ID, password, or authentication tokens.
+A. No. Account-related code isn't included in this version (v0.3.0) at all. This program is structurally unable to see or store your ID, password, or authentication tokens.
 
 **Q. Does anything get sent over the internet?**
 A. No. Everything runs locally, entirely on your own computer.
@@ -481,7 +491,7 @@ A. It's designed for personal use and is not intended for commercial sale or del
 
 ### 17-4. Commercial use — strict prohibition
 
-**The current version of this program (v0.2.0, Phase 1 MVP) is not designed for:**
+**The current version of this program (v0.3.0, Phase 1 MVP) is not designed for:**
 
 - ❌ Commercial sale
 - ❌ Being offered as a paid service
@@ -503,4 +513,4 @@ This program is provided **"AS IS"** under the standard terms of the Apache Lice
 
 ---
 
-*This document covers ClaudeTower v0.2.0 and is an extended companion to [`README.en.md`](./README.en.md). The Korean version is [`GUIDE.md`](./GUIDE.md).*
+*This document covers ClaudeTower v0.3.0 and is an extended companion to [`README.en.md`](./README.en.md). The Korean version is [`GUIDE.md`](./GUIDE.md).*

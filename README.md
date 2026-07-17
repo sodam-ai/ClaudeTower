@@ -6,7 +6,7 @@ Claude Code용 상태표시줄 CLI 도구. (계정 자동전환 기능은 검토
 
 > 📖 **컴퓨터·AI 프로그램이 처음이신가요?** 이 README보다 훨씬 더 자세하고 쉬운 [완전 사용 가이드(GUIDE.md)](./GUIDE.md)를 준비해뒀습니다.
 
-> **지금 상태(중요)**: 이 프로젝트는 상태표시줄(Display) 기능만 제공합니다(현재 정식 출시 버전: v0.2.0). 아래 "① 상태표시줄"은 지금 실제로 잘 동작합니다. "② 계정 자동전환"은 **만들지 않기로 확정되었습니다** — Anthropic의 공식 이용약관을 직접 확인한 결과 이 기능을 안전하게 구현할 방법이 없다는 것이 확인되었기 때문입니다(2026-07-15 확정, 자세한 이유는 아래 "② 계정 자동전환" 참고).
+> **지금 상태(중요)**: 이 프로젝트는 상태표시줄(Display) 기능만 제공합니다(현재 정식 출시 버전: v0.3.0). 아래 "① 상태표시줄"은 지금 실제로 잘 동작합니다. "② 계정 자동전환"은 **만들지 않기로 확정되었습니다** — Anthropic의 공식 이용약관을 직접 확인한 결과 이 기능을 안전하게 구현할 방법이 없다는 것이 확인되었기 때문입니다(2026-07-15 확정, 자세한 이유는 아래 "② 계정 자동전환" 참고).
 
 ---
 
@@ -99,6 +99,7 @@ irm https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.ps1 | ie
 - `claudetower widgets` — 지금 어떤 항목이 켜져 있는지 확인
 - `claudetower widgets off <항목...>` / `claudetower widgets on <항목...>` — 지정한 항목만 켜고 끄기(나머지는 그대로, `setup`처럼 5개 질문에 전부 다시 답할 필요 없음). 항목 이름: `model`, `location`, `context`, `cost`, `rate_limit`
 - `claudetower config statusline-refresh <초>` — 상태표시줄 갱신 주기를 조절합니다(기본 3초, 세션을 여러 개 띄워두는 경우 5초 이상으로 늘리면 컴퓨터 부담이 더 줄어듭니다). `setup`을 다시 실행해도 이 값은 유지됩니다. 터미널 없이 클로드코드 채팅창에서 "상태표시줄 갱신을 느리게 해줘"처럼 말해도 됩니다
+- `claudetower config powerline <on|off>`(신규) — 위젯 사이 구분자를 공백 2칸에서 Powerline 스타일 화살표로 바꿉니다(색상 테마 없이 구분 기호만, 기본은 꺼짐). Nerd Font가 설치돼 있지 않은 터미널에서는 화살표가 깨져 보일 수 있으니 켜본 뒤 확인하세요
 - `claudetower uninstall` — 등록된 상태표시줄 설정만 안전하게 제거(다른 Claude Code 설정은 그대로 둠)
 - `claudetower statusline` — Claude Code가 내부적으로 호출하는 렌더러(직접 실행할 일 없음)
 
@@ -146,10 +147,16 @@ npm run build
 
 ## 업데이트 내용 요약
 
-정식 출시(릴리스)된 버전별 변경 내용입니다(현재 최신: v0.2.0). 항목을 클릭하면 펼쳐집니다. **전체 이력과 상세 설명은 [GUIDE.md 11장](./GUIDE.md#11-버전별-업데이트-요약)을 참고하세요.**
+정식 출시(릴리스)된 버전별 변경 내용입니다(현재 최신: v0.3.0). 항목을 클릭하면 펼쳐집니다. **전체 이력과 상세 설명은 [GUIDE.md 11장](./GUIDE.md#11-버전별-업데이트-요약)을 참고하세요.**
 
 <details>
-<summary><strong>v0.2.0</strong> — 설치 안정화, 자가복구, 위젯 메뉴 (최신)</summary>
+<summary><strong>v0.3.0</strong> — Powerline 구분자 명령 추가 (최신)</summary>
+
+새 명령 `claudetower config powerline <on|off>`로 상태표시줄 위젯 사이 구분자를 기본 이중 공백에서 Powerline 스타일 화살표 글리프(U+E0B1)로 바꿀 수 있습니다. 색상 테마는 없고 글리프만 적용되며, 기본값은 꺼짐(OFF, 선택적 적용)이라 기존 사용자는 직접 켜지 않는 한 아무 변화도 없습니다. 이 글리프는 Nerd Font 전용 영역(Private Use Area) 문자를 사용하므로, Nerd Font가 설치되지 않은 터미널에서는 깨지거나 빈 문자로 보일 수 있습니다 — 켜기 전에 먼저 확인해 보세요.
+</details>
+
+<details>
+<summary><strong>v0.2.0</strong> — 설치 안정화, 자가복구, 위젯 메뉴</summary>
 
 설치 스크립트가 상태표시줄과 동시에 실행될 때 파일이 손상되던 결함과 `/claudetower-widgets` 명령이 사라지는 근본 원인을 수정하고 자가복구 기능을 추가했습니다. Windows PATH 자동등록 옵션과 갱신 속도 조절 명령(`config statusline-refresh`, 기본 갱신주기 1초→3초)을 신설했고, `uninstall`이 설정·스킬 파일을 실수로 지우던 결함도 막았습니다. `/claudetower-widgets`를 인자 없이 실행하면 체크박스로 위젯을 켜고 끌 수 있으며, 컨텍스트·비용·모델명·폴더명·재설정 시간 표시의 경계값 결함도 함께 수정했습니다. 계정 자동전환 기능은 Anthropic 이용약관 검토 결과 만들지 않기로 확정되어, ClaudeTower는 상태표시줄 전용 도구로 남습니다.
 </details>

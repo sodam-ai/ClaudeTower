@@ -8,9 +8,21 @@
 const MAX_DISPLAY_LENGTH = 80;
 const ELLIPSIS = '…';
 
-function truncateForDisplay(text, maxLength = MAX_DISPLAY_LENGTH) {
-  if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength - ELLIPSIS.length) + ELLIPSIS;
+// 2026-07-17 실측 발견: 길이는 자르지만 제어문자(ESC 등)는 그대로 통과시켜, workspace.
+// current_dir나 model.display_name에 ANSI 이스케이프 시퀀스(예: 화면 지우기, 가짜 색상)가
+// 섞여 있으면 상태표시줄에 그대로 주입됐다. C0 제어문자(0x00~0x1F)와 DEL(0x7F)만 제거하고
+// 한글·이모지 등 일반 유니코드 문자는 전혀 건드리지 않는다(이 범위 밖이라 안전).
+// eslint-disable-next-line no-control-regex
+const CONTROL_CHARS = /[\x00-\x1F\x7F]/g;
+
+function stripControlChars(text) {
+  return text.replace(CONTROL_CHARS, '');
 }
 
-module.exports = { truncateForDisplay, MAX_DISPLAY_LENGTH };
+function truncateForDisplay(text, maxLength = MAX_DISPLAY_LENGTH) {
+  const safe = stripControlChars(text);
+  if (safe.length <= maxLength) return safe;
+  return safe.slice(0, maxLength - ELLIPSIS.length) + ELLIPSIS;
+}
+
+module.exports = { truncateForDisplay, stripControlChars, MAX_DISPLAY_LENGTH };

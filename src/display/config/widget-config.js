@@ -23,6 +23,21 @@ function resolveWidgetConfigPath() {
   );
 }
 
+// 이 설정 파일에 필드를 하나 더 추가(powerline_separator)하면서, 기존
+// writeEnabledWidgets가 파일을 통째로 덮어써 다른 필드를 지워버리던 걸 먼저
+// 고쳐야 했다 — 안 그러면 "Powerline 켜기 → 아무 위젯이나 켜고 끄기"만 해도
+// Powerline 설정이 조용히 사라지는 새 회귀가 생긴다. 그래서 read-merge-write로
+// 통일한다(현재 필드가 2개뿐이라 과하지 않은 범위).
+function readRawConfig(filePath) {
+  if (!fs.existsSync(filePath)) return {};
+  try {
+    const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 function readEnabledWidgets(filePath = resolveWidgetConfigPath()) {
   if (!fs.existsSync(filePath)) {
     return ALL_WIDGET_TYPES; // 설정 파일이 없으면(설치 직후 등) 전부 기본 활성화
@@ -51,8 +66,37 @@ function writeEnabledWidgets(enabledWidgets, filePath) {
   if (invalid.length > 0) {
     throw new Error(`알 수 없는 위젯 종류: ${invalid.join(', ')}`);
   }
+  const existing = readRawConfig(filePath);
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, JSON.stringify({ enabled_widgets: enabledWidgets }, null, 2), 'utf8');
+  fs.writeFileSync(
+    filePath,
+    JSON.stringify({ ...existing, enabled_widgets: enabledWidgets }, null, 2),
+    'utf8'
+  );
+}
+
+// Powerline 구분자(테마·색상 없이, 위젯 사이를 잇는 구분 기호만) — .PRD/01_PRD.md §Out of
+// Scope가 "Phase 1은 부가 기능 배제, Phase 3로 연기"라고 적어둔 이유가 Account 모듈
+// 의존이 아니라 "격리 구조부터 검증"이었음을 확인(2026-07-18)하고, 그 조건이 실사용자
+// 검증까지 끝나 충족돼 가장 작은 조각(구분자만)부터 시작. 기본값은 false — 기존
+// 사용자는 아무것도 안 바뀜(opt-in), Nerd Font 미설치 환경에서 글자가 깨지는 것도
+// 명시적으로 켠 사람만 감수하는 구조라 별도 폰트 감지 로직 없이도 안전하다.
+function readPowerlineSeparator(filePath = resolveWidgetConfigPath()) {
+  return readRawConfig(filePath).powerline_separator === true;
+}
+
+function writePowerlineSeparator(enabled, filePath) {
+  if (filePath === undefined) {
+    assertNotPartialIsolation('CLAUDETOWER_WIDGET_CONFIG_PATH', '위젯 설정 파일');
+    filePath = resolveWidgetConfigPath();
+  }
+  const existing = readRawConfig(filePath);
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(
+    filePath,
+    JSON.stringify({ ...existing, powerline_separator: enabled === true }, null, 2),
+    'utf8'
+  );
 }
 
 // uninstall용 — 위젯 설정 파일 삭제. 부분 격리 상태에서 인자 없이 호출되면 실제
@@ -77,4 +121,6 @@ module.exports = {
   readEnabledWidgets,
   writeEnabledWidgets,
   removeWidgetConfigFile,
+  readPowerlineSeparator,
+  writePowerlineSeparator,
 };

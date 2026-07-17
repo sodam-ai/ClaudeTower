@@ -51,7 +51,7 @@
 
 <blockquote>이 문서는 컴퓨터·스마트폰·AI 프로그램을 다뤄본 경험이 거의 없는 분도 처음부터 끝까지 따라 하실 수 있도록 작성되었습니다. 어려운 용어가 나오면 바로 옆에 쉬운 설명을 함께 붙였습니다.</blockquote>
 
-<p><strong>문서 버전</strong>: 이 가이드는 ClaudeTower <strong>v0.2.0</strong> 기준으로 작성되었습니다.</p>
+<p><strong>문서 버전</strong>: 이 가이드는 ClaudeTower <strong>v0.3.0</strong> 기준으로 작성되었습니다.</p>
 
 <hr>
 
@@ -303,6 +303,7 @@
 <tr><td><code>claudetower widgets off &lt;항목...&gt;</code> / <code>on &lt;항목...&gt;</code></td><td>지정한 항목만 켜고 끕니다</td><td><code>claudetower widgets off context cost</code></td></tr>
 <tr><td><code>claudetower status</code></td><td>지금 설치 상태와 표시 중인 항목을 확인합니다</td><td>"설치됨" / "설치 안 됨" / "고장 상태" 중 하나가 나옵니다</td></tr>
 <tr><td><code>claudetower config statusline-refresh &lt;초&gt;</code></td><td>상태표시줄이 얼마나 자주 새로고침될지 조절합니다(기본 3초). 여러 창을 동시에 켜두시는 분은 5초 이상으로 늘리면 컴퓨터 부담이 더 줄어듭니다. 터미널 없이 "상태표시줄 갱신을 느리게 해줘"처럼 채팅으로 말해도 됩니다</td><td><code>claudetower config statusline-refresh 5</code></td></tr>
+<tr><td><code>claudetower config powerline &lt;on|off&gt;</code></td><td>위젯 사이 구분자를 공백 2칸 대신 Powerline 스타일 화살표 기호로 바꿉니다(색상 테마는 바뀌지 않고 구분 기호만 달라짐, 기본은 꺼짐). Nerd Font(터미널용 특수 아이콘이 포함된 글꼴)가 설치돼 있지 않으면 화살표가 깨진 사각형처럼 보일 수 있으니, 켜본 뒤 화면을 확인하세요</td><td><code>claudetower config powerline on</code></td></tr>
 <tr><td><code>claudetower uninstall</code></td><td>Claude Code에 등록된 상태표시줄 설정과 <code>/claudetower-widgets</code> 대화형 명령을 안전하게 제거합니다</td><td>다른 설정은 그대로 둠</td></tr>
 <tr><td><code>claudetower statusline</code></td><td>Claude Code가 내부적으로 자동 호출하는 명령입니다</td><td><strong>직접 실행하실 일은 없습니다</strong></td></tr>
 <tr><td><code>/claudetower-widgets</code> (Claude Code 채팅창)</td><td>터미널 없이 대화로 위젯을 켜고 끕니다</td><td>"컨텍스트랑 비용 꺼줘"처럼 말하면 됨</td></tr>
@@ -346,10 +347,20 @@
 
 <h2 id="11">11. 버전별 업데이트 요약</h2>
 
-<p>이 프로그램은 실사용 테스트를 거치며 빠르게 개선되어 왔습니다. 아래는 버전별로 실제로 무엇이 바뀌었는지 정리한 것입니다(현재 정식 출시(릴리스)된 최신 버전: <strong>v0.2.0</strong>). 각 항목을 클릭하면 자세한 내용이 펼쳐집니다.</p>
+<p>이 프로그램은 실사용 테스트를 거치며 빠르게 개선되어 왔습니다. 아래는 버전별로 실제로 무엇이 바뀌었는지 정리한 것입니다(현재 정식 출시(릴리스)된 최신 버전: <strong>v0.3.0</strong>). 각 항목을 클릭하면 자세한 내용이 펼쳐집니다.</p>
 
 <details>
-<summary><strong>v0.2.0</strong> — 설치 안정화, 자가복구, 위젯 메뉴 (최신 릴리스)</summary>
+<summary><strong>v0.3.0</strong> — Powerline 구분자 명령 추가 (최신 릴리스)</summary>
+<ul>
+<li>새 명령 <code>claudetower config powerline &lt;on|off&gt;</code>를 추가해, 상태표시줄 위젯 사이 구분자를 기본 이중 공백(<code>  </code>)에서 Powerline 스타일 화살표 글리프(U+E0B1)로 바꿀 수 있습니다.</li>
+<li>색상 테마는 포함하지 않고 글리프 전환만 지원합니다.</li>
+<li>기본값은 꺼짐(OFF)인 선택적(opt-in) 기능이라, 기존 사용자는 직접 켜지 않는 한 상태표시줄 동작이 전혀 바뀌지 않습니다.</li>
+<li>이 글리프는 Nerd Font의 전용 영역(Private Use Area) 문자를 사용합니다. Nerd Font가 설치되지 않은 터미널에서는 깨지거나 빈 문자로 보일 수 있으니, 켜기 전에 실제로 표시가 잘 되는지 먼저 확인해 보시길 권장합니다.</li>
+</ul>
+</details>
+
+<details>
+<summary><strong>v0.2.0</strong> — 설치 안정화, 자가복구, 위젯 메뉴</summary>
 <ul>
 <li>설치 스크립트(<code>install.ps1</code>/<code>install.sh</code>)가 상태표시줄과 동시에 실행될 때 파일을 서로 덮어써 손상되던 잠금 경합(self-collision) 결함을 수정했습니다.</li>
 <li><code>/claudetower-widgets</code> 채팅 명령이 사라지는 근본 원인을 수정하고, 사라지더라도 몇 초 안에 스스로 복구되는 자가복구(self-heal) 기능을 추가했습니다.</li>
@@ -486,7 +497,7 @@
 <h2 id="16">16. 자주 묻는 질문 (FAQ)</h2>
 
 <p><strong>Q. 설치하면 제 Claude 계정 정보를 가져가나요?</strong><br>
-A. 아니요. 계정 관련 코드는 이 버전(v0.2.0)에 아예 포함되어 있지 않습니다. 이 프로그램은 여러분의 아이디·비밀번호·인증 토큰을 볼 수도, 저장할 수도 없는 구조입니다.</p>
+A. 아니요. 계정 관련 코드는 이 버전(v0.3.0)에 아예 포함되어 있지 않습니다. 이 프로그램은 여러분의 아이디·비밀번호·인증 토큰을 볼 수도, 저장할 수도 없는 구조입니다.</p>
 
 <p><strong>Q. 인터넷으로 뭔가 전송되나요?</strong><br>
 A. 아니요. 전부 여러분 컴퓨터 안에서만 동작합니다.</p>
@@ -532,7 +543,7 @@ A. 개인 사용을 전제로 만들어졌으며, 상업적 판매나 회사 납
 
 <h3>17-4. 상업적 사용 — 엄격한 금지 원칙</h3>
 
-<p><strong>이 프로그램의 현재 버전(v0.2.0, Phase 1 MVP)은 다음 목적으로 사용하도록 설계되지 않았습니다:</strong></p>
+<p><strong>이 프로그램의 현재 버전(v0.3.0, Phase 1 MVP)은 다음 목적으로 사용하도록 설계되지 않았습니다:</strong></p>
 
 <ul>
 <li>❌ 상업적 판매</li>
@@ -556,7 +567,7 @@ A. 개인 사용을 전제로 만들어졌으며, 상업적 판매나 회사 납
 
 <hr>
 
-<p><em>이 문서는 ClaudeTower v0.2.0을 기준으로 작성되었으며, <a href="./README.html"><code>README.md</code></a>의 상세 확장판입니다. 영어판은 <a href="./GUIDE.en.html"><code>GUIDE.en.md</code></a>를 참고하세요.</em></p>
+<p><em>이 문서는 ClaudeTower v0.3.0을 기준으로 작성되었으며, <a href="./README.html"><code>README.md</code></a>의 상세 확장판입니다. 영어판은 <a href="./GUIDE.en.html"><code>GUIDE.en.md</code></a>를 참고하세요.</em></p>
 
 </body>
 </html>
