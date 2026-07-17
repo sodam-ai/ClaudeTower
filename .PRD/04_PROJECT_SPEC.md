@@ -245,5 +245,19 @@ grep -r "require.*accounts" src/display && echo "FAIL: 모듈 경계 위반" || 
 - [x] ~~로컬 프록시 접근 토큰 실제 구현 방식~~ → **2026-07-04 CLI 전환으로 해결**. 마켓플레이스 방식에서는 "Claude Code가 커스텀 헤더를 지원하는지" 불확실했지만, CLI가 `eval $(claudetower env) claude` 패턴으로 Claude Code를 직접 실행하므로 CLI가 요청 경로 전체(프록시 주소, 접근 토큰 전달 방식)를 스스로 통제한다 — 더 이상 Claude Code의 미문서화 동작에 의존하지 않음
 - [x] ~~프록시 포트 충돌 정책~~ → **2026-07-04 사용자 요청으로 자동 재시도+포트 변경 채택**(이전 teamclaude 단순종료 방식은 폐기). 최초 설정은 순차 자동 탐색으로 완전 자동화, 런타임 재시작 시엔 backoff 후 자동 전환하되 "재시작 필요"를 안내(ANTHROPIC_BASE_URL이 프로세스 시작 시에만 읽히는 구조적 제약 때문에 완전 무중단은 불가능 — 상세 근거·정책은 QuotaSwitch 04_PROJECT_SPEC.md "포트 충돌 처리" 섹션, ClaudeTower Account 모듈도 동일 적용)
 - [x] ~~OS별 자격증명 저장소 라이브러리 최종 선택~~ → **2026-07-11 확정**: `@napi-rs/keyring`(Rust 기반, keyring-rs 바인딩). 근거: `keytar`(atom/node-keytar)는 2022-12 아카이브로 사실상 죽음, 활성 포크 `@github/keytar`도 구식 C++ 애드온이라 Linux에서 여전히 `libsecret` 외부 시스템 의존성이 필요해 01_PRD.md 핵심가치("설치 한 번으로 끝")와 충돌. `@napi-rs/keyring`은 Windows Credential Manager/DPAPI·macOS Keychain·Linux Secret Service를 전부 지원하면서 Linux libsecret 의존성이 없고(자체 완결), 최근까지 활발히 유지보수되며 Azure SDK·Microsoft Authentication Library가 keytar에서 이 라이브러리로 이전 중임을 확인(WebSearch 근거). `cross-keychain`(이 라이브러리를 감싸는 추상화 계층)은 YAGNI로 채택하지 않음. **`npm install`은 아직 하지 않음** — M6 게이트(2026-07-14까지 Phase 2 실동작 착수 보류) 준수 중이므로 결정만 기록하고 실제 설치·연동은 게이트 이후로 미룸. 결정 근거와 인터페이스 스텁은 `src/accounts/credential-store/index.js` 참고.
-- [ ] Windows 코드서명 인증서 구매 여부
+- [x] ~~Windows 코드서명 인증서 구매 여부~~ → **2026-07-17 조사 완료, 결론: 지금은 구매하지
+  않는다(재검토 조건 명확화)**. 원래 "실사용자 피드백 이후로 보류"였고 2026-07-17에 사용자
+  1명이 실제 설치·사용을 확인해 그 조건 자체는 기술적으로 충족됐지만, 실제 조사 결과 지금
+  사는 건 돈 낭비 위험이 크다는 걸 확인함: (1) **2024년 이후로는 EV 인증서도 더 이상 즉시
+  SmartScreen 신뢰를 주지 않는다** — OV·EV 둘 다 다운로드 볼륨(보통 수백~수천 건, 2~8주)에
+  따라 서서히 신뢰도가 쌓이는 방식으로 바뀜(WebSearch 근거, Microsoft Learn/커뮤니티 다수
+  소스 교차확인). (2) ClaudeTower의 실사용자는 현재 사실상 1명이라, 지금 인증서를 사도
+  SmartScreen 경고가 사라질 만큼의 설치량에 도달하기까지 오래 걸리거나 아예 도달하지 못할
+  가능성이 높음. (3) 대안으로 Microsoft의 신규 서비스 Trusted Signing(현재 명칭 Azure
+  Artifact Signing, $9.99/월부터)이 기존 OV(연 $200~300대)보다 저렴하지만 개인 개발자는
+  미국·캐나다 거주자만 현재 가입 가능(정부 발급 신분증+생체 인증 필요) — 거주국 확인 안
+  됨. (4) 2026-03-01부터 인증서 최대 유효기간이 39개월에서 460일로 줄어(CA/Browser Forum
+  Ballot CSC-31) 다년 할인도 사라짐 — 지금 사도 곧 재발급해야 함. **재검토 조건 갱신**: "실
+  사용자 피드백 존재" → "**설치량이 SmartScreen 신뢰도가 실제로 쌓일 만큼(수백 건 단위)으로
+  늘어날 때**"로 구체화. 그때까지는 README/GUIDE의 기존 "추가 정보→실행" 우회 안내로 대응.
 - [ ] Display 모듈만 담은 경량판을 별도 배포할지 여부(01_PRD.md §7 연동)
