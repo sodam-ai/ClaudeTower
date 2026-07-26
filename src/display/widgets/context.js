@@ -1,7 +1,7 @@
 'use strict';
 
 const { pickColor, colorize, COLOR } = require('../config/thresholds');
-const { renderGauge } = require('../config/gauge');
+const { renderGauge, resolveGaugeWidth } = require('../config/gauge');
 
 // context_window.used_percentage는 세션 초반 null일 수 있음(공식 문서 확인,
 // .PRD/.archive/PulseLine원본/RESEARCH_SOURCES.md 313~318행) — null이면 위젯 자체를 숨긴다.
@@ -28,7 +28,9 @@ function renderContext(session) {
   // 아이콘만으로는 처음 쓰는 사람이 뭘 뜻하는지 알기 어렵다는 실사용 피드백 반영 —
   // 한글 이름표 + 게이지바를 같이 넣어 아이콘을 몰라도 바로 이해되게 한다.
   // 아이콘 대신 한글 이름표를 쓰므로 뜻이 겹치는 🧠는 굳이 안 붙인다(공간 절약).
-  const text = `컨텍스트 ${renderGauge(rounded)} ${rounded}%`;
+  // 2026-07-27: 터미널이 넓으면(COLUMNS>=120) 게이지를 늘려 90~100% 구간 구분력을 개선한다
+  // (gauge.js resolveGaugeWidth 참고), 좁거나 알 수 없으면 기존 5칸 그대로.
+  const text = `컨텍스트 ${renderGauge(rounded, resolveGaugeWidth(process.env.COLUMNS))} ${rounded}%`;
   // "게이지바가 평범하다"는 피드백으로, 경고/위험색뿐 아니라 안전 구간도 항상 초록색을
   // 입혀 전체 줄이 더 컬러풀하게 보이도록 한다(이전엔 안전 구간이 무색이었음).
   return colorize(text, pickColor('context', rounded) || COLOR.safe);

@@ -45,3 +45,17 @@ test('0%는 정상적으로 0%로 표시된다(클램핑이 유효한 0을 지�
   const out = renderContext({ context_window: { used_percentage: 0 } });
   assert.match(out, /컨텍스트.*0%/);
 });
+
+test('COLUMNS가 넓으면(>=120) 게이지가 더 길게 표시된다(다른 테스트 오염 방지: 항상 원복)', () => {
+  const original = process.env.COLUMNS;
+  try {
+    process.env.COLUMNS = '80';
+    const narrow = renderContext({ context_window: { used_percentage: 50 } });
+    process.env.COLUMNS = '200';
+    const wide = renderContext({ context_window: { used_percentage: 50 } });
+    assert.ok(wide.length > narrow.length, '넓은 터미널에서 렌더 결과가 더 길어야 한다');
+  } finally {
+    if (original === undefined) delete process.env.COLUMNS;
+    else process.env.COLUMNS = original;
+  }
+});

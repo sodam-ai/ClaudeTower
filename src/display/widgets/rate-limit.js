@@ -1,7 +1,7 @@
 'use strict';
 
 const { pickColor, colorize, COLOR } = require('../config/thresholds');
-const { renderGauge } = require('../config/gauge');
+const { renderGauge, resolveGaugeWidth } = require('../config/gauge');
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -61,6 +61,10 @@ function renderRateLimit(session, now = Date.now()) {
   // Claude Code의 used_percentage가 부동소수점이라 "14.000000000000002%"로 그대로
   // 찍히는 결함이 실사용 중 발견됨 - context.js와 동일하게 반올림 후 표시/게이지/색상에
   // 일관되게 사용한다.
+  // 2026-07-27: 터미널이 넓으면(COLUMNS>=120) 게이지를 늘려 90~100% 구간 구분력을 개선한다
+  // (gauge.js resolveGaugeWidth 참고), 좁거나 알 수 없으면 기존 5칸 그대로. 두 게이지(5시간/
+  // 7일) 모두 같은 줄이라 같은 폭을 쓴다 — 한 번만 계산.
+  const gaugeWidth = resolveGaugeWidth(process.env.COLUMNS);
   const parts = [];
   if (Number.isFinite(fiveHour)) {
     // stdin은 신뢰하지 않는 입력으로 취급 — 음수·100 초과 값이 "-10%"·"150%"로 그대로
@@ -70,14 +74,14 @@ function renderRateLimit(session, now = Date.now()) {
     // 재설정 시간은 사용률과 무관하게 항상 표시한다(실사용 피드백 — 안전 구간에서도
     // 언제 리셋되는지 미리 알고 싶다는 요청으로 조건부 표시를 폐지).
     const reset = formatFiveHourReset(session?.rate_limits?.five_hour?.resets_at, now);
-    const text = `5시간 ${renderGauge(rounded)} ${rounded}%${reset ? `·${reset}` : ''}`;
+    const text = `5시간 ${renderGauge(rounded, gaugeWidth)} ${rounded}%${reset ? `·${reset}` : ''}`;
     parts.push(colorize(text, color || COLOR.safe));
   }
   if (Number.isFinite(sevenDay)) {
     const rounded = Math.round(Math.max(0, Math.min(100, sevenDay)));
     const color = pickColor('rate_limit_7d', rounded);
     const reset = formatSevenDayReset(session?.rate_limits?.seven_day?.resets_at, now);
-    const text = `7일 ${renderGauge(rounded)} ${rounded}%${reset ? `·${reset}` : ''}`;
+    const text = `7일 ${renderGauge(rounded, gaugeWidth)} ${rounded}%${reset ? `·${reset}` : ''}`;
     parts.push(colorize(text, color || COLOR.safe));
   }
 

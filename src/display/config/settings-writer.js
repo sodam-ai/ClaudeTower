@@ -99,6 +99,25 @@ function updateRefreshInterval(refreshInterval, filePath) {
   return { filePath, refreshInterval };
 }
 
+// claudetower config padding <n>이 호출하는 함수 — updateRefreshInterval과 동일한
+// 구조지만 공식 기본값이 0이라(RESEARCH_SOURCES.md "선택적 padding 필드... 기본값은 0")
+// 검증 하한이 다르다(refreshInterval은 1 이상, padding은 0 이상 — 호출자인
+// config-command.js가 검증하고 여기서는 값을 그대로 병합만 한다).
+function updatePadding(padding, filePath) {
+  if (filePath === undefined) {
+    assertNotPartialIsolation('CLAUDETOWER_SETTINGS_PATH', 'settings.json');
+    filePath = resolveSettingsPath();
+  }
+  const existing = readExistingSettings(filePath);
+  if (!existing.statusLine) {
+    throw new Error('아직 claudetower가 설치되어 있지 않습니다. 먼저 claudetower setup을 실행하세요.');
+  }
+  fs.copyFileSync(filePath, `${filePath}.bak`);
+  const merged = { ...existing, statusLine: { ...existing.statusLine, padding } };
+  atomicWriteJson(filePath, merged);
+  return { filePath, padding };
+}
+
 function removeStatusLineConfig(filePath) {
   if (filePath === undefined) {
     assertNotPartialIsolation('CLAUDETOWER_SETTINGS_PATH', 'settings.json');
@@ -127,4 +146,5 @@ module.exports = {
   removeStatusLineConfig,
   readExistingStatusLineConfig,
   updateRefreshInterval,
+  updatePadding,
 };

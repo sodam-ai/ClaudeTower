@@ -11,6 +11,7 @@ const {
   removeStatusLineConfig,
   readExistingStatusLineConfig,
   updateRefreshInterval,
+  updatePadding,
 } = require('../../src/display/config/settings-writer');
 
 // 절대 실제 ~/.claude/settings.json을 쓰지 않는다 — 매 테스트마다 임시 디렉터리를 새로 만든다.
@@ -126,6 +127,41 @@ test('updateRefreshInterval: refreshInterval만 바꾸고 command/type과 다른
 test('updateRefreshInterval: statusLine이 아직 없으면(설치 전) 에러를 던지고 파일을 만들지 않는다', () => {
   const filePath = tempSettingsPath();
   assert.throws(() => updateRefreshInterval(5, filePath), /claudetower가 설치되어 있지 않습니다/);
+  assert.equal(fs.existsSync(filePath), false);
+});
+
+test('updatePadding: padding만 바꾸고 command/type과 다른 키(hooks 등)는 그대로 둔다', () => {
+  const filePath = tempSettingsPath();
+  fs.writeFileSync(
+    filePath,
+    JSON.stringify({ hooks: { foo: 'bar' }, statusLine: { type: 'command', command: 'x' } })
+  );
+
+  const result = updatePadding(2, filePath);
+
+  assert.equal(result.padding, 2);
+  const written = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  assert.deepEqual(written.hooks, { foo: 'bar' });
+  assert.deepEqual(written.statusLine, { type: 'command', command: 'x', padding: 2 });
+});
+
+test('updatePadding: 0(공식 기본값)도 정상적으로 반영된다', () => {
+  const filePath = tempSettingsPath();
+  fs.writeFileSync(
+    filePath,
+    JSON.stringify({ statusLine: { type: 'command', command: 'x', padding: 5 } })
+  );
+
+  const result = updatePadding(0, filePath);
+
+  assert.equal(result.padding, 0);
+  const written = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  assert.equal(written.statusLine.padding, 0);
+});
+
+test('updatePadding: statusLine이 아직 없으면(설치 전) 에러를 던지고 파일을 만들지 않는다', () => {
+  const filePath = tempSettingsPath();
+  assert.throws(() => updatePadding(2, filePath), /claudetower가 설치되어 있지 않습니다/);
   assert.equal(fs.existsSync(filePath), false);
 });
 
