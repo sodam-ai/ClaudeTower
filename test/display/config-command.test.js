@@ -62,6 +62,50 @@ test('config statusline-refresh <n>: 아직 설치 전(statusLine 없음)이면 
   assert.equal(fs.existsSync(settingsPath), false);
 });
 
+test('config padding <n>: 유효한 0 이상 정수면 padding을 반영한다', () => {
+  const settingsPath = tempSettingsPathWithStatusLine(1);
+
+  const result = runConfigCommand(['padding', '2'], { settingsPath });
+
+  assert.equal(result.applied, true);
+  assert.equal(result.padding, 2);
+  const written = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+  assert.equal(written.statusLine.padding, 2);
+  assert.equal(written.statusLine.command, 'x'); // 다른 키는 그대로
+});
+
+test('config padding 0: 공식 기본값(0)도 정상적으로 반영한다(refreshInterval의 "1 이상"과 다른 하한)', () => {
+  const settingsPath = tempSettingsPathWithStatusLine(1);
+
+  const result = runConfigCommand(['padding', '0'], { settingsPath });
+
+  assert.equal(result.applied, true);
+  assert.equal(result.padding, 0);
+});
+
+test('config padding <n>: 음수나 정수가 아니면 거부하고 파일을 건드리지 않는다', () => {
+  const settingsPath = tempSettingsPathWithStatusLine(1);
+
+  for (const bad of ['-1', '2.5', 'abc', '']) {
+    const result = runConfigCommand(['padding', bad], { settingsPath });
+    assert.equal(result.applied, false, `값 "${bad}"는 거부되어야 한다`);
+  }
+  const written = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+  assert.equal('padding' in written.statusLine, false); // 안 바뀜
+});
+
+test('config padding <n>: 아직 설치 전(statusLine 없음)이면 명확한 에러 메시지와 함께 거부한다', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'claudetower-config-cmd-test-'));
+  const settingsPath = path.join(dir, 'settings.json'); // 파일 자체가 없음
+
+  const logs = [];
+  const result = runConfigCommand(['padding', '2'], { settingsPath, log: (msg) => logs.push(msg) });
+
+  assert.equal(result.applied, false);
+  assert.ok(logs.some((l) => l.includes('claudetower가 설치되어 있지 않습니다')));
+  assert.equal(fs.existsSync(settingsPath), false);
+});
+
 function tempWidgetConfigPath(initial) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'claudetower-config-cmd-test-'));
   const widgetConfigPath = path.join(dir, 'config.json');
