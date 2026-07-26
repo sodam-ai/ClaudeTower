@@ -568,6 +568,43 @@ README 재개 선언을 먼저 하면, 실체 없는 "이용약관 충돌 인지
 
 ---
 
+## M16: 2026-07-27 세션 — credential-store 실동작 시도 → classifier 차단 → 되돌림 (신규 확인)
+
+**시도한 것**: `npm install @napi-rs/keyring`(이 프로젝트 최초 런타임 의존성) + `src/accounts/
+credential-store/index.js`의 throw-스텁을 실제 OS 키체인 호출(`Entry` 클래스)로 교체. API
+시그니처는 추측 없이 npm/GitHub 문서를 직접 조회해 확인(`getPassword()`는 없으면 예외 대신
+`null`, `deleteCredential()`은 boolean). `bin/claudetower.js` 무연결 유지, `file_fallback_
+encrypted` 백엔드·플랫폼 불일치는 명시적으로 거부하도록 방어 코드 포함.
+
+**차단된 것**: 대응 테스트 파일(`credential-store-index.test.js`, 실제 키체인에 쓰기→읽기→
+삭제 왕복하는 통합 테스트로 재작성) Edit이 classifier에 막혔고, 이어서 단순히 `npm run
+test:accounts` 실행 자체도 막혔다.
+
+**되돌림 + 대조 확인 [확인됨, 가설 아님]**: `credential-store/index.js`를 원래 throw-스텁으로
+`git restore`, `npm uninstall @napi-rs/keyring`으로 의존성 제거 → 이 상태에서 `npm run
+test:accounts` 재실행 시 **classifier 차단 없이 정상 통과(36/36)**. 즉 이전 라운드에 "가설"로
+남겼던 것이 A/B 대조로 확인됨: classifier가 반응한 대상은 "Account 모듈"이나 "ToS 리스크
+서술"이 아니라 **"실제 OS 자격증명 저장소(Windows Credential Manager 등)에 쓰기/읽기/삭제가
+실행되는 코드"** 그 자체였다. 지금까지 있었던 다른 모든 차단(문서 편집 2회, main push, PR
+검증)과는 다른 종류의 트리거라는 뜻이다.
+
+**부수적으로 발견·정정한 것**: `npm install`/`uninstall` 왕복 과정에서 `package-lock.json`의
+`version`/`license` 필드가 `package.json`(0.3.0/Apache-2.0)과 안 맞게 stale(0.1.0/"SEE LICENSE
+IN LICENSE")했던 걸 발견 — npm이 자동으로 동기화해 정정됨(의도한 작업은 아니었으나 정확한
+방향의 수정이라 그대로 반영).
+
+**다음 세션 영향**: `credential-store` 실동작 연결은 이 환경에서 사용자의 명시적 Bash 권한
+규칙 추가 없이는 진행할 수 없다(classifier 메시지가 직접 안내한 유일한 우회 경로). 다음
+세션에서 이 작업을 다시 시도하기 전에, 사용자가 (a) 권한 규칙을 추가해 허용할지, (b) 이
+계층은 계속 스텁으로 두고 문서/설계만 앞서 나갈지 먼저 정해야 한다 — 재시도만 반복하는 건
+비생산적이다(이미 이번 세션에서 2회 확인됨).
+
+- 검증: `npm run verify` 179/179, `npm run test:accounts` 36/36 — 전부 원래 상태로 완전히
+  복귀 확인(코드 diff 0, package.json diff 0)
+- 상태: **되돌림 완료, 원인 확인(가설→확인됨으로 격상), 다음 세션 결정 필요 사항으로 남김**
+
+---
+
 ## 참고
 - 전체 변경 이력: `git log --oneline` — **2026-07-11 정정**: 위 "이번 세션 커밋" 목록과 "M7 미커밋" 서술은 stale이었음(모순, M7 상태 정정 참고). 실제로는 그 이후 `96ecc57`(자가복구+CHECKPOINT.md 신설), `a6727bc`(README/GUIDE 보강), `a318365`(M7 코드), `a671230`(M7 문서), `edc42ea`(M6 재검증 기록), `6ccaf83`(M9 스캐폴딩), `8118ad2`(ProxyConfig 정정), `3661fff`(rate-limit 상한), `97e66ea`(model/location 길이 상한)까지 전부 커밋·push 완료(현재 브랜치 `docs-and-fixes/2026-07-06`가 origin과 완전 동기화 상태, 2026-07-11 기준).
 - **2026-07-12 추가**: `d0418d5`(CHECKPOINT M7 정정+로드맵), `eb8d12b`(CI 트리거 필터 제거+권한
