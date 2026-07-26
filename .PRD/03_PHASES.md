@@ -43,7 +43,7 @@
 - [ ] Node.js가 설치되지 않은 순정 Windows에서 SEA 바이너리가 그대로 동작 (CHECKPOINT.md 보류 백로그 — Windows 11 Home이라 Sandbox 불가, 별도 클린 환경 확보 시 재검토)
 - [x] mock stdin JSON으로 단위 테스트 통과 → 167개 테스트 대부분이 mock stdin JSON 기반 위젯 테스트(`npm run test:display`로 상시 확인)
 - [x] ~~CLI 설치 스크립트(npm -g/curl/PowerShell)로 실제 배포되어 설치 가능~~ → **2026-07-04 부분 확정**: `main` 브랜치 개설 + v0.1.9 GitHub Release로 curl/PowerShell 원라이너(`curl -fsSL .../main/install.sh | sh`, `irm .../main/install.ps1 | iex`)가 격리 환경에서 다운로드→설치→`--version` 응답까지 실측 확인됨. `npm install -g`는 프로젝트명이 아직 가제·상표 검토 전이라(01_PRD.md §7) 의도적으로 보류(마켓플레이스는 기존대로 Phase 3 선택 채널, 이번 확정과 무관)
-- [x] ~~README·가이드 문서 작성 완료~~ → **2026-07-06 확인**: 04_PROJECT_SPEC.md Must Have 9개 항목 대조 완료(①/② 분리, 위험고지, FAQ·트러블슈팅·법률 모두 존재). 대조 중 실제 결함 발견: 명령어 목록이 PATH 미등록 상태(05번 문서 이슈#3, 아직 코드로는 미해결)를 반영 못 해 새 터미널에서 `claudetower` 명령이 안 먹히는 걸 README/GUIDE 어디도 경고하지 않았음 → README.md·README.en.md·GUIDE.md·GUIDE.en.md 4개 파일 모두 수정. **미완료로 남는 것**: GUIDE.pdf·GUIDE.en.pdf는 이번 .md 수정을 반영하지 못한 채 그대로임(재생성 필요, 이번 세션 범위 밖). 워크플로우 그림(①/② 시각 다이어그램)도 텍스트 설명만 있고 실제 그림은 없음(Should Have 수준으로 판단, 후속 과제).
+- [x] ~~README·가이드 문서 작성 완료~~ → **2026-07-06 확인**: 04_PROJECT_SPEC.md Must Have 9개 항목 대조 완료(①/② 분리, 위험고지, FAQ·트러블슈팅·법률 모두 존재). 대조 중 실제 결함 발견: 명령어 목록이 PATH 미등록 상태(05번 문서 이슈#3, 아직 코드로는 미해결)를 반영 못 해 새 터미널에서 `claudetower` 명령이 안 먹히는 걸 README/GUIDE 어디도 경고하지 않았음 → README.md·README.en.md·GUIDE.md·GUIDE.en.md 4개 파일 모두 수정. **미완료로 남는 것**: 워크플로우 그림(①/② 시각 다이어그램)도 텍스트 설명만 있고 실제 그림은 없음(Should Have 수준으로 판단, 후속 과제). ~~GUIDE.pdf·GUIDE.en.pdf는 이번 .md 수정을 반영하지 못한 채 그대로임~~ → **2026-07-27 정정**: 두 PDF 파일은 이후 CHECKPOINT.md M7에서 저장소에서 완전히 삭제됨(더 이상 존재하지 않음, "갱신 필요" 서술 자체가 무효).
 
 ### Phase 1 시작 프롬프트
 ```
@@ -120,8 +120,11 @@ Display 모듈과 Account 모듈이 "현재 활성 계정 표시"로 자연스�
 
 ## Phase 로드맵 요약
 
+> **2026-07-27 정정**: 아래 표가 2026-07-15 상단 보류 배너 추가 시 갱신되지 않은 채 "시작 전"으로
+> 방치돼 있었음(문서 나머지 전체와 모순). 이 문서 위쪽에 이미 서술된 사실만 반영해 정정.
+
 | Phase | 핵심 기능 | 상태 |
 |-------|----------|------|
-| Phase 1 (MVP) | Display 모듈 + 격리 구조 확정 | 시작 전 |
-| Phase 2 | Account 모듈(동의 기반 활성화) | Phase 1 완료 후 |
-| Phase 3 | 고도화 + 계정 표시 연동 위젯 | Phase 2 완료 후 |
+| Phase 1 (MVP) | Display 모듈 + 격리 구조 확정 | **완료(2026-07-18)** |
+| Phase 2 | Account 모듈(동의 기반 활성화) | **영구 보류(2026-07-15 확정)** — 재검토 조건은 상단 배너 참고 |
+| Phase 3 | 고도화 + 계정 표시 연동 위젯 | **부분 착수** — Powerline 구분자만 구현(2026-07-18, 109행 참고), 나머지는 미착수·Account 의존 항목은 연쇄 보류 |

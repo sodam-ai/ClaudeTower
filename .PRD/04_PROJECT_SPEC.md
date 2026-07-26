@@ -2,7 +2,11 @@
 
 > **[2026-07-15 결정] Account 모듈(Phase 2)은 보류 확정 — Anthropic 공식 이용약관 확인 결과
 > 안전한 구현 방법이 없다(`.PRD/07_OAUTH_FLOW_SPEC.md §3` 참고). `src/accounts/`·`test/accounts/`
-> 코드는 삭제됐다(또는 삭제 진행 중). 아래 "프로젝트 구조"·"테스트 방법"의 accounts 관련 서술은
+> **코드 자체는 삭제되지 않고 저장소에 그대로 남아있다**(2026-07-27 실측 정정 — 이전에 "삭제됐다"고
+> 적혀 있었으나 사실 아님, `ls src/accounts/` 직접 확인). 다만 CLI 어디에서도 로드/import되지
+> 않도록 완전히 격리되어 있고, CI(`verify-display-standalone` job)가 매 push마다 이 디렉터리를
+> **테스트 목적으로만 임시 삭제**한 뒤 Display 모듈이 그것 없이도 동작하는지 검증한다 — 저장소의
+> 실제 코드가 영구 삭제된 것은 아니다. 아래 "프로젝트 구조"·"테스트 방법"의 accounts 관련 서술은
 > 과거 설계 기록으로만 남긴다 — 실제 트리와 다를 수 있다.
 
 > AI가 코드를 짤 때 지켜야 할 규칙과 절대 하면 안 되는 것.
@@ -25,6 +29,9 @@
 | 자격증명 저장(Account 모듈만) | OS 네이티브 저장소 우선(Windows Credential Manager/DPAPI, macOS Keychain, Linux libsecret) | QuotaSwitch 원 근거 계승 — Display 모듈에는 해당 없음(자격증명 자체를 다루지 않음) |
 | 캐싱(Display, Phase 3) | 파일 기반, session_id 키 | PulseLine 원 근거 계승 |
 | 테스트 | Node.js 내장 test runner, Display/Account 모듈 별도 테스트 스위트 | 격리 검증을 위해 "Account 모듈 없이 Display 단독 테스트"가 항상 가능해야 함 |
+| **최소 지원 Claude Code 버전(Display)** | v2.1.153 이상 | 공식 문서가 명시한 `COLUMNS`/`LINES` 환경변수(터미널 폭 감지용) 지원 최소 버전 — 이보다 낮으면 위젯 레이아웃이 깨질 수 있음(PulseLine 04_PROJECT_SPEC.md "최종 확정" 항목, 2026-07-26 통합 문서 승계 누락 발견·복원. 이 버전 미만에서의 실제 동작은 미검증 — 공식 문서 근거만 있음) |
+
+> **2026-07-26 발견·복원**: 통합 과정(2026-07-04)에서 이 표의 각 행이 "PulseLine 원 근거 계승"이라고만 적고 실제 수치는 옮기지 않은 항목들이 있었다(위 신설 행 포함). 아래 "절대 하지 마"·"항상 해"의 표시 항목도 같은 문제였다 — `.PRD/.archive/PulseLine원본/04_PROJECT_SPEC.md`을 재대조해 복원했다.
 
 ---
 
@@ -171,6 +178,12 @@ claudetower-cli/
 - [ ] MVP를 상업적 판매·유료 서비스·회사 납품 목적으로 배포하지 마
 - [ ] 라이선스 표기 불일치 상태로 배포하지 마
 - [ ] 경쟁 도구 코드를 그대로 복사하지 마
+- [ ] **(Display, PulseLine 원 근거 계승·2026-07-26 복원)** Display 모듈 statusline이 0이 아닌 종료 코드를 내거나 stdout에 아무것도 출력하지 않게 만들지 마 — 상태표시줄이 공백이 됨(공식 문서 명시 실패 모드)
+- [ ] **(Display, PulseLine 원 근거 계승·2026-07-26 복원)** Display 모듈에서 캐시 키(Phase 3 Git/PR 위젯 등)에 프로세스 ID(`$$`, `os.getpid()`)를 쓰지 마 — 매 호출마다 캐시가 무효화됨, 반드시 `session_id` 사용(공식 문서 권장사항)
+- [ ] **(Display, PulseLine 원 근거 계승·2026-07-26 복원)** Display 모듈이 비공개·미문서화 API에 의존하게 만들지 마 — 예고 없이 깨질 위험
+- [ ] **(2026-07-26 복원)** package.json의 기존 의존성 버전을 임의로 변경하지 마
+- [ ] **(Display, PulseLine 원 근거 계승·2026-07-27 복원)** Windows를 "나중에 폴백으로 지원"하는 방식으로 설계하지 마 — 처음부터 1급 대상으로 테스트할 것
+- [ ] **(Display, PulseLine 원 근거 계승·2026-07-27 복원)** 목업 stdin JSON으로만 테스트하고 "완성"이라 하지 마 — 최소 1개 실제 OS(Windows PowerShell 단독 환경 권장)에서 실측 검증 필수
 
 ## 항상 해 (ALWAYS DO)
 
@@ -180,6 +193,9 @@ claudetower-cli/
 - [ ] 재시작·동의 절차가 필요한 시점마다 근거와 함께 명확히 안내
 - [ ] 계정 전환 시 RotationEvent 기록
 - [ ] Windows 경로는 슬래시(`/`)로 통일
+- [ ] **(Display, PulseLine 원 근거 계승·2026-07-26 복원)** statusline 스크립트는 100ms 미만 실행을 목표로 성능 측정 — 공식 성공기준. 2026-07-26 실측: 실제 렌더 조건 10회 평균 77ms/최대 84ms로 통과 확인(측정 스크립트는 세션 기록 참고, 자동화된 회귀 테스트는 아직 없음)
+- [ ] **(Display, PulseLine 원 근거 계승·2026-07-26 복원)** `git status`/`git diff` 등 느린 작업을 캐싱 없이 매 호출마다 실행하지 말 것 — Phase 3 Git/PR 위젯 착수 시 반드시 적용
+- [ ] **(Display, PulseLine 원 근거 계승·2026-07-26 복원)** 각 위젯은 독립적으로 실패해도 나머지 위젯 렌더링에 영향을 주지 않게 격리(현재 `statusline.js`의 try/catch 구조로 이미 구현되어 있음 — 신규 위젯 추가 시에도 유지할 것)
 
 ---
 
@@ -260,4 +276,4 @@ grep -r "require.*accounts" src/display && echo "FAIL: 모듈 경계 위반" || 
   Ballot CSC-31) 다년 할인도 사라짐 — 지금 사도 곧 재발급해야 함. **재검토 조건 갱신**: "실
   사용자 피드백 존재" → "**설치량이 SmartScreen 신뢰도가 실제로 쌓일 만큼(수백 건 단위)으로
   늘어날 때**"로 구체화. 그때까지는 README/GUIDE의 기존 "추가 정보→실행" 우회 안내로 대응.
-- [ ] Display 모듈만 담은 경량판을 별도 배포할지 여부(01_PRD.md §7 연동)
+- [x] ~~Display 모듈만 담은 경량판을 별도 배포할지 여부~~ → **N/A(2026-07-15, 2026-07-26 문서 정합화)**: `01_PRD.md` §7이 이미 "Account 모듈이 영구 보류되어 이제 ClaudeTower 자체가 이미 경량판"으로 답했으나 이 문서만 미해결로 남아있던 잔여 불일치 — 01_PRD.md와 동일하게 정정
