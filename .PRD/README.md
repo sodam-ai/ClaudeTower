@@ -13,8 +13,8 @@
 | [04_PROJECT_SPEC.md](./04_PROJECT_SPEC.md) | 기술 스택, 보안·법률·README 요구사항 | AI에게 코드 시킬 때마다 |
 | [05_FIELD_ISSUES_2026-07-04.md](./05_FIELD_ISSUES_2026-07-04.md) | (현장 이슈·설계문서 아님) 재설치 잠금 경합·npm shim·PATH·슬래시 명령 미등록 등 실사용 문제 분석 + 개선 백로그(P0~P3) | 개선/버그 수정 착수할 때 |
 | [06_FIELD_ISSUE_SPAWN_STORM_2026-07-04.md](./06_FIELD_ISSUE_SPAWN_STORM_2026-07-04.md) | (현장 이슈 기록) 프로세스 폭주 이슈 분석 | 같은 부류 재발 시 |
-| [07_OAUTH_FLOW_SPEC.md](./07_OAUTH_FLOW_SPEC.md) | Account 모듈 OAuth 흐름 조사 기록 — **결론: Anthropic 정책상 구현 불가로 Phase 2 보류 확정(2026-07-15)** | Phase 2 재검토 논의 시 |
-| [08_ACCOUNTS_ENABLE_CONSENT_DRAFT.md](./08_ACCOUNTS_ENABLE_CONSENT_DRAFT.md) | 계정 동의 고지 문구 초안 — **사용되지 않음(Account 모듈 보류)** | Phase 2 재검토 논의 시 |
+| [07_OAUTH_FLOW_SPEC.md](./07_OAUTH_FLOW_SPEC.md) | Account 모듈 OAuth 흐름 조사 기록 — 2026-07-15 보류 확정 → **2026-07-27 재개**(위험 인지·수용 후 하이브리드, 실동작은 미착수) | Phase 2 작업 착수 전 |
+| [08_ACCOUNTS_ENABLE_CONSENT_DRAFT.md](./08_ACCOUNTS_ENABLE_CONSENT_DRAFT.md) | 계정 동의 고지 문구 초안 — **2026-07-27 재개, 하이브리드 리스크 반영 개정**(여전히 CLI 미연결) | Phase 2 작업 착수 전 |
 
 > **[2026-07-15]** 이 문서는 2026-07-04(프로젝트 생성일) 시점 상태다. 이후 열흘간의 실제
 > 진행 상황·최신 결정은 이 문서가 아니라 저장소 루트의 `CHECKPOINT.md`가 항상 최신
@@ -62,10 +62,10 @@ teamclaude 설정 파일을 실측해 **OAuth 토큰을 평문 저장한다는 �
 - [x] ~~라이선스·저작권자~~ → **확정**: Apache License 2.0, "SoDam AI Studio"(2026-07-03).
   배포 채널은 curl/PowerShell 원라이너·GitHub Release로 이미 가능, `npm install -g`만
   이름 미확정으로 보류 중
-- [x] ~~(최우선, 법무 검토 필요) Account 모듈 포함으로 인해 이용약관 리스크가 플러그인 전체에
-  걸리는 문제~~ → **해소(2026-07-15)**: Account 모듈 자체를 영구 보류하기로 확정해, "켜지
-  않으면 무관하다"를 설명할 필요조차 없어짐(켤 수 있는 기능 자체가 없음). 상세 근거는
-  `07_OAUTH_FLOW_SPEC.md §3` 참고
+- [ ] (최우선) Account 모듈 포함으로 인해 이용약관 리스크가 플러그인 전체에 걸리는 문제 →
+  **갱신(2026-07-27)**: 2026-07-15 "영구 보류로 해소" 처리는 무효화 — 보류 대신 위험 인지·
+  수용 후 하이브리드(OAuth+API키)로 재개 결정, 리스크 자체는 여전히 유효(상세 근거는
+  `07_OAUTH_FLOW_SPEC.md §3·§5`, `CHECKPOINT.md` 트랙3 참고)
 - [x] ~~Display 모듈만 담은 경량판 별도 배포 여부~~ → **N/A**: Account 모듈이 없으므로
   ClaudeTower 자체가 이미 "경량판"
 - [x] ~~로컬 프록시 접근 토큰 구현 방식 실측 필요~~ → **N/A**: 로컬 프록시 자체가 만들어지지

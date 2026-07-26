@@ -7,7 +7,11 @@
 > 않도록 완전히 격리되어 있고, CI(`verify-display-standalone` job)가 매 push마다 이 디렉터리를
 > **테스트 목적으로만 임시 삭제**한 뒤 Display 모듈이 그것 없이도 동작하는지 검증한다 — 저장소의
 > 실제 코드가 영구 삭제된 것은 아니다. 아래 "프로젝트 구조"·"테스트 방법"의 accounts 관련 서술은
-> 과거 설계 기록으로만 남긴다 — 실제 트리와 다를 수 있다.
+> 재사용 대상이다 — 실제 연동은 다음 세션(구현 세션)부터다.
+
+> **[2026-07-27 재개]** 위 보류 결정의 법적 근거(`07_OAUTH_FLOW_SPEC.md §3`)는 그대로 유효하나,
+> 사용자가 위험을 인지·수용한 뒤 하이브리드(OAuth+API키)로 재개를 확정했다(§5, `CHECKPOINT.md`
+> 트랙3 참고). 이 문서의 Account 관련 서술도 다시 유효한 설계다.
 
 > AI가 코드를 짤 때 지켜야 할 규칙과 절대 하면 안 되는 것.
 > 이 문서를 AI에게 항상 함께 공유하세요.
@@ -66,6 +70,20 @@ claudetower-cli/
 ├── README.md                     # 최상단에 "Account 모듈 = 선택 사항 + 리스크 고지" 명시
 └── package.json
 ```
+
+### 하이브리드 아키텍처 갱신 (2026-07-27, teamclaude 실측 반영)
+
+`jung-wan-kim/teamclaude`(OAuth 구독계정 다중전환 공개 도구) 실측 분석 결과를 반영해 세 가지를
+확정했다(상세 근거는 `07_OAUTH_FLOW_SPEC.md §5` 참고, 여기서는 요약만):
+
+1. **credential import**: `claudetower accounts add --import`로 기존 Claude Code 로그인
+   자격증명(`~/.claude/.credentials.json`)을 재로그인 없이 가져오는 옵션 추가 예정 — 단 이
+   경로도 OAuth와 동일한 ToS 리스크가 있다(§5-2).
+2. **라우팅 스키마**: `Account.auth_type`(`oauth`/`api_key`)이 이미 구현돼 있어 스키마 변경
+   불필요, 프록시가 계정 타입별로 `ANTHROPIC_BASE_URL`(oauth) 또는 `ANTHROPIC_API_KEY`(api_key)만
+   스왑하도록 분기(§5-3).
+3. **quota 파싱**: 기존 폴링 방식(`reeval_interval_ms`) 대신 API 응답의
+   `anthropic-ratelimit-unified-5h/7d-*` 헤더 실시간 파싱을 구현 세션에 권장(§5-4).
 
 ---
 
@@ -127,7 +145,8 @@ claudetower-cli/
 
 ### API 이용정책·상업적 사용 (Must Have — [법무 검토 필요] 다수)
 - **핵심 리스크**: Account 모듈이 이 플러그인에 포함되는 이상, 여러 계정 자동 순환의 이용약관 충돌 가능성(QuotaSwitch 원 리스크)이 **플러그인 전체**에 적용된다 — Display 모듈만 쓰는 사용자에게도 이 리스크가 "잠재적으로 딸려온다"는 점을 README에서 명확히 구분 설명해야 함(신규 발견, 01_PRD.md §7과 연동)
-- **2026-07-14 확인됨(더 이상 가능성이 아니라 확정된 충돌)**: `code.claude.com/docs/en/legal-and-compliance` 1차 출처 직접 확인 결과, Anthropic이 서드파티 도구의 Free/Pro/Max 구독 OAuth 자격증명 사용을 명시적으로 금지하고 2026-01-09부터 서버 측에서 기술적으로 차단 중임을 확인(복수 독립 소스 교차검증, 상세는 `.PRD/07_OAUTH_FLOW_SPEC.md §3-1`). Account 모듈을 현재 명세대로 구현하는 것은 권장하지 않음 — 사용자 결정 대기 중(CHECKPOINT.md 트랙3).
+- **2026-07-14 확인됨(더 이상 가능성이 아니라 확정된 충돌)**: `code.claude.com/docs/en/legal-and-compliance` 1차 출처 직접 확인 결과, Anthropic이 서드파티 도구의 Free/Pro/Max 구독 OAuth 자격증명 사용을 명시적으로 금지하고 2026-01-09부터 서버 측에서 기술적으로 차단 중임을 확인(복수 독립 소스 교차검증, 상세는 `.PRD/07_OAUTH_FLOW_SPEC.md §3-1`). Account 모듈을 현재 명세대로 구현하는 것은 권장하지 않음 — **결정 완료(2026-07-27)**: 사용자가
+위험을 인지·수용한 뒤 하이브리드(OAuth+API키)로 재개 확정(CHECKPOINT.md 트랙3).
 - MVP는 무료·개인 사용 목적으로만 배포, 상업적 판매·유료 서비스화·회사 납품은 Out of Scope(양 프로젝트 원 판단 계승, Account 모듈 포함으로 인해 플러그인 전체에 적용)
 
 ### 개인정보·민감정보 (Must Have)
@@ -148,7 +167,7 @@ claudetower-cli/
 1. 사전 준비물·필요 프로그램(Claude Code 버전, Node.js 불필요 명시, Account 기능은 계정 2개 이상 필요)
 2. 다운로드·설치 방법(마켓플레이스, 캡처·번호매김)
 3. 빠른 시작(① Display만 쓰는 5단계 이내 요약을 최상단에, ② Account까지 쓰는 경로는 별도 섹션)
-4. 실행·사용·작동 방법, 명령어 목록(`claudetower setup`, `claudetower accounts enable/disable`, `claudetower accounts`(목록·상태, 세션(5h)·주간(7d) 사용률 기본 표시, `--history`는 Phase 3 부가 기능), `claudetower account-remove`(삭제, 완전삭제 검증), `claudetower account-rename`(라벨 수정), `claudetower account-purge`(전체 초기화), `claudetower config`(옵션 설정) — 상세 요구사항은 QuotaSwitch 04_PROJECT_SPEC.md "계정 관리(CRUD) 요구사항", "옵션 설정 요구사항", "계정별 사용량 표시 요구사항"(2026-07-04 재확인) 원 설계 참고)
+4. 실행·사용·작동 방법, 명령어 목록(`claudetower setup`, `claudetower accounts enable/disable`, `claudetower accounts add [--import]`(2026-07-27 추가, teamclaude 벤치마킹 — 기존 Claude Code 로그인 재사용 옵션), `claudetower accounts`(목록·상태, 세션(5h)·주간(7d) 사용률 기본 표시, `--history`는 Phase 3 부가 기능), `claudetower account-remove`(삭제, 완전삭제 검증), `claudetower account-rename`(라벨 수정), `claudetower account-purge`(전체 초기화), `claudetower config`(옵션 설정) — 상세 요구사항은 QuotaSwitch 04_PROJECT_SPEC.md "계정 관리(CRUD) 요구사항", "옵션 설정 요구사항", "계정별 사용량 표시 요구사항"(2026-07-04 재확인) 원 설계 참고)
 5. 워크플로우 그림(① 설치→즉시 사용, ② 동의→등록→재시작→자동전환 — 두 그림 분리)
 6. 보안·데이터 흐름 설명(① "아무것도 외부로 안 보냄", ② "계정 정보는 내 컴퓨터의 안전한 금고에만 저장, 어디로도 전송 안 됨" — 비유로 설명)
 7. 아키텍처 개요(모듈이 분리되어 있다는 것을 비개발자도 알 수 있는 비유: "상태표시줄은 그냥 화면 보여주는 부분이고, 계정전환은 완전히 다른 방에서 따로 작동합니다")
@@ -184,6 +203,16 @@ claudetower-cli/
 - [ ] **(2026-07-26 복원)** package.json의 기존 의존성 버전을 임의로 변경하지 마
 - [ ] **(Display, PulseLine 원 근거 계승·2026-07-27 복원)** Windows를 "나중에 폴백으로 지원"하는 방식으로 설계하지 마 — 처음부터 1급 대상으로 테스트할 것
 - [ ] **(Display, PulseLine 원 근거 계승·2026-07-27 복원)** 목업 stdin JSON으로만 테스트하고 "완성"이라 하지 마 — 최소 1개 실제 OS(Windows PowerShell 단독 환경 권장)에서 실측 검증 필수
+- [ ] **(Account, QuotaSwitch 원 근거 계승·2026-07-27 복원)** `.gitignore` 없이 로컬 설정·감사 로그 디렉터리를 커밋하지 마
+- [ ] **(Account, QuotaSwitch 원 근거 계승·2026-07-27 복원)** "이용약관 위반 아님을 보장한다"류 확인되지 않은 안전 단정 문구를 쓰지 마 — 하이브리드 재개 국면에서 특히 중요
+- [ ] **(Account, QuotaSwitch 원 근거 계승·2026-07-27 복원)** 자격증명 조회·전환 경로에서 에러를 삼키지 마(silent fallback 금지)
+- [ ] **(Account, QuotaSwitch 원 근거 계승·2026-07-27 복원)** RotationEvent 로그를 끄거나 생략하지 마
+- [ ] **(Account, QuotaSwitch 원 근거 계승·2026-07-27 복원)** 확인 절차 없이 `remove`·`purge`를 즉시 실행하지 마
+- [ ] **(Account, QuotaSwitch 원 근거 계승·2026-07-27 복원)** `remove` 후 OS 저장소 재조회 검증 없이 "삭제 완료"로 표시하지 마
+- [ ] **(Account, QuotaSwitch 원 근거 계승·2026-07-27 복원)** "이용약관 위반 가능성" 고지 없이 배포하지 마
+- [ ] **(Account, QuotaSwitch 원 근거 계승·2026-07-27 복원)** 사용자 동의 없이 셸 프로필(.bashrc/PowerShell profile)을 자동 수정하지 마
+- [ ] **(Account, QuotaSwitch 원 근거 계승·2026-07-27 복원)** `--no-verify`/try-catch로 보안 검증을 조용히 우회하지 마
+- [ ] **(Account, QuotaSwitch 원 근거 계승·2026-07-27 복원)** 성능 최적화를 이유로 자격증명 조회 경로의 검증 단계를 생략하지 마
 
 ## 항상 해 (ALWAYS DO)
 

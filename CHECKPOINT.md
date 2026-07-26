@@ -325,7 +325,7 @@ Claude Code 화면에 상태표시줄 실제 표시 확인, `/claudetower-widget
 - 이 트랙이 경고했던 위험(다중 세션이 설치본을 구버전으로 덮어쓸 가능성)은 종료 시점
   재확인(exe mtime·해시 대조)으로 최종 점검 완료 — 더 이상 유효한 진행중 리스크 아님
 
-**트랙 3 — [2026-07-15 최종 확정] Phase 2 영구 보류 — ClaudeTower는 Display 전용 도구로 확정**
+**트랙 3 — [2026-07-15 최종 확정 → 2026-07-27 재개로 개정] Phase 2 하이브리드 재개**
 
 > 사용자가 2026-07-15 세션에서 아래 조사 결과를 검토한 뒤 **"Phase 2 보류, Display 전용
 > 유지"를 명시적으로 최종 결정**했다("완전히 안전한 우회 방법은 없는가"라는 추가 질문에
@@ -351,6 +351,16 @@ Claude Code 화면에 상태표시줄 실제 표시 확인, `/claudetower-widget
   `verify-display-standalone` job도 파일이 그대로 남아있으므로 수정 불필요(계속 정상 작동).
   **재검토 시점**: 없음(삭제하지 않기로 확정된 결정이며, 재론 필요 시에만 다시 꺼낼 것).
 
+**[2026-07-27 재개 결정 기록]**: 사용자가 이번 세션에서 재개를 요청했다. 참고 사례는 GitHub
+`jung-wan-kim/teamclaude`(OAuth 구독계정 다중전환이 실제로 작동하는 공개 도구) 실제 코드
+분석. 재개를 요청받은 뒤 §3-3(하이브리드 방식도 동일한 위험이 있다는 조항)을 다시 고지했고,
+사용자가 이를 확인한 뒤 하이브리드(OAuth 주력+API키 보조)로 진행하기로 결정했다.
+
+법적 사실(§3-1·§3-3)은 이 결정과 무관하게 그대로 유효하다 — teamclaude가 지금 작동한다는
+사실이 정책 위반의 안전함을 증명하지는 않는다. 이번 세션에서 실제로 바뀐 것은 PRD 문서뿐이다
+— OAuth 로그인·로컬 프록시·keyring 연동 코드는 이번 세션에서 작성되지 않았고, `src/accounts/`의
+기존 throw-스텁도 그대로다. 상세는 `.PRD/07_OAUTH_FLOW_SPEC.md §5` 참고.
+
 ---
 [이전 계획 보존 섹션]
 
@@ -365,7 +375,10 @@ Claude Code 화면에 상태표시줄 실제 표시 확인, `/claudetower-widget
 > (1) Phase 2 보류/취소, (2) API 키 기반 재설계(별도 PRD 필요), (3) 위험을 감수하고 그대로
 > 진행 중 하나를 결정하기 전까지 아래 계획은 착수하지 않는다.
 
-> **(아래는 조사 이전에 세웠던 원래 계획 — 참고용으로 보존, 실행 안 함)**
+> **[2026-07-27]** 재개로 다시 유효한 실행 순서 후보다. 착수 시 2단계(라이브러리 설치)
+> 이전에 `.PRD/07_OAUTH_FLOW_SPEC.md §5`(credential import 분기·라우팅 스키마·quota 헤더
+> 파싱 방식 변경)를 먼저 반영할 것 — 아래 표는 2026-07-14 시점 계획이라 이 갱신 내용을
+> 반영하지 않았다.
 > **왜 이 순서인가(핵심)**: 아래 순서를 바꾸면 안 되는 이유는 04_PROJECT_SPEC.md가 이미
 > 겪은 실패 패턴 때문이다 — 2026-07-11에 `ProxyConfig` 검증 범위를 원본 스펙 재확인 없이
 > 초안대로 구현했다가, 나중에 원본(QuotaSwitch원본 04_PROJECT_SPEC.md)을 다시 읽고서야
@@ -431,8 +444,8 @@ Claude Code 화면에 상태표시줄 실제 표시 확인, `/claudetower-widget
 | statusLine 데몬화/경량화 (05번 이슈#5, FR-4, P2~P3) | 설계 규모가 큼(상주 프로세스 아키텍처 필요) — 지금 급한 결함 없음 | M6 관찰 기간 중 문제 재발 시, 또는 Phase 3 |
 | Node.js 미설치 순정 환경 실측 (Phase 1 체크리스트 유일 미완료) | 이 PC가 Windows 11 **Home**이라 Windows Sandbox 불가, Docker Desktop 엔진도 꺼져있고 현재 다중 세션으로 부하가 높아 지금 띄우는 게 부적절 | 별도 클린 환경 확보 시 |
 | PATH 실제 레지스트리 등록 | 시스템 전역 값이라 사용자가 명시적으로 "코드만, 적용은 보류" 선택함(코드는 M3에서 완성) | 사용자가 원할 때 (`setup` 재실행 시 물어봄) |
-| Powerline **색상 테마**·Git/PR 위젯·`active_account` 위젯 (Phase 3) | 구분자 스타일만 M11로 선구현 완료. 나머지(색상 테마·계정연동 위젯)는 `active_account`가 Account 모듈 완성을 전제해 여전히 보류 | Phase 2 완료 후(단, Phase 2는 영구 보류 확정이라 사실상 무기한) |
-| Phase 2 — 계정 자동전환 모듈 | **영구 보류(2026-07-15 확정)**. Anthropic 공식 문서(legal-and-compliance, consumer-terms) 확인 결과 구독제 OAuth 서드파티 사용·자동화 접근이 독립된 두 조항으로 금지되어 있어 안전한 구현 방법이 없음(`.PRD/07_OAUTH_FLOW_SPEC.md §3` 참고) | 사용자가 API 키 기반 완전 재설계를 명시적으로 요청할 때만(별도 PRD 재작업 필요) |
+| Powerline **색상 테마**·Git/PR 위젯·`active_account` 위젯 (Phase 3) | 구분자 스타일만 M11로 선구현 완료. 나머지(색상 테마·계정연동 위젯)는 `active_account`가 Account 모듈 완성을 전제해 여전히 보류 | Phase 2 실동작 착수 후 |
+| Phase 2 — 계정 자동전환 모듈 | **재개 확정(2026-07-27)**. 2026-07-15 영구 보류(`.PRD/07_OAUTH_FLOW_SPEC.md §3` 근거)는 사용자가 위험 인지·수용 후 하이브리드(OAuth+API키)로 재개 요청해 개정됨(트랙3 참고). 문서 갱신 완료, 실동작(OAuth 로그인·프록시·keyring 연동)은 별도 세션 | 다음 세션에서 `07_OAUTH_FLOW_SPEC.md §5` 순서대로 착수 |
 | Windows 코드서명 인증서 구매 | **2026-07-17 조사 완료, 지금은 안 산다로 확정**. 2024년 이후 EV 인증서도 즉시 SmartScreen 신뢰를 주지 않고 OV·EV 둘 다 다운로드 볼륨(수백~수천 건)에 따라 서서히 신뢰도가 쌓이는 방식으로 바뀜 — ClaudeTower 실사용자는 현재 사실상 1명뿐이라 지금 사도 경고가 안 사라질 가능성이 높음(WebSearch 근거, `.PRD/04_PROJECT_SPEC.md` 참고) | 설치량이 수백 건 단위로 늘어날 때(단순 "실사용자 피드백 존재"가 아니라 볼륨 기준으로 구체화) |
 | `npm audit` — `brace-expansion ≤5.0.7` high (GHSA-mh99-v99m-4gvg) | **2026-07-26 신규 발견**. 경로: `eslint@10.6.0 → minimatch@10.2.5 → brace-expansion` — **devDependency 전이 의존성**(`npm ls brace-expansion --all`로 확인). `package.json`에 `dependencies` 항목이 없고(런타임 의존성 0개), esbuild 번들에도 포함되지 않아 배포되는 실행 파일(exe)에는 영향 없음. `npm audit fix`로 해결 가능하나 eslint 하위 트리라 lint 규칙 회귀 여부를 `npm run verify`로 재확인 후 적용해야 함(P2, 안 해도 실사용자 위험 없음) | 다음 세션에서 `npm audit fix` 적용 + `npm run verify` 재확인 시 |
 
@@ -525,6 +538,16 @@ ProxyConfig 검증범위 누락 사고(183행)와 정확히 같은 패턴**. 이
 - 커밋: 이 세션의 문서 수정 3건(로드맵표+PDF서술, DO NOT 2건 복원, M13 집계 정정) — 커밋·push
   예정(아래 실행 결과 참고)
 - 상태: **main 병합은 여전히 사용자 결정 대기, 문서 정합성 재검증은 완료**
+
+---
+
+## M15: 2026-07-27 세션 — Account 모듈(Phase 2) 재개 문서 갱신
+
+teamclaude 실측 분석 근거로 Phase 2 재개, 하이브리드(OAuth+API키)로 확정(트랙3 참고).
+변경 문서 8개: 07_OAUTH_FLOW_SPEC·08_ACCOUNTS_ENABLE_CONSENT_DRAFT·02_DATA_MODEL·
+04_PROJECT_SPEC(QuotaSwitch DO NOT 10건 승계 포함)·03_PHASES·01_PRD·.PRD/README·CHECKPOINT.
+코드는 전혀 건드리지 않음(`src/accounts/` 무변경). 다음 세션 과제: 실제 코드 구현,
+README/GUIDE 8개 공개 문서 톤 갱신(이번 범위 밖).
 
 ---
 

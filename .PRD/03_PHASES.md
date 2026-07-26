@@ -5,6 +5,11 @@
 > 구현 방법이 없다.** ClaudeTower는 Display 전용 도구로 유지한다. Phase 2에 의존하는 Phase 3
 > (계정 표시 연동 위젯 등)도 연쇄적으로 보류된다 — 아래 Phase 2·3 서술은 검토 기록으로만 남긴다.
 
+> **[2026-07-27 재개]** 위 법적 근거는 그대로 유효하나, 사용자가 위험을 인지·수용한 뒤
+> 하이브리드(OAuth+API키)로 재개를 확정했다(`07_OAUTH_FLOW_SPEC.md §5`, `CHECKPOINT.md`
+> 트랙3 참고). **이번 갱신은 문서만이다 — Phase 2 실동작 착수는 다음 세션.** Phase 3도
+> "연쇄 보류"가 아니라 "Phase 2 실동작 착수 후"로 조건이 바뀐다.
+
 > 한 번에 다 만들면 복잡해져서 품질이 떨어집니다.
 > **이 프로젝트는 특히 중요합니다**: Phase 1에서 위험이 낮은 Display 모듈과 "모듈 격리 구조" 자체를 먼저 완성해 검증하고, 위험이 높은 Account 모듈은 그 안전한 기반 위에서 Phase 2에 추가합니다. 순서 자체가 안전장치입니다.
 
@@ -78,7 +83,7 @@ Phase 1 범위:
 
 ### 기능 (2026-07-04 CLI 전환 반영)
 - [ ] `claudetower accounts enable` — 이용약관 리스크 고지 + 명시적 동의 절차
-- [ ] 계정 등록(OAuth), OS 자격증명 저장소 연동, `claudetower accounts`/`remove`/`rename`/`purge` CRUD
+- [ ] 계정 등록(OAuth, 하이브리드: `oauth`/`api_key` 계정 병행 등록), `claudetower accounts add --import`(2026-07-27 추가, teamclaude 벤치마킹 — 기존 Claude Code 로그인 재사용), OS 자격증명 저장소 연동, `claudetower accounts`/`remove`/`rename`/`purge` CRUD
 - [ ] **`claudetower accounts`가 계정별 세션(5h)·주간(7d) 사용률·리셋 시각을 기본 표시**(2026-07-04 재확인 — teamclaude `session (5h) quota`/`weekly (7d) quota` 용어 채택, 공식 API 값이라 추가 조회 불필요. `--history`(로컬 집계, ccusage 벤치마킹)는 Phase 3 부가 기능으로 격하)
 - [ ] **계정별 마지막 사용 프로젝트 경로 표시** — CLI 실행 시점 `process.cwd()`를 RotationEvent.project_path로 기록, 추가 탐색 없이 즉시 표시(Display 모듈을 거치지 않아 모듈 격리 유지)
 - [ ] **`claudetower config`** — 전환 임계값·전략(`best`/`next-available`)·포트를 대화형/플래그로 조정, 값 검증 포함(claude-swap 벤치마킹)
@@ -126,5 +131,5 @@ Display 모듈과 Account 모듈이 "현재 활성 계정 표시"로 자연스�
 | Phase | 핵심 기능 | 상태 |
 |-------|----------|------|
 | Phase 1 (MVP) | Display 모듈 + 격리 구조 확정 | **완료(2026-07-18)** |
-| Phase 2 | Account 모듈(동의 기반 활성화) | **영구 보류(2026-07-15 확정)** — 재검토 조건은 상단 배너 참고 |
-| Phase 3 | 고도화 + 계정 표시 연동 위젯 | **부분 착수** — Powerline 구분자만 구현(2026-07-18, 109행 참고), 나머지는 미착수·Account 의존 항목은 연쇄 보류 |
+| Phase 2 | Account 모듈(동의 기반 활성화, 하이브리드 OAuth+API키) | **재개 확정(2026-07-27)** — 문서 갱신 완료, 실동작 착수 전(다음 세션) |
+| Phase 3 | 고도화 + 계정 표시 연동 위젯 | **부분 착수** — Powerline 구분자만 구현(2026-07-18, 109행 참고), 나머지는 Phase 2 실동작 착수 후 |
