@@ -659,8 +659,16 @@ M16이 Account 경로가 막혔음을 확인한 직후, 같은 세션에서 완�
   `padding 3`(정상 반영, hooks 등 다른 키 보존), `padding -1`(거부, 파일 무변경 확인),
   `padding`(빈 값, 거부), `padding 0`(공식 기본값, 정상 반영) 전부 확인
 - 검증: `npm run verify` 193/193(신규 7건 포함, 회귀 없음), 실 exe 스모크 테스트 통과
-- 커밋: 예정(아래 실행 결과 참고). classifier 차단 없음(Display 전용)
 - 상태: **완료**
+
+**2026-07-27 main 병합**: gauge.js/config-command.js 등 10개 파일(Account 문서와 완전히
+분리, `.PRD`/`CHECKPOINT.md` 미포함)만 `origin/main` 기준 새 브랜치(`feat/gauge-padding-
+display-only`)로 옮겨 PR #3 생성 → CI green(Windows/macOS/Linux 빌드 + verify-display-
+standalone 전부 SUCCESS) 확인 후 `gh pr merge --merge --delete-branch`로 병합 완료
+(`origin/main` `3e9a3ec` → `d88cd00`). `git show origin/main:src/display/config-command.js`로
+padding 로직이 실제로 main에 반영됐음을 직접 확인, 원격 브랜치 삭제도 확인. classifier 차단
+없음. **이 브랜치(`docs-and-fixes/2026-07-06`)의 Account 재개 문서는 여전히 main 미병합
+상태로 의도대로 유지**(077ade2/de97e2f에서 결정한 노출 최소화 원칙 그대로).
 
 ---
 
