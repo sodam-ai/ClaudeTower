@@ -245,7 +245,7 @@ This program **never sends anything over the internet.** All information stays e
 
 | Command | What it does | Example |
 |---|---|---|
-| `claudetower --version` | Shows the currently installed version number | `0.1.10` |
+| `claudetower --version` | Shows the currently installed version number | `0.3.0` |
 | `claudetower --help` (or run with no arguments) | Shows usage instructions | — |
 | `claudetower setup` | Choose which widgets to show and auto-register with Claude Code (also installs the `/claudetower-widgets` chat command) | Answer 5 questions with Y/n |
 | `claudetower widgets` | Check which widgets are currently on | Shows status only, changes nothing |
@@ -437,8 +437,8 @@ Here's where this program actually creates or uses files on your computer.
 | **Window closes instantly after double-clicking** | Not a malfunction — running with no arguments just shows help text and exits. See Section 6 and use a terminal instead. |
 | `status` says **"registered but the executable can't be found (broken)"** | You accidentally deleted the installed file. Run `setup` again to repair it automatically. |
 | **Ran `setup` to install a new version, but nothing changed** (e.g. version number stays the same) | Since v0.1.8, this retries automatically a few times, but antivirus scanning or similar can occasionally take even longer. Close Claude Code briefly and run `setup` again — with nothing actively using the file, the swap will go through reliably. |
-| **Statusline doesn't show up** in Claude Code | Settings apply starting from your *next* interaction. Try interacting with Claude Code once more. |
-| `/claudetower-widgets` (chat-based widget toggle) **used to work but suddenly doesn't** | Root cause confirmed — this program's own automated verification routine had a bug that could delete the real config file by mistake (not something you did). A guard against recurrence and a self-healing fix (recreates it within seconds if it ever goes missing) have both been applied, pending the next release. If you hit this on the current version, run `claudetower setup` once more to fix it immediately. |
+| **Statusline doesn't show up** in Claude Code | Check three things. ① Settings apply starting from your *next* interaction — try interacting with Claude Code once more. ② You may not have accepted the workspace trust prompt for this folder — if so, the statusline never runs at all, and you'll see `statusline skipped · restart to fix`. Accept the trust prompt, then restart Claude Code. ③ If `disableAllHooks` is turned on in your Claude Code settings, the statusline is disabled along with everything else (official Claude Code behavior) — turn it off if you don't need it. |
+| `/claudetower-widgets` (chat-based widget toggle) **used to work but suddenly doesn't** | Root cause confirmed — this program's own automated verification routine had a bug that could delete the real config file by mistake (not something you did). A guard against recurrence and a self-healing fix (recreates it within seconds if it ever goes missing) have both been applied, included since v0.2.0. If you're on an older version, update to the latest. If you hit this on the current version, run `claudetower setup` once more to fix it immediately. |
 | **Context percentage looks off or empty** | This can happen briefly at the start of a session or right after `/compact`. This is expected, normal Claude Code behavior. |
 | For developers — `npm run build` fails | Check that `node --version` is 22 or later. |
 

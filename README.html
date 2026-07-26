@@ -231,8 +231,8 @@ npm run build</code></pre>
 
 <h2 id="troubleshooting">트러블슈팅</h2>
 <ul>
-<li><strong>상태표시줄이 안 보여요</strong>: Claude Code와 새로 상호작용을 한 번 해보세요(설정은 즉시 반영되지 않고 다음 상호작용부터 반영됩니다).</li>
-<li><strong><code>/claudetower-widgets</code>(채팅으로 위젯 켜고 끄기)가 갑자기 안 돼요</strong>: 근본 원인을 확정했습니다 — 이 프로그램 자신의 자동 검증 절차가 실수로 실제 설정 파일을 지우는 결함이었습니다(사용자 잘못이 아닙니다). 재발 방지 코드와, 혹시 사라져도 몇 초 안에 스스로 되살리는 자가복구를 모두 적용했습니다(다음 정식 릴리스에 포함 예정). 지금 버전에서 겪으신다면 <code>claudetower setup</code>을 다시 실행하면 즉시 복구됩니다.</li>
+<li><strong>상태표시줄이 안 보여요</strong>: 세 가지 원인이 있습니다. ① 설정은 다음 상호작용부터 반영됩니다 — Claude Code와 한 번 더 대화해보세요. ② 이 폴더(워크스페이스)의 신뢰(trust) 확인 창을 아직 수락하지 않았다면 상태표시줄 자체가 실행되지 않고, 화면에 <code>statusline skipped · restart to fix</code>라고 뜹니다 — 신뢰 확인 창을 수락한 뒤 Claude Code를 다시 시작하세요. ③ Claude Code 설정에서 <code>disableAllHooks</code>를 켜두면 상태표시줄도 함께 꺼집니다(Claude Code 공식 사양) — 필요 없다면 꺼주세요.</li>
+<li><strong><code>/claudetower-widgets</code>(채팅으로 위젯 켜고 끄기)가 갑자기 안 돼요</strong>: 근본 원인을 확정했습니다 — 이 프로그램 자신의 자동 검증 절차가 실수로 실제 설정 파일을 지우는 결함이었습니다(사용자 잘못이 아닙니다). 재발 방지 코드와, 혹시 사라져도 몇 초 안에 스스로 되살리는 자가복구를 모두 적용했습니다(v0.2.0부터 포함됨). 그보다 이전 버전을 쓰고 계시다면 최신 버전으로 업데이트하시고, 지금 버전에서 겪으신다면 <code>claudetower setup</code>을 다시 실행하면 즉시 복구됩니다.</li>
 <li><strong><code>claudetower status</code>에서 "등록은 되어 있으나 실행 파일을 찾을 수 없습니다(고장 상태)"가 떠요</strong>: 설치 파일이 있던 자리를 지웠거나 옮긴 경우입니다. <code>claudetower setup</code>을 다시 실행하면 자동으로 복구됩니다.</li>
 <li><strong>exe를 더블클릭했는데 창이 바로 꺼져요</strong>: 인자 없이 실행하면 도움말만 보여주고 끝납니다 — 실제로 쓰려면 터미널을 열어서 <code>claudetower-win-x64.exe setup</code>처럼 명령을 직접 입력해야 합니다.</li>
 <li><strong><code>npm run build</code>가 실패해요(개발자용)</strong>: <code>node --version</code>으로 22 이상인지 확인하세요.</li>
