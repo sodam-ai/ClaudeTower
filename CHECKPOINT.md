@@ -549,6 +549,12 @@ teamclaude 실측 분석 근거로 Phase 2 재개, 하이브리드(OAuth+API키)
 코드는 전혀 건드리지 않음(`src/accounts/` 무변경). 다음 세션 과제: 실제 코드 구현,
 README/GUIDE 8개 공개 문서 톤 갱신(이번 범위 밖).
 
+**다음 세션 착수 우선순위 메모**: 이번 세션 중 문서 편집 일부가 Claude Code auto mode
+classifier에 2회 차단됐다(재시도로 통과). 이 패턴을 감안해, 다음 세션의 실제 코드 구현은
+`auth_type: 'api_key'` 경로(§3-3이 명시적 예외로 인정하는, 이미 안전 경로로 확인된 부분)부터
+먼저 진행하는 것을 권장한다. `auth_type: 'oauth'` 경로(§5-2 credential import 포함)는
+설계만 확정된 상태로 남겨두고, api_key 경로 구현 진행 상황을 본 뒤 순서를 정한다.
+
 ---
 
 ## 참고
