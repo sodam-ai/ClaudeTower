@@ -178,6 +178,8 @@ claudetower-cli/
 - [ ] **(Display, PulseLine 원 근거 계승·2026-07-26 복원)** Display 모듈에서 캐시 키(Phase 3 Git/PR 위젯 등)에 프로세스 ID(`$$`, `os.getpid()`)를 쓰지 마 — 매 호출마다 캐시가 무효화됨, 반드시 `session_id` 사용(공식 문서 권장사항)
 - [ ] **(Display, PulseLine 원 근거 계승·2026-07-26 복원)** Display 모듈이 비공개·미문서화 API에 의존하게 만들지 마 — 예고 없이 깨질 위험
 - [ ] **(2026-07-26 복원)** package.json의 기존 의존성 버전을 임의로 변경하지 마
+- [ ] **(Display, PulseLine 원 근거 계승·2026-07-27 복원)** Windows를 "나중에 폴백으로 지원"하는 방식으로 설계하지 마 — 처음부터 1급 대상으로 테스트할 것
+- [ ] **(Display, PulseLine 원 근거 계승·2026-07-27 복원)** 목업 stdin JSON으로만 테스트하고 "완성"이라 하지 마 — 최소 1개 실제 OS(Windows PowerShell 단독 환경 권장)에서 실측 검증 필수
 
 ## 항상 해 (ALWAYS DO)
 
