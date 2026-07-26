@@ -605,6 +605,32 @@ IN LICENSE")했던 걸 발견 — npm이 자동으로 동기화해 정정됨(의
 
 ---
 
+## M17: 2026-07-27 세션 — gauge.js COLUMNS 기반 동적 폭 계산 구현 (M16 이후 pivot)
+
+M16이 Account 경로가 막혔음을 확인한 직후, 같은 세션에서 완전히 안전한 대안으로
+`.PRD/03_PHASES.md` 115행·`gauge.js` 자체 TODO 주석이 이미 가리키던 항목에 착수했다.
+
+- [x] `gauge.js`에 `resolveGaugeWidth(columnsEnvValue)` 추가 — `process.env.COLUMNS`가
+  120 이상이면 게이지 폭을 5→10칸으로 확장, 그 외(없음/파싱불가/좁음)는 항상 기존 5칸
+  (검증된 최소값) 유지. 환경변수를 함수 내부에서 직접 읽지 않고 인자로 받는 순수 함수로
+  설계해 테스트가 `process.env`를 오염시키지 않게 함.
+- [x] `context.js`·`rate-limit.js` 두 위젯에 연결(`renderGauge(rounded, resolveGaugeWidth(process.env.COLUMNS))`)
+- [x] 신규 테스트 7건(gauge.test.js 5건, context.test.js·rate-limit.test.js 각 1건 — 후자
+  둘은 `process.env.COLUMNS` 저장/복원을 try/finally로 감싸 테스트 오염 방지)
+- [x] **실제 빌드된 exe로 라이브 확인**: `COLUMNS=80` vs `COLUMNS=200`으로 동일 mock
+  session JSON을 statusline에 흘려 넣어 5칸→10칸 확장을 직접 눈으로 확인. 7일 게이지
+  50%가 `███░░`(5칸)에서 `█████░░░░░`(10칸, 정확히 절반)로 바뀌어 구분력 개선이 실제로
+  작동함을 증명 — 단, 95%는 10칸에서도 round(9.5)=10으로 100%와 여전히 같게 보임(코드
+  주석이 애초에 "완전 해소"가 아니라 "구분력 개선"이라고 정직하게 표현한 것과 일치,
+  과장 아님)
+- 검증: `npm run verify` 186/186(신규 7건 포함, 기존 179건 회귀 없음), `test:accounts`
+  36/36(무관, 회귀 없음), 실제 exe 라이브 스모크 테스트 통과
+- 커밋: `033fdbc`, push 완료. classifier 차단 없음(Display 전용 작업이라 이번 세션 내내
+  안전지대였던 것과 일치)
+- 상태: **완료**
+
+---
+
 ## 참고
 - 전체 변경 이력: `git log --oneline` — **2026-07-11 정정**: 위 "이번 세션 커밋" 목록과 "M7 미커밋" 서술은 stale이었음(모순, M7 상태 정정 참고). 실제로는 그 이후 `96ecc57`(자가복구+CHECKPOINT.md 신설), `a6727bc`(README/GUIDE 보강), `a318365`(M7 코드), `a671230`(M7 문서), `edc42ea`(M6 재검증 기록), `6ccaf83`(M9 스캐폴딩), `8118ad2`(ProxyConfig 정정), `3661fff`(rate-limit 상한), `97e66ea`(model/location 길이 상한)까지 전부 커밋·push 완료(현재 브랜치 `docs-and-fixes/2026-07-06`가 origin과 완전 동기화 상태, 2026-07-11 기준).
 - **2026-07-12 추가**: `d0418d5`(CHECKPOINT M7 정정+로드맵), `eb8d12b`(CI 트리거 필터 제거+권한
