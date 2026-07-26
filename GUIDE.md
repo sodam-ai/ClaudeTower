@@ -252,6 +252,7 @@ Claude Code는 대화할 때마다 "지금 상황"(어떤 폴더에서 작업 �
 | `claudetower status` | 지금 설치 상태와 표시 중인 항목을 확인합니다 | "설치됨" / "설치 안 됨" / "고장 상태" 중 하나가 나옵니다 |
 | `claudetower config statusline-refresh <초>` | 상태표시줄이 얼마나 자주 새로고침될지 조절합니다(기본 3초). 여러 창을 동시에 켜두시는 분은 5초 이상으로 늘리면 컴퓨터 부담이 더 줄어듭니다. 터미널 없이 "상태표시줄 갱신을 느리게 해줘"처럼 채팅으로 말해도 됩니다 | `claudetower config statusline-refresh 5` |
 | `claudetower config powerline <on\|off>` | 위젯 사이 구분자를 공백 2칸 대신 Powerline 스타일 화살표 기호로 바꿉니다(색상 테마는 바뀌지 않고 구분 기호만 달라짐, 기본은 꺼짐). Nerd Font(터미널용 특수 아이콘이 포함된 글꼴)가 설치돼 있지 않으면 화살표가 깨진 사각형처럼 보일 수 있으니, 켜본 뒤 화면을 확인하세요 | `claudetower config powerline on` |
+| `claudetower config padding <n>` | Claude Code 공식 상태표시줄 기능인 좌우 여백(문자 수)을 조절합니다(기본값 0) | `claudetower config padding 2` |
 | `claudetower uninstall` | Claude Code에 등록된 상태표시줄 설정과 `/claudetower-widgets` 대화형 명령을 안전하게 제거합니다 | 다른 설정은 그대로 둠 |
 | `claudetower statusline` | Claude Code가 내부적으로 자동 호출하는 명령입니다 | **직접 실행하실 일은 없습니다** |
 | `/claudetower-widgets` (Claude Code 채팅창) | 터미널 없이 대화로 위젯을 켜고 끕니다 | "컨텍스트랑 비용 꺼줘"처럼 말하면 됨 |
