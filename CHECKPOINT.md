@@ -1,6 +1,8 @@
 # ClaudeTower — CHECKPOINT
 
-> 마지막 갱신: 2026-07-18. 이 문서는 세션이 바뀌어도 "지금까지 뭘 했고, 다음에 뭘 해야 하는지"를 정확히 이어갈 수 있게 하는 목적 하나만 가진다. 완료 항목은 실제로 실행해 확인한 것만 done으로 표기한다(추측·희망 상태 금지).
+> 마지막 갱신: 2026-07-26. 이 문서는 세션이 바뀌어도 "지금까지 뭘 했고, 다음에 뭘 해야 하는지"를 정확히 이어갈 수 있게 하는 목적 하나만 가진다. 완료 항목은 실제로 실행해 확인한 것만 done으로 표기한다(추측·희망 상태 금지).
+
+> **2026-07-26 정정**: 이 문서가 2026-07-18 01:43 이후 갱신되지 않은 채 "M11 배포 미완료·승인 대기"로 남아있었으나, 그 사이(2026-07-16~17) main 병합과 v0.2.0/v0.3.0 릴리스가 이미 실제로 완료되어 있었다(`gh release list`·`git log origin/main` 직접 재확인, 아래 M11·M13 참고) — CHECKPOINT 자신이 stale해진 사례. M13에 정리했다.
 
 ---
 
@@ -292,13 +294,12 @@ Claude Code 화면에 상태표시줄 실제 표시 확인, `/claudetower-widget
   `ON`/빈 문자열 전부 정확히 거부, 위젯 토글과 powerline 설정이 서로 안 지워짐,
   uninstall 시 함께 정리됨).
 - 커밋: `5c81c3a`(코드), `d0e1c79`(Phase 1 체크리스트 정정, 별개 작업)
-- 상태: **코드·테스트 done. 배포는 미완료** — 작업 브랜치(`docs-and-fixes/2026-07-06`)에만
-  존재하고 아직 **main 미병합·릴리스 미발행**. `.PRD/03_PHASES.md` Phase 3 체크리스트도
-  이 커밋 이후 갱신이 누락돼 있었음 — 이번에 함께 정정.
-- **다음 단계(승인 대기, 미착수)**: main 병합 + v0.3.0 릴리스. M10 때와 같은 성격의 문제(코드는
-  있는데 공개 배포 채널·문서가 뒤처짐)가 규모만 작게 재발하지 않도록 필요. 공개 저장소에
-  대한 병합·릴리스라 사용자의 별도 확인 없이는 실행하지 않음(이 세션의 "안전한 commit/push"
-  기준과 동일 원칙 적용).
+- 상태: **완전히 종료(2026-07-26 재확인)** — **2026-07-26 정정**: 아래 "다음 단계(승인
+  대기, 미착수)"로 오랫동안 남아있었으나, 실제로는 2026-07-16~17에 이미 main 병합·v0.3.0
+  릴리스가 완료돼 있었다(M13 참고). 이 문서가 그 사실을 반영하지 못한 채 방치된 것 —
+  `gh release list`(v0.3.0, 2026-07-17T17:01:44Z, latest) · `git log HEAD..origin/main`(0건,
+  완전 동기화) 직접 재확인.
+- ~~**다음 단계(승인 대기, 미착수)**: main 병합 + v0.3.0 릴리스.~~ → **완료됨(위 상태 참고)**
 
 ---
 
@@ -433,6 +434,52 @@ Claude Code 화면에 상태표시줄 실제 표시 확인, `/claudetower-widget
 | Powerline **색상 테마**·Git/PR 위젯·`active_account` 위젯 (Phase 3) | 구분자 스타일만 M11로 선구현 완료. 나머지(색상 테마·계정연동 위젯)는 `active_account`가 Account 모듈 완성을 전제해 여전히 보류 | Phase 2 완료 후(단, Phase 2는 영구 보류 확정이라 사실상 무기한) |
 | Phase 2 — 계정 자동전환 모듈 | **영구 보류(2026-07-15 확정)**. Anthropic 공식 문서(legal-and-compliance, consumer-terms) 확인 결과 구독제 OAuth 서드파티 사용·자동화 접근이 독립된 두 조항으로 금지되어 있어 안전한 구현 방법이 없음(`.PRD/07_OAUTH_FLOW_SPEC.md §3` 참고) | 사용자가 API 키 기반 완전 재설계를 명시적으로 요청할 때만(별도 PRD 재작업 필요) |
 | Windows 코드서명 인증서 구매 | **2026-07-17 조사 완료, 지금은 안 산다로 확정**. 2024년 이후 EV 인증서도 즉시 SmartScreen 신뢰를 주지 않고 OV·EV 둘 다 다운로드 볼륨(수백~수천 건)에 따라 서서히 신뢰도가 쌓이는 방식으로 바뀜 — ClaudeTower 실사용자는 현재 사실상 1명뿐이라 지금 사도 경고가 안 사라질 가능성이 높음(WebSearch 근거, `.PRD/04_PROJECT_SPEC.md` 참고) | 설치량이 수백 건 단위로 늘어날 때(단순 "실사용자 피드백 존재"가 아니라 볼륨 기준으로 구체화) |
+| `npm audit` — `brace-expansion ≤5.0.7` high (GHSA-mh99-v99m-4gvg) | **2026-07-26 신규 발견**. 경로: `eslint@10.6.0 → minimatch@10.2.5 → brace-expansion` — **devDependency 전이 의존성**(`npm ls brace-expansion --all`로 확인). `package.json`에 `dependencies` 항목이 없고(런타임 의존성 0개), esbuild 번들에도 포함되지 않아 배포되는 실행 파일(exe)에는 영향 없음. `npm audit fix`로 해결 가능하나 eslint 하위 트리라 lint 규칙 회귀 여부를 `npm run verify`로 재확인 후 적용해야 함(P2, 안 해도 실사용자 위험 없음) | 다음 세션에서 `npm audit fix` 적용 + `npm run verify` 재확인 시 |
+
+---
+
+## M13: 2026-07-26 세션 — CHECKPOINT stale 정정 + PRD 승계 누락 복원 + 공식 문서 정합화
+
+> 사용자가 "CHECKPOINT.md·PRD를 전부 완벽하게 읽고 숙지"를 요구해 `.PRD/` 19개 파일(현행 9 +
+> `.archive/` 원본 10) 전수 재정독 + CHECKPOINT.md 447행 전문 재확인을 진행한 세션. 07-11·07-12
+> 세션이 겪었던 것과 같은 부류의 문제(승계 누락·문서 stale)를 다시 발견했다.
+
+**발견 1 — CHECKPOINT 자체가 stale [확인됨]**: 2026-07-18 01:43 이후 갱신되지 않은 채
+"M11 배포 미완료·승인 대기"로 남아있었으나, 실제로는 그 사이(2026-07-16~17) main 병합·v0.2.0/
+v0.3.0 릴리스가 이미 완료돼 있었다(`gh release list`·`git log HEAD..origin/main`=0건 직접
+재확인). M11 섹션을 정정함(위 참고).
+
+**발견 2 — PulseLine 원본 → 현행 PRD 승계 누락 [확인됨]**: `.PRD/04_PROJECT_SPEC.md`가
+"PulseLine 원 근거 계승"이라고 서술만 하고 실제 수치·규칙을 옮기지 않은 항목을
+`.PRD/.archive/PulseLine원본/04_PROJECT_SPEC.md`와 대조해 발견. **2026-07-11에 겪은
+ProxyConfig 검증범위 누락 사고(183행)와 정확히 같은 패턴**. 6건 발견, 4건 복원 완료:
+- [x] 최소 지원 Claude Code 버전(v2.1.153+, `COLUMNS`/`LINES` 지원 최저선) — 기술 스택 표에 신규 행 추가
+- [x] "0이 아닌 종료코드·빈 stdout 배포 금지"(공식 문서 명시 실패 모드) — DO NOT에 추가
+- [x] 캐시 키에 PID 대신 session_id 사용 — DO NOT에 추가
+- [x] 100ms 미만 성능 목표 — ALWAYS DO에 추가. **2026-07-26 실측**: 실제 렌더 조건(rate_limits 포함 JSON) 10회 평균 **77ms**/최대 84ms로 통과 확인(측정: `for i in 1..10; do date+%s%N ... claudetower.exe statusline ... done`, Git Bash). 자동화된 회귀 테스트는 아직 없음
+- [ ] `padding` 필드(공식 statusLine이 지원, StatuslineConfig에 있었음) — 미구현, 이번엔 미착수(Phase 3 후보)
+- [ ] Windows `COLUMNS`/`LINES` 기반 동적 폭 계산 — `src/display/config/gauge.js`가 이미 "근본 해결은 후속 작업"으로 인지만 하고 있음, 미착수
+
+**발견 3 — README/GUIDE 8개 파일 정합성 결함 2건 [확인됨, 전부 수정 완료]**:
+- **워크스페이스 신뢰(trust)·`disableAllHooks` 누락**: 공식 statusline 문서가 명시한 두 가지
+  실패 모드("신뢰 미수락 시 `statusline skipped · restart to fix`", "`disableAllHooks`가
+  상태표시줄도 함께 끔")가 PulseLine 원본 README 요구사항(Must Have)이었는데 8개 파일
+  전부(README/GUIDE × 한/영 × md/html) 트러블슈팅에 없었음 — 전부 추가 완료
+- **"다음 정식 릴리스에 포함 예정" / "pending the next release" 자기모순**: self-heal이 이미
+  v0.2.0에 포함됐다고 같은 문서의 변경이력이 스스로 서술하는데, 트러블슈팅 문구는 "다음
+  릴리스 예정"으로 남아있었음 — 8개 파일 전부 "v0.2.0부터 포함됨"으로 정정
+- GUIDE.md/GUIDE.en.md/GUIDE.html/GUIDE.en.html의 `claudetower --version` 예시 출력이
+  `0.1.10`으로 남아있던 것도 `0.3.0`으로 정정(changelog 섹션의 `v0.1.10` 표기는 과거 이력이라
+  올바른 내용 — 건드리지 않음)
+- 검증: `grep`으로 8개 파일 전부에서 stale 문구 0건·`disableAllHooks` 1건씩 존재 확인
+
+**발견 4 — `npm audit` 신규 advisory** [확인됨]: 위 보류 백로그 표 참고. 실사용자 위험 없음(P2).
+
+**이번 세션에서 하지 않은 것(정직하게 명시)**: 코드 변경 없음(문서만), `npm audit fix` 미적용,
+git 커밋/push 미실행 — 전부 사용자 확인 대기 중. `npm run verify`(179/179)·`test:accounts`
+(36/36) 재확인은 완료(회귀 없음, 문서만 바꿨으므로 예상대로).
+
+- 상태: **문서 수정 완료, 커밋 전 최종 검토 단계**
 
 ---
 
