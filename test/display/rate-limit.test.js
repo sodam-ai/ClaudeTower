@@ -115,3 +115,17 @@ test('renderRateLimit: five_hour/seven_day 둘 다 위험 구간이면 각자의
   assert.match(out, /5시간.*78%·1:41/);
   assert.match(out, /7일.*71%·[일월화수목금토]\d{2}:\d{2}/);
 });
+
+test('COLUMNS가 넓으면(>=120) 게이지가 더 길게 표시된다(다른 테스트 오염 방지: 항상 원복)', () => {
+  const original = process.env.COLUMNS;
+  try {
+    process.env.COLUMNS = '80';
+    const narrow = renderRateLimit({ rate_limits: { five_hour: { used_percentage: 50 } } }, FIXED_NOW);
+    process.env.COLUMNS = '200';
+    const wide = renderRateLimit({ rate_limits: { five_hour: { used_percentage: 50 } } }, FIXED_NOW);
+    assert.ok(wide.length > narrow.length, '넓은 터미널에서 렌더 결과가 더 길어야 한다');
+  } finally {
+    if (original === undefined) delete process.env.COLUMNS;
+    else process.env.COLUMNS = original;
+  }
+});
