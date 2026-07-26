@@ -477,7 +477,7 @@ ProxyConfig 검증범위 누락 사고(183행)와 정확히 같은 패턴**. 이
 - [x] "0이 아닌 종료코드·빈 stdout 배포 금지"(공식 문서 명시 실패 모드) — DO NOT에 추가
 - [x] 캐시 키에 PID 대신 session_id 사용 — DO NOT에 추가
 - [x] 100ms 미만 성능 목표 — ALWAYS DO에 추가. **2026-07-26 실측**: 실제 렌더 조건(rate_limits 포함 JSON) 10회 평균 **77ms**/최대 84ms로 통과 확인(측정: `for i in 1..10; do date+%s%N ... claudetower.exe statusline ... done`, Git Bash). 자동화된 회귀 테스트는 아직 없음
-- [ ] `padding` 필드(공식 statusLine이 지원, StatuslineConfig에 있었음) — 미구현, 이번엔 미착수(Phase 3 후보)
+- [x] `padding` 필드(공식 statusLine이 지원) — **2026-07-27 구현 완료**(M18 참고)
 - [ ] Windows `COLUMNS`/`LINES` 기반 동적 폭 계산 — `src/display/config/gauge.js`가 이미 "근본 해결은 후속 작업"으로 인지만 하고 있음, 미착수
 
 **발견 3 — README/GUIDE 8개 파일 정합성 결함 2건 [확인됨, 전부 수정 완료]**:
@@ -636,6 +636,31 @@ M16이 Account 경로가 막혔음을 확인한 직후, 같은 세션에서 완�
 전혀 연동되지 않아, model 위젯 하나만 꽉 차도(COLUMNS=80에서 125자) 게이지 폭 변경 여부와
 무관하게 이미 터미널 폭을 넘길 수 있다. `location.js`는 `path.basename`만 쓰므로 실사용
 위험 낮음. **이번 세션 범위 밖이라 손대지 않음** — 다음에 다룰 후보로만 기록.
+
+---
+
+## M18: 2026-07-27 세션 — `claudetower config padding <n>` 구현
+
+**중요한 방향 수정(실행 전 발견)**: `padding`을 gauge.js처럼 렌더링 코드의 개념으로 착각할
+뻔했으나, `RESEARCH_SOURCES.md` 원문 재확인 결과 이건 **Claude Code `settings.json`의
+`statusLine.padding` 설정 필드**임을 확인(공식 기본값 0). 렌더링 코드가 아니라
+`updateRefreshInterval`(설정 배선)과 동일한 패턴으로 구현해야 하는 작업이었다.
+
+- [x] `settings-writer.js`에 `updatePadding(padding, filePath)` 추가 — `updateRefreshInterval`과
+  동일 구조(statusLine 미설치 시 명확히 거부, 원자적 쓰기+백업)
+- [x] `config-command.js`에 `claudetower config padding <n>` 서브커맨드 추가
+- [x] **경계값 테스트로 실제 버그 1건 발견·즉시 수정**: `Number('')`는 `NaN`이 아니라 `0`이다
+  (JS 특유의 함정) — `refreshInterval`은 하한이 1이라 `0 < 1`로 우연히 걸러졌지만, `padding`은
+  하한이 0이라 빈 문자열이 유효값으로 통과하는 결함이 생겼다. `Number()` 호출 전 빈/공백
+  문자열을 명시적으로 거부하도록 수정. (참고: `statusline-refresh` 쪽은 지금도 정상 동작하지만
+  같은 함정을 우연히 피하고 있을 뿐이라는 걸 이번에 알게 됨 — 이번 세션에선 손대지 않음)
+- [x] 신규 테스트 7건(settings-writer.test.js 3건, config-command.test.js 4건)
+- [x] **실제 빌드된 exe로 격리 라이브 테스트**: `CLAUDETOWER_SETTINGS_PATH`로 임시 파일 격리 —
+  `padding 3`(정상 반영, hooks 등 다른 키 보존), `padding -1`(거부, 파일 무변경 확인),
+  `padding`(빈 값, 거부), `padding 0`(공식 기본값, 정상 반영) 전부 확인
+- 검증: `npm run verify` 193/193(신규 7건 포함, 회귀 없음), 실 exe 스모크 테스트 통과
+- 커밋: 예정(아래 실행 결과 참고). classifier 차단 없음(Display 전용)
+- 상태: **완료**
 
 ---
 
