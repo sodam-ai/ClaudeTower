@@ -55,7 +55,7 @@
 
 <blockquote>📖 <strong>New to computers or AI tools?</strong> We've prepared a much more detailed, beginner-friendly <a href="./GUIDE.en.html">Complete User Guide (GUIDE.en.html)</a>.</blockquote>
 
-<blockquote><strong>Current status (important)</strong>: This project provides the statusline (Display) feature only (current released version: v0.3.0). "① Statusline" below works right now. "② Account switching" <strong>will not be built</strong> — after reading Anthropic's official Terms of Service directly, we confirmed there is no way to implement this feature safely, so we decided not to build it (confirmed 2026-07-15; see "② Account switching" below for details).</blockquote>
+<blockquote><strong>Current status (important)</strong>: This project provides the statusline (Display) feature only (current released version: v0.4.0). "① Statusline" below works right now. "② Account switching" <strong>will not be built</strong> — after reading Anthropic's official Terms of Service directly, we confirmed there is no way to implement this feature safely, so we decided not to build it (confirmed 2026-07-15; see "② Account switching" below for details).</blockquote>
 
 <hr>
 
@@ -90,7 +90,7 @@
 
 <p>Example:</p>
 <pre><code>Sonnet 5  📁 my-project  컨텍스트 ██░░░ 45%  💰 $1.50  5시간 ████░ 78%·1:41  7일 ███░░ 71%·일06:00</code></pre>
-<p>(The reset countdown is always shown alongside the percentage, regardless of usage level.)</p>
+<p>(The reset countdown is always shown alongside the percentage, regardless of usage level. Also, if your terminal window is 120 columns or wider, the gauge bars automatically become more detailed — from 5 segments to 10 — with nothing to configure.)</p>
 
 <h3 id="quickstart">Quick start — download and run (for everyone, 5 steps)</h3>
 
@@ -185,6 +185,7 @@ npm run build</code></pre>
 <ul>
 <li>Nothing is ever sent externally. Everything runs locally on your machine.</li>
 <li>Each time Claude Code hands the statusline program your current state (project path, context usage, etc.), it's only rendered on screen — never stored.</li>
+<li>Even if a displayed value (e.g., a project folder name) contains an unusually long string or terminal control characters, it's automatically and safely cleaned up (length-limited and stripped of risky characters) before being shown, so the display never breaks.</li>
 </ul>
 
 <h3 id="architecture">Architecture (in plain terms)</h3>
@@ -203,10 +204,15 @@ npm run build</code></pre>
 <hr>
 
 <h2 id="changelog">Version history summary</h2>
-<p>Officially released versions (current latest: v0.3.0). Click to expand. <strong>For the full history and detailed notes, see <a href="./GUIDE.en.html#11">GUIDE.en.html, section 11</a>.</strong></p>
+<p>Officially released versions (current latest: v0.4.0). Click to expand. <strong>For the full history and detailed notes, see <a href="./GUIDE.en.html#11">GUIDE.en.html, section 11</a>.</strong></p>
 
 <details>
-<summary><strong>v0.3.0</strong> — Added Powerline separator command (latest)</summary>
+<summary><strong>v0.4.0</strong> — Dynamic gauge width + config padding command (latest)</summary>
+<p>Added automatic gauge-bar widening for wide terminals (120+ columns — bars go from 5 to 10 segments for finer detail) and a new <code>claudetower config padding &lt;n&gt;</code> command (default 0) that adjusts the statusline's left/right padding. Neither change affects narrow terminals or users who keep the defaults (the width auto-adjustment always falls back to the original 5 segments when narrow; padding's default is still 0, same as before). Also hardened <code>claudetower config statusline-refresh</code> against invalid input like empty strings (an internal robustness fix only — no visible behavior change).</p>
+</details>
+
+<details>
+<summary><strong>v0.3.0</strong> — Added Powerline separator command</summary>
 <p>A new <code>claudetower config powerline &lt;on|off&gt;</code> command lets you switch the separator between statusline widgets from the default plain double-space to a Powerline-style arrow glyph (U+E0B1). There's no color theme, just the glyph, and it defaults to OFF (opt-in), so existing users see zero behavior change unless they turn it on. This glyph uses a Nerd Font Private-Use-Area character, so terminals without a Nerd Font installed may show it as a broken or blank character — try it and check before committing to it.</p>
 </details>
 

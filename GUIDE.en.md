@@ -2,7 +2,7 @@
 
 > This guide is written so that anyone can follow it from start to finish, even with little or no prior experience using computers, smartphones, or AI tools. Wherever a technical term appears, a plain-language explanation follows right next to it.
 
-**Document version**: This guide covers ClaudeTower **v0.3.0**.
+**Document version**: This guide covers ClaudeTower **v0.4.0**.
 
 ---
 
@@ -45,6 +45,8 @@ What this line tells you:
 - **💰 $1.50** — how much this conversation has cost so far, in US dollars
 - **5시간 (5-hour) ████░ 78%·1:41** — you've used 78% of your 5-hour usage limit, and it resets in 1 hour 41 minutes
 - **7일 (7-day) ███░░ 71%·일06:00(Sun 06:00)** — you've used 71% of your 7-day usage limit, and it resets Sunday at 6:00 AM
+
+> Note: if your terminal window is 120 columns or wider, the gauge bars (the `████░`-style segments) automatically become more detailed — from 5 segments to 10. There's nothing to configure; it adapts to your window size automatically.
 
 **Most importantly**: this program **never touches your Claude account ID, password, or authentication credentials in any way.** It only displays information on screen — nothing more.
 
@@ -245,7 +247,7 @@ This program **never sends anything over the internet.** All information stays e
 
 | Command | What it does | Example |
 |---|---|---|
-| `claudetower --version` | Shows the currently installed version number | `0.3.0` |
+| `claudetower --version` | Shows the currently installed version number | `0.4.0` |
 | `claudetower --help` (or run with no arguments) | Shows usage instructions | — |
 | `claudetower setup` | Choose which widgets to show and auto-register with Claude Code (also installs the `/claudetower-widgets` chat command) | Answer 5 questions with Y/n |
 | `claudetower widgets` | Check which widgets are currently on | Shows status only, changes nothing |
@@ -301,10 +303,18 @@ This program **never sends anything over the internet.** All information stays e
 
 ## 11. Version history summary
 
-This program has been rapidly refined through real-world testing. Below is an accurate summary of what actually changed in each version (current latest **released** version: **v0.3.0**). Click any entry to expand it.
+This program has been rapidly refined through real-world testing. Below is an accurate summary of what actually changed in each version (current latest **released** version: **v0.4.0**). Click any entry to expand it.
 
 <details>
-<summary><strong>v0.3.0</strong> — Added Powerline separator command (latest release)</summary>
+<summary><strong>v0.4.0</strong> — Dynamic gauge width + config padding command (latest release)</summary>
+
+- Improved the gauge bars to automatically become more detailed when the terminal window is 120 columns or wider — 5 segments become 10. Narrow terminals always keep the original 5 segments, so existing users see zero change unless their terminal happens to be wide.
+- Added a new `claudetower config padding <n>` command that adjusts the official Claude Code statusLine's left/right padding (character count). The default is 0 (the same as Claude Code's own official default), so nothing changes unless you set it yourself.
+- Hardened the `claudetower config statusline-refresh` command against invalid input like empty strings (an internal robustness improvement only — no visible behavior change).
+</details>
+
+<details>
+<summary><strong>v0.3.0</strong> — Added Powerline separator command</summary>
 
 - Added a new `claudetower config powerline <on|off>` command that switches the separator between statusline widgets from the default plain double-space (`  `) to a Powerline-style arrow glyph (U+E0B1).
 - No color theme is included — this only toggles the glyph.
@@ -398,6 +408,7 @@ Initial release. Shows location, context, cost, and rate limits; `setup` install
 - Your Claude account ID, password, and authentication tokens (login credentials) are **structurally inaccessible to this program** (see Section 13, "Architecture").
 - The information Claude Code shares with it each time (working folder path, usage figures, etc.) is only used to render the display — it is **never stored anywhere.**
 - The only file this program actually saves to your computer is a small list of "which items to show" (e.g., whether to display context usage) — and that file never contains any personal or account information.
+- Even if a displayed value (e.g., a project folder name or model name) contains an unusually long string or terminal control characters, it's automatically and safely cleaned up (length-limited and stripped of risky characters) before being shown, so the display never breaks or behaves unexpectedly.
 
 ---
 
@@ -450,7 +461,7 @@ Here's where this program actually creates or uses files on your computer.
 ## 16. Frequently asked questions (FAQ)
 
 **Q. Does installing this collect my Claude account information?**
-A. No. Account-related code isn't included in this version (v0.3.0) at all. This program is structurally unable to see or store your ID, password, or authentication tokens.
+A. No. Account-related code isn't included in this version (v0.4.0) at all. This program is structurally unable to see or store your ID, password, or authentication tokens.
 
 **Q. Does anything get sent over the internet?**
 A. No. Everything runs locally, entirely on your own computer.
@@ -492,7 +503,7 @@ A. It's designed for personal use and is not intended for commercial sale or del
 
 ### 17-4. Commercial use — strict prohibition
 
-**The current version of this program (v0.3.0, Phase 1 MVP) is not designed for:**
+**The current version of this program (v0.4.0, Phase 1 MVP) is not designed for:**
 
 - ❌ Commercial sale
 - ❌ Being offered as a paid service
@@ -539,4 +550,4 @@ This project does not include a separate `NOTICE` file. Apache License 2.0 Secti
 
 ---
 
-*This document covers ClaudeTower v0.3.0 and is an extended companion to [`README.en.md`](./README.en.md). The Korean version is [`GUIDE.md`](./GUIDE.md).*
+*This document covers ClaudeTower v0.4.0 and is an extended companion to [`README.en.md`](./README.en.md). The Korean version is [`GUIDE.md`](./GUIDE.md).*

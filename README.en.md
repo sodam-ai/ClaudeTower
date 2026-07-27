@@ -6,7 +6,7 @@ A statusline CLI for Claude Code. (The account auto-switching feature was review
 
 > 📖 **New to computers or AI tools?** We've prepared a much more detailed, beginner-friendly [Complete User Guide (GUIDE.en.md)](./GUIDE.en.md).
 
-> **Current status (important)**: This project provides the statusline (Display) feature only (current released version: v0.3.0). "① Statusline" below works right now. "② Account switching" **will not be built** — after reading Anthropic's official Terms of Service directly, we confirmed there is no way to implement this feature safely, so we decided not to build it (confirmed 2026-07-15; see "② Account switching" below for details).
+> **Current status (important)**: This project provides the statusline (Display) feature only (current released version: v0.4.0). "① Statusline" below works right now. "② Account switching" **will not be built** — after reading Anthropic's official Terms of Service directly, we confirmed there is no way to implement this feature safely, so we decided not to build it (confirmed 2026-07-15; see "② Account switching" below for details).
 
 ---
 
@@ -39,7 +39,7 @@ Example:
 ```
 Sonnet 5  📁 my-project  컨텍스트 ██░░░ 45%  💰 $1.50  5시간 ████░ 78%·1:41  7일 ███░░ 71%·일06:00
 ```
-(The reset countdown is always shown alongside the percentage, regardless of usage level.)
+(The reset countdown is always shown alongside the percentage, regardless of usage level. Also, if your terminal window is 120 columns or wider, the gauge bars automatically become more detailed — from 5 segments to 10 — with nothing to configure.)
 
 ### Quick start — download and run (for everyone, 5 steps)
 
@@ -128,6 +128,7 @@ This produces one executable in `dist/` matching your OS. Run `npm run verify` a
 
 - Nothing is ever sent externally. Everything runs locally on your machine.
 - Each time Claude Code hands the statusline program your current state (project path, context usage, etc.), it's only rendered on screen — never stored.
+- Even if a displayed value (e.g., a project folder name) contains an unusually long string or terminal control characters, it's automatically and safely cleaned up (length-limited and stripped of risky characters) before being shown, so the display never breaks.
 
 ### Architecture (in plain terms)
 
@@ -148,10 +149,16 @@ In short, there was no way to build the original goal — automatically cycling 
 
 ## Version history summary
 
-Officially released versions (current latest: v0.3.0). Click to expand. **For the full history and detailed notes, see [GUIDE.en.md, section 11](./GUIDE.en.md#11-version-history-summary).**
+Officially released versions (current latest: v0.4.0). Click to expand. **For the full history and detailed notes, see [GUIDE.en.md, section 11](./GUIDE.en.md#11-version-history-summary).**
 
 <details>
-<summary><strong>v0.3.0</strong> — Added Powerline separator command (latest)</summary>
+<summary><strong>v0.4.0</strong> — Dynamic gauge width + config padding command (latest)</summary>
+
+Added automatic gauge-bar widening for wide terminals (120+ columns — bars go from 5 to 10 segments for finer detail) and a new `claudetower config padding <n>` command (default 0) that adjusts the statusline's left/right padding. Neither change affects narrow terminals or users who keep the defaults (the width auto-adjustment always falls back to the original 5 segments when narrow; padding's default is still 0, same as before). Also hardened `claudetower config statusline-refresh` against invalid input like empty strings (an internal robustness fix only — no visible behavior change).
+</details>
+
+<details>
+<summary><strong>v0.3.0</strong> — Added Powerline separator command</summary>
 
 A new `claudetower config powerline <on|off>` command lets you switch the separator between statusline widgets from the default plain double-space to a Powerline-style arrow glyph (U+E0B1). There's no color theme, just the glyph, and it defaults to OFF (opt-in), so existing users see zero behavior change unless they turn it on. This glyph uses a Nerd Font Private-Use-Area character, so terminals without a Nerd Font installed may show it as a broken or blank character — try it and check before committing to it.
 </details>

@@ -51,7 +51,7 @@
 
 <blockquote>This guide is written so that anyone can follow it from start to finish, even with little or no prior experience using computers, smartphones, or AI tools. Wherever a technical term appears, a plain-language explanation follows right next to it.</blockquote>
 
-<p><strong>Document version</strong>: This guide covers ClaudeTower <strong>v0.3.0</strong>.</p>
+<p><strong>Document version</strong>: This guide covers ClaudeTower <strong>v0.4.0</strong>.</p>
 
 <hr>
 
@@ -94,6 +94,8 @@
 <li><strong>5시간 (5-hour) ████░ 78%·1:41</strong> — you've used 78% of your 5-hour usage limit, and it resets in 1 hour 41 minutes</li>
 <li><strong>7일 (7-day) ███░░ 71%·일06:00 (Sun 06:00)</strong> — you've used 71% of your 7-day usage limit, and it resets Sunday at 6:00 AM</li>
 </ul>
+
+<blockquote>Note: if your terminal window is 120 columns or wider, the gauge bars (the <code>████░</code>-style segments) automatically become more detailed — from 5 segments to 10. There's nothing to configure; it adapts to your window size automatically.</blockquote>
 
 <p><strong>Most importantly</strong>: this program <strong>never touches your Claude account ID, password, or authentication credentials in any way.</strong> It only displays information on screen — nothing more.</p>
 
@@ -297,7 +299,7 @@ Answering <code>Y</code> means that from the next terminal window on, typing jus
 <table>
 <thead><tr><th>Command</th><th>What it does</th><th>Example</th></tr></thead>
 <tbody>
-<tr><td><code>claudetower --version</code></td><td>Shows the currently installed version number</td><td><code>0.3.0</code></td></tr>
+<tr><td><code>claudetower --version</code></td><td>Shows the currently installed version number</td><td><code>0.4.0</code></td></tr>
 <tr><td><code>claudetower --help</code> (or run with no arguments)</td><td>Shows usage instructions</td><td>—</td></tr>
 <tr><td><code>claudetower setup</code></td><td>Choose which widgets to show and auto-register with Claude Code (also installs the <code>/claudetower-widgets</code> chat command)</td><td>Answer 5 questions with Y/n</td></tr>
 <tr><td><code>claudetower widgets</code></td><td>Check which widgets are currently on</td><td>Shows status only, changes nothing</td></tr>
@@ -349,10 +351,19 @@ Answering <code>Y</code> means that from the next terminal window on, typing jus
 
 <h2 id="11">11. Version history summary</h2>
 
-<p>This program has been rapidly refined through real-world testing. Below is an accurate summary of what actually changed in each version (current latest <strong>released</strong> version: <strong>v0.3.0</strong>). Click any entry to expand it.</p>
+<p>This program has been rapidly refined through real-world testing. Below is an accurate summary of what actually changed in each version (current latest <strong>released</strong> version: <strong>v0.4.0</strong>). Click any entry to expand it.</p>
 
 <details>
-<summary><strong>v0.3.0</strong> — Added Powerline separator command (latest release)</summary>
+<summary><strong>v0.4.0</strong> — Dynamic gauge width + config padding command (latest release)</summary>
+<ul>
+<li>Improved the gauge bars to automatically become more detailed when the terminal window is 120 columns or wider — 5 segments become 10. Narrow terminals always keep the original 5 segments, so existing users see zero change unless their terminal happens to be wide.</li>
+<li>Added a new <code>claudetower config padding &lt;n&gt;</code> command that adjusts the official Claude Code statusLine's left/right padding (character count). The default is 0 (the same as Claude Code's own official default), so nothing changes unless you set it yourself.</li>
+<li>Hardened the <code>claudetower config statusline-refresh</code> command against invalid input like empty strings (an internal robustness improvement only — no visible behavior change).</li>
+</ul>
+</details>
+
+<details>
+<summary><strong>v0.3.0</strong> — Added Powerline separator command</summary>
 <ul>
 <li>Added a new <code>claudetower config powerline &lt;on|off&gt;</code> command that switches the separator between statusline widgets from the default plain double-space (<code>  </code>) to a Powerline-style arrow glyph (U+E0B1).</li>
 <li>No color theme is included — this only toggles the glyph.</li>
@@ -438,6 +449,7 @@ Answering <code>Y</code> means that from the next terminal window on, typing jus
 <li>Your Claude account ID, password, and authentication tokens (login credentials) are <strong>structurally inaccessible to this program</strong> (see Section 13, "Architecture").</li>
 <li>The information Claude Code shares with it each time (working folder path, usage figures, etc.) is only used to render the display — it is <strong>never stored anywhere.</strong></li>
 <li>The only file this program actually saves to your computer is a small list of "which items to show" (e.g., whether to display context usage) — and that file never contains any personal or account information.</li>
+<li>Even if a displayed value (e.g., a project folder name or model name) contains an unusually long string or terminal control characters, it's automatically and safely cleaned up (length-limited and stripped of risky characters) before being shown, so the display never breaks or behaves unexpectedly.</li>
 </ul>
 
 <hr>
@@ -499,7 +511,7 @@ Answering <code>Y</code> means that from the next terminal window on, typing jus
 <h2 id="16">16. Frequently asked questions (FAQ)</h2>
 
 <p><strong>Q. Does installing this collect my Claude account information?</strong><br>
-A. No. Account-related code isn't included in this version (v0.3.0) at all. This program is structurally unable to see or store your ID, password, or authentication tokens.</p>
+A. No. Account-related code isn't included in this version (v0.4.0) at all. This program is structurally unable to see or store your ID, password, or authentication tokens.</p>
 
 <p><strong>Q. Does anything get sent over the internet?</strong><br>
 A. No. Everything runs locally, entirely on your own computer.</p>
@@ -545,7 +557,7 @@ A. It's designed for personal use and is not intended for commercial sale or del
 
 <h3>17-4. Commercial use — strict prohibition</h3>
 
-<p><strong>The current version of this program (v0.3.0, Phase 1 MVP) is not designed for:</strong></p>
+<p><strong>The current version of this program (v0.4.0, Phase 1 MVP) is not designed for:</strong></p>
 
 <ul>
 <li>❌ Commercial sale</li>
@@ -597,7 +609,7 @@ A. It's designed for personal use and is not intended for commercial sale or del
 
 <hr>
 
-<p><em>This document covers ClaudeTower v0.3.0 and is an extended companion to <a href="./README.en.html"><code>README.en.md</code></a>. The Korean version is <a href="./GUIDE.html"><code>GUIDE.md</code></a>.</em></p>
+<p><em>This document covers ClaudeTower v0.4.0 and is an extended companion to <a href="./README.en.html"><code>README.en.md</code></a>. The Korean version is <a href="./GUIDE.html"><code>GUIDE.md</code></a>.</em></p>
 
 </body>
 </html>
