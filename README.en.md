@@ -6,7 +6,7 @@ A statusline CLI for Claude Code. (The account auto-switching feature was review
 
 > 📖 **New to computers or AI tools?** We've prepared a much more detailed, beginner-friendly [Complete User Guide (GUIDE.en.md)](./GUIDE.en.md).
 
-> **Current status (important)**: This project provides the statusline (Display) feature only (current released version: v0.3.0). "① Statusline" below works right now. "② Account switching" **will not be built** — after reading Anthropic's official Terms of Service directly, we confirmed there is no way to implement this feature safely, so we decided not to build it (confirmed 2026-07-15; see "② Account switching" below for details).
+> **Current status (important)**: This project provides the statusline (Display) feature only (current released version: v0.4.0). "① Statusline" below works right now. "② Account switching" **will not be built** — after reading Anthropic's official Terms of Service directly, we confirmed there is no way to implement this feature safely, so we decided not to build it (confirmed 2026-07-15; see "② Account switching" below for details).
 
 ---
 
@@ -100,6 +100,7 @@ If you accidentally delete that fixed-location copy too and the statusline stops
 - `claudetower widgets off <widgets...>` / `claudetower widgets on <widgets...>` — turn only the named widgets on/off (everything else stays as-is — no need to re-answer all 5 `setup` questions). Widget names: `model`, `location`, `context`, `cost`, `rate_limit`
 - `claudetower config statusline-refresh <seconds>` — adjusts how often the statusline refreshes (default 3s; if you keep several sessions open at once, raising it to 5s or more reduces load on your computer further). This value is kept even if you run `setup` again. You can also just say "slow down the statusline refresh" in the Claude Code chat instead of using a terminal
 - `claudetower config powerline <on|off>` (new) — switches the separator between widgets from two spaces to Powerline-style arrows (just the divider glyphs, no color theme; off by default). If your terminal doesn't have a Nerd Font installed, the arrows may render as broken glyphs, so check after turning it on
+- `claudetower config padding <n>` (new) — adjusts the official Claude Code statusLine's left/right padding (character count, default 0). Example: `claudetower config padding 2`
 - `claudetower uninstall` — safely removes only the statusline registration (leaves your other Claude Code settings untouched)
 - `claudetower statusline` — the renderer Claude Code invokes internally (you won't run this by hand)
 
@@ -147,10 +148,16 @@ In short, there was no way to build the original goal — automatically cycling 
 
 ## Version history summary
 
-Officially released versions (current latest: v0.3.0). Click to expand. **For the full history and detailed notes, see [GUIDE.en.md, section 11](./GUIDE.en.md#11-version-history-summary).**
+Officially released versions (current latest: v0.4.0). Click to expand. **For the full history and detailed notes, see [GUIDE.en.md, section 11](./GUIDE.en.md#11-version-history-summary).**
 
 <details>
-<summary><strong>v0.3.0</strong> — Added Powerline separator command (latest)</summary>
+<summary><strong>v0.4.0</strong> — Statusline gauge auto-width, padding command (latest)</summary>
+
+On wide terminal windows, the statusline's usage gauge bar now automatically stretches to match the terminal width (COLUMNS) instead of staying a fixed width, making tight ranges like 90-100% easier to distinguish. A new `claudetower config padding <n>` command lets you adjust the official Claude Code statusline padding (horizontal spacing in characters, default 0). Both features are designed not to change anything for existing users by default (the gauge only widens, never shrinks below the previous fixed width; padding is opt-in).
+</details>
+
+<details>
+<summary><strong>v0.3.0</strong> — Added Powerline separator command</summary>
 
 A new `claudetower config powerline <on|off>` command lets you switch the separator between statusline widgets from the default plain double-space to a Powerline-style arrow glyph (U+E0B1). There's no color theme, just the glyph, and it defaults to OFF (opt-in), so existing users see zero behavior change unless they turn it on. This glyph uses a Nerd Font Private-Use-Area character, so terminals without a Nerd Font installed may show it as a broken or blank character — try it and check before committing to it.
 </details>

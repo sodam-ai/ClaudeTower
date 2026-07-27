@@ -2,7 +2,7 @@
 
 > This guide is written so that anyone can follow it from start to finish, even with little or no prior experience using computers, smartphones, or AI tools. Wherever a technical term appears, a plain-language explanation follows right next to it.
 
-**Document version**: This guide covers ClaudeTower **v0.3.0**.
+**Document version**: This guide covers ClaudeTower **v0.4.0**.
 
 ---
 
@@ -245,7 +245,7 @@ This program **never sends anything over the internet.** All information stays e
 
 | Command | What it does | Example |
 |---|---|---|
-| `claudetower --version` | Shows the currently installed version number | `0.3.0` |
+| `claudetower --version` | Shows the currently installed version number | `0.4.0` |
 | `claudetower --help` (or run with no arguments) | Shows usage instructions | — |
 | `claudetower setup` | Choose which widgets to show and auto-register with Claude Code (also installs the `/claudetower-widgets` chat command) | Answer 5 questions with Y/n |
 | `claudetower widgets` | Check which widgets are currently on | Shows status only, changes nothing |
@@ -253,6 +253,7 @@ This program **never sends anything over the internet.** All information stays e
 | `claudetower status` | Check current install status and which widgets are enabled | Shows "installed" / "not installed" / "broken" |
 | `claudetower config statusline-refresh <seconds>` | Adjusts how often the statusline refreshes (default 3 seconds). If you keep several windows open at once, raising it to 5 seconds or more reduces load on your computer further. You can also just say "slow down the statusline refresh" in chat instead of using a terminal | `claudetower config statusline-refresh 5` |
 | `claudetower config powerline <on\|off>` | Switches the separator between widgets from two spaces to Powerline-style arrow glyphs (only the divider changes — no color theme; off by default). If you don't have a Nerd Font installed (a terminal font bundled with special icon glyphs), the arrows may show up as broken boxes, so check your screen after turning it on | `claudetower config powerline on` |
+| `claudetower config padding <n>` | Adjusts the official Claude Code statusLine's left/right padding (character count, default 0) | `claudetower config padding 2` |
 | `claudetower uninstall` | Safely remove the statusline registration and the `/claudetower-widgets` chat command | Other settings are left untouched |
 | `claudetower statusline` | The renderer Claude Code calls internally | **You never need to run this yourself** |
 | `/claudetower-widgets` (in Claude Code chat) | Turn widgets on/off conversationally, no terminal needed | Just say "turn off context and cost" |
@@ -300,10 +301,16 @@ This program **never sends anything over the internet.** All information stays e
 
 ## 11. Version history summary
 
-This program has been rapidly refined through real-world testing. Below is an accurate summary of what actually changed in each version (current latest **released** version: **v0.3.0**). Click any entry to expand it.
+This program has been rapidly refined through real-world testing. Below is an accurate summary of what actually changed in each version (current latest **released** version: **v0.4.0**). Click any entry to expand it.
 
 <details>
-<summary><strong>v0.3.0</strong> — Added Powerline separator command (latest release)</summary>
+<summary><strong>v0.4.0</strong> — Statusline gauge auto-width, padding command (latest)</summary>
+
+On wide terminal windows, the statusline's usage gauge bar now automatically stretches to match the terminal width (COLUMNS) instead of staying a fixed width, making tight ranges like 90-100% easier to distinguish. A new `claudetower config padding <n>` command lets you adjust the official Claude Code statusline padding (horizontal spacing in characters, default 0). Both features are designed not to change anything for existing users by default (the gauge only widens, never shrinks below the previous fixed width; padding is opt-in).
+</details>
+
+<details>
+<summary><strong>v0.3.0</strong> — Added Powerline separator command</summary>
 
 - Added a new `claudetower config powerline <on|off>` command that switches the separator between statusline widgets from the default plain double-space (`  `) to a Powerline-style arrow glyph (U+E0B1).
 - No color theme is included — this only toggles the glyph.
@@ -449,7 +456,7 @@ Here's where this program actually creates or uses files on your computer.
 ## 16. Frequently asked questions (FAQ)
 
 **Q. Does installing this collect my Claude account information?**
-A. No. Account-related code isn't included in this version (v0.3.0) at all. This program is structurally unable to see or store your ID, password, or authentication tokens.
+A. No. Account-related code isn't included in this version (v0.4.0) at all. This program is structurally unable to see or store your ID, password, or authentication tokens.
 
 **Q. Does anything get sent over the internet?**
 A. No. Everything runs locally, entirely on your own computer.
@@ -491,7 +498,7 @@ A. It's designed for personal use and is not intended for commercial sale or del
 
 ### 17-4. Commercial use — strict prohibition
 
-**The current version of this program (v0.3.0, Phase 1 MVP) is not designed for:**
+**The current version of this program (v0.4.0, Phase 1 MVP) is not designed for:**
 
 - ❌ Commercial sale
 - ❌ Being offered as a paid service
@@ -538,4 +545,4 @@ This project does not include a separate `NOTICE` file. Apache License 2.0 Secti
 
 ---
 
-*This document covers ClaudeTower v0.3.0 and is an extended companion to [`README.en.md`](./README.en.md). The Korean version is [`GUIDE.md`](./GUIDE.md).*
+*This document covers ClaudeTower v0.4.0 and is an extended companion to [`README.en.md`](./README.en.md). The Korean version is [`GUIDE.md`](./GUIDE.md).*
