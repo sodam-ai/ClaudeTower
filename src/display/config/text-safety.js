@@ -19,10 +19,14 @@ const ELLIPSIS = '…';
 // 텍스트를 "정상"으로 잘못 고정하고 있었음. ESC로 시작하는 CSI 시퀀스 전체를 하나의
 // 단위로 먼저 제거한 뒤, 남은 단독 제어문자도 마저 제거한다.
 const ANSI_CSI_SEQUENCE = /\x1b\[[0-9;]*[a-zA-Z]/g;
+// 같은 재검증에서 발견: OSC 시퀀스(터미널 창 제목 변경 등, ESC ] ... BEL 또는 ESC \\로 끝남)도
+// CSI와 동일한 부류의 잔여 텍스트 문제가 있었다 — 정상 종료된(BEL/ST로 닫힌) OSC 시퀀스를
+// 통째로 제거한다. 종료되지 않은 비정상 시퀀스는 아래 CONTROL_CHARS가 ESC/BEL만이라도 지운다.
+const ANSI_OSC_SEQUENCE = /\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g;
 const CONTROL_CHARS = /[\x00-\x1F\x7F]/g;
 
 function stripControlChars(text) {
-  return text.replace(ANSI_CSI_SEQUENCE, '').replace(CONTROL_CHARS, '');
+  return text.replace(ANSI_OSC_SEQUENCE, '').replace(ANSI_CSI_SEQUENCE, '').replace(CONTROL_CHARS, '');
 }
 
 function truncateForDisplay(text, maxLength = MAX_DISPLAY_LENGTH) {

@@ -29,6 +29,22 @@ test('ANSI CSI 시퀀스는 ESC 바이트뿐 아니라 잔여 텍스트("[31m" �
   assert.equal(stripControlChars(`${esc}[1;31mred${esc}[0m`), 'red');
 });
 
+test('ANSI OSC 시퀀스(터미널 제목 변경 등, BEL로 종료)도 통째로 제거한다(2026-07-27 재검증 발견)', () => {
+  const esc = String.fromCharCode(0x1b);
+  const bel = String.fromCharCode(0x07);
+  assert.equal(stripControlChars(`${esc}]0;evil-title${bel}visible`), 'visible');
+});
+
+test('ANSI OSC 시퀀스(ST=ESC\\\\로 종료)도 통째로 제거한다', () => {
+  const esc = String.fromCharCode(0x1b);
+  assert.equal(stripControlChars(`${esc}]0;evil-title${esc}\\visible`), 'visible');
+});
+
+test('ESC 없는 대괄호+숫자+문자 조합(정상 텍스트, 예: 폴더명 "[1]backup")은 절대 지워지지 않는다(오탐 방지 회귀 테스트)', () => {
+  assert.equal(stripControlChars('[1]backup-2026'), '[1]backup-2026');
+  assert.equal(stripControlChars(']0;not-an-escape'), ']0;not-an-escape');
+});
+
 test('개행·탭 등 다른 C0 제어문자도 제거한다', () => {
   const out = stripControlChars('line1\nline2\ttabbed\rreturn');
   assert.equal(out, 'line1line2tabbedreturn');
