@@ -66,6 +66,14 @@ function runConfigCommand(args, { settingsPath, widgetConfigPath, log = () => {}
     return { applied: false };
   }
 
+  // padding과 동일한 이유로 명시적 방어를 추가한다(M18에서 발견): 지금은 하한이 1이라
+  // Number('')===0이 "< 1"에 우연히 걸려 안전하지만, 그건 우연이지 의도가 아니다 — 하한이
+  // 나중에 바뀌면 padding이 실제로 겪었던 결함이 여기서도 재현될 수 있다. 동작은 바뀌지
+  // 않는다(빈/공백 문자열은 지금도 거부됨), 의도를 코드로 명시할 뿐이다.
+  if (typeof value !== 'string' || value.trim() === '') {
+    log('갱신 주기는 1 이상의 정수(초)여야 합니다. 예: claudetower config statusline-refresh 5');
+    return { applied: false };
+  }
   const seconds = Number(value);
   if (!Number.isInteger(seconds) || seconds < 1) {
     log('갱신 주기는 1 이상의 정수(초)여야 합니다. 예: claudetower config statusline-refresh 5');
