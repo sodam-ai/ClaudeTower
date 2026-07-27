@@ -12,11 +12,17 @@ const ELLIPSIS = '…';
 // current_dir나 model.display_name에 ANSI 이스케이프 시퀀스(예: 화면 지우기, 가짜 색상)가
 // 섞여 있으면 상태표시줄에 그대로 주입됐다. C0 제어문자(0x00~0x1F)와 DEL(0x7F)만 제거하고
 // 한글·이모지 등 일반 유니코드 문자는 전혀 건드리지 않는다(이 범위 밖이라 안전).
-// eslint-disable-next-line no-control-regex
+//
+// 2026-07-27 재검증 발견: 위 방식은 ESC(0x1b) 바이트만 지워 실제 터미널 제어 코드 "실행"은
+// 막았지만(보안 문제는 아니었음), CSI 시퀀스의 나머지("[2J"·"[31m" 등)가 그대로 화면에
+// 지저분한 텍스트로 남는 결함이 있었다 — 기존 테스트(text-safety.test.js)가 이 잔여
+// 텍스트를 "정상"으로 잘못 고정하고 있었음. ESC로 시작하는 CSI 시퀀스 전체를 하나의
+// 단위로 먼저 제거한 뒤, 남은 단독 제어문자도 마저 제거한다.
+const ANSI_CSI_SEQUENCE = /\x1b\[[0-9;]*[a-zA-Z]/g;
 const CONTROL_CHARS = /[\x00-\x1F\x7F]/g;
 
 function stripControlChars(text) {
-  return text.replace(CONTROL_CHARS, '');
+  return text.replace(ANSI_CSI_SEQUENCE, '').replace(CONTROL_CHARS, '');
 }
 
 function truncateForDisplay(text, maxLength = MAX_DISPLAY_LENGTH) {

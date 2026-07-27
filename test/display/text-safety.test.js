@@ -20,7 +20,13 @@ test('ESC(0x1b) 등 C0 제어문자를 제거한다(터미널 이스케이프 �
   const malicious = `Sonnet${esc}[31mFAKE-RED${esc}[0m`;
   const out = truncateForDisplay(malicious);
   assert.equal(out.includes(esc), false);
-  assert.equal(out, 'Sonnet[31mFAKE-RED[0m');
+  assert.equal(out, 'SonnetFAKE-RED');
+});
+
+test('ANSI CSI 시퀀스는 ESC 바이트뿐 아니라 잔여 텍스트("[31m" 등)까지 통째로 제거한다(2026-07-27 재검증 발견 — 기존엔 ESC만 지워 잔여 텍스트가 화면에 남았음)', () => {
+  const esc = String.fromCharCode(0x1b);
+  assert.equal(stripControlChars(`before${esc}[2Jafter`), 'beforeafter');
+  assert.equal(stripControlChars(`${esc}[1;31mred${esc}[0m`), 'red');
 });
 
 test('개행·탭 등 다른 C0 제어문자도 제거한다', () => {
