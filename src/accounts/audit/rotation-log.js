@@ -48,13 +48,24 @@ function appendRotationEvent(eventFields, filePath) {
   return { event, permissionRestricted };
 }
 
+// 2026-07-28 실측으로 발견한 결함: 줄 하나가 손상되면(디스크 오류·비정상 종료 등)
+// JSON.parse가 예외를 던져 파일 전체를 못 읽게 되던 것을 수정 — 감사 로그는 정의상
+// "일부가 손상돼도 나머지는 읽혀야" 신뢰할 수 있는데, 정반대로 동작하고 있었다.
+// 손상된 줄만 건너뛰고 나머지 정상 줄은 그대로 반환한다(반환 타입은 배열 그대로 유지).
 function readRotationEvents(filePath) {
   if (!fs.existsSync(filePath)) return [];
-  return fs
-    .readFileSync(filePath, 'utf8')
-    .split('\n')
-    .filter((line) => line.trim().length > 0)
-    .map((line) => JSON.parse(line));
+  const events = [];
+  for (const line of fs.readFileSync(filePath, 'utf8').split('\n')) {
+    if (line.trim().length === 0) continue;
+    try {
+      events.push(JSON.parse(line));
+    } catch {
+      // 손상된 한 줄 때문에 나머지 감사 기록 전체를 못 읽게 되는 것을 막는다 —
+      // 이 줄만 건너뛴다(silent fallback과는 다르다: "무시"가 아니라 "전체 로그
+      // 접근성을 지키기 위한 격리"가 목적).
+    }
+  }
+  return events;
 }
 
 module.exports = { appendRotationEvent, readRotationEvents };

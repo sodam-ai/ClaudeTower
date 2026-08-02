@@ -86,6 +86,17 @@ test('readRotationEvents: 기록된 이벤트를 순서대로 그대로 읽어�
   assert.equal(events[1].event_id, 'evt-002');
 });
 
+test('readRotationEvents: 손상된 줄이 하나 섞여도 나머지 정상 이벤트는 그대로 읽는다(2026-07-28 실측 발견 회귀 테스트)', () => {
+  const filePath = tempAuditPath();
+  appendRotationEvent(VALID, filePath);
+  fs.appendFileSync(filePath, 'CORRUPTED_NOT_JSON\n');
+  appendRotationEvent({ ...VALID, eventId: 'evt-002', occurredAt: '2026-07-28T01:00:00Z' }, filePath);
+  const events = readRotationEvents(filePath);
+  assert.equal(events.length, 2, '손상된 줄 때문에 파일 전체 읽기가 실패하면 안 된다');
+  assert.equal(events[0].event_id, 'evt-001');
+  assert.equal(events[1].event_id, 'evt-002');
+});
+
 test('readRotationEvents: 빈 줄(파일 끝 개행 등)이 섞여도 무시하고 유효한 줄만 파싱한다', () => {
   const filePath = tempAuditPath();
   appendRotationEvent(VALID, filePath);
