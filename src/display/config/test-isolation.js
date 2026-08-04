@@ -20,6 +20,7 @@ const ISOLATION_VARS = [
   'CLAUDETOWER_WIDGET_CONFIG_PATH',
   'CLAUDETOWER_SKILLS_DIR',
   'CLAUDETOWER_INSTALL_DIR',
+  'CLAUDETOWER_CACHE_DIR',
 ];
 
 function isPartialIsolation(ownOverrideVar) {
