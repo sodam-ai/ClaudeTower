@@ -13,6 +13,7 @@ const { addDirToUserPath } = require('./config/path-registration');
 const WIDGET_LABELS = {
   model: '사용 모델',
   location: '프로젝트 위치',
+  git: 'Git 브랜치/변경사항',
   context: '컨텍스트 사용량',
   cost: '비용',
   rate_limit: '사용률(5시간/7일)',

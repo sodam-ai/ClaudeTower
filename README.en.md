@@ -2,9 +2,11 @@
 
 [한국어](./README.md) | [English](./README.en.md)
 
-A statusline CLI for Claude Code. Written so that anyone can follow it from start to finish, even with little or no prior experience with computers or AI tools — this single document covers everything from installation to troubleshooting and legal information. (The account auto-switching feature was reviewed and will not be built, for legal reasons — see "② Account switching" below.)
+A statusline CLI for Claude Code. Written so that anyone can follow it from start to finish, even with little or no prior experience with computers or AI tools — this single document covers everything from installation to troubleshooting and legal information. (The account auto-switching feature is not included in the current release, per our Terms-of-Service review — see "② Account switching" below.)
 
-> **Current status (important)**: This project provides the statusline (Display) feature only (current released version: v0.4.0). "① Statusline" below works right now. "② Account switching" **will not be built** — after reading Anthropic's official Terms of Service directly, we confirmed there is no way to implement this feature safely, so we decided not to build it (confirmed 2026-07-15; see "② Account switching" below for details).
+> **Current status (important)**: This project ships the statusline (Display) feature only (current released version: v0.4.0). "① Statusline" below works right now. "② Account switching" is **not included in the current release at all** — after reading Anthropic's official Terms of Service directly, we confirmed this feature conflicts with the ToS, and that finding still stands. The related code is not included in the actual distributed executable (confirmed 2026-07-15; see "② Account switching" below for details).
+>
+> **This document is written against the latest developed state of the code.** The actual downloadable release (GitHub Release) is a snapshot from its own release date, so there can be a gap between what this document describes and what's in the build you download — check "Version history summary" below and the [Releases page](https://github.com/sodam-ai/ClaudeTower/releases/latest) for what's actually in a given release.
 
 ---
 
@@ -19,11 +21,14 @@ A statusline CLI for Claude Code. Written so that anyone can follow it from star
   - [Command list](#commands-only-what-actually-exists-right-now)
   - [Chat-based toggling](#turn-widgets-onoff-right-from-the-claude-code-chat--no-terminal-needed)
   - [Building from source & testing](#for-developers--building-from-source--testing)
+  - [Folder structure](#folder-structure)
+  - [Environment variables](#environment-variables-advanced-usersdevelopers)
   - [How it works (concept)](#how-it-works-concept)
+  - [Workflow](#workflow)
   - [Security & data flow](#security--data-flow)
   - [File & document locations](#file--document-locations)
   - [Architecture](#architecture-in-plain-terms)
-- [② Account switching (decided not to build)](#②-account-switching-decided-not-to-build)
+- [② Account switching (not included in the current release)](#②-account-switching-not-included-in-the-current-release)
 - [Version history summary](#version-history-summary)
 - [Troubleshooting](#troubleshooting)
 - [FAQ](#faq)
@@ -38,9 +43,9 @@ Shows your current project path, active model, context usage, cost, and rate lim
 
 Example:
 ```
-Sonnet 5  📁 my-project  컨텍스트 ██░░░ 45%  💰 $1.50  5시간 ████░ 78%·1:41  7일 ███░░ 71%·일06:00
+Sonnet 5  📁 my-project  🌿 main  컨텍스트 ██░░░ 45%  💰 $1.50  5시간 ████░ 78%·1:41  7일 ███░░ 71%·일06:00
 ```
-(The reset countdown is always shown alongside the percentage, regardless of usage level. Also, if your terminal window is 120 columns or wider, the gauge bars automatically become more detailed — from 5 segments to 10 — with nothing to configure.)
+(The reset countdown is always shown alongside the percentage, regardless of usage level. If your terminal window is 120 columns or wider, the gauge bars automatically become more detailed — from 5 segments to 10 — with nothing to configure. The Git branch/changes item only appears automatically when the current folder is a git repository, and is hidden automatically otherwise. Conversely, if your screen is too narrow for every item to fit on one line, relatively lower-priority items [in this order, from the back: Git → rate limits → cost → context] are automatically dropped so the line never wraps and breaks the display — this also requires no configuration.)
 
 ### Before you start
 
@@ -60,6 +65,8 @@ Sonnet 5  📁 my-project  컨텍스트 ██░░░ 45%  💰 $1.50  5시간
 | A web browser (Chrome, Edge, etc.) | Needed to reach the page where you download the program file (no GitHub login required) | Whatever browser you normally use is fine |
 
 **Important**: Regular users **do not need to install Node.js at all.** Just download one file and you're ready to go.
+
+**Optional — Git**: If [Git](https://git-scm.com) is installed on your computer and the folder you're working in is a git repository, the statusline automatically shows the current branch name and change count too. If Git isn't installed, or it's not a git repository, that's completely fine — this one item is simply hidden, and everything else works exactly as normal.
 
 **For developers (want to modify, build, or test the source code)**
 
@@ -131,17 +138,17 @@ If you accidentally delete that fixed-location copy too and the statusline stops
 - `claudetower status` — check whether it's currently installed and which widgets are enabled
   ```
   Install status: installed (claudetower's statusline is registered with Claude Code)
-  Widgets shown: model, project location, context usage, cost, rate limits (5h/7d)
+  Widgets shown: model, project location, git branch/changes, context usage, cost, rate limits (5h/7d)
   ```
 - `claudetower widgets` — check which widgets are currently on
-- `claudetower widgets off <widgets...>` / `claudetower widgets on <widgets...>` — turn only the named widgets on/off (everything else stays as-is — no need to re-answer all 5 `setup` questions). Widget names: `model`, `location`, `context`, `cost`, `rate_limit`
+- `claudetower widgets off <widgets...>` / `claudetower widgets on <widgets...>` — turn only the named widgets on/off (everything else stays as-is — no need to re-answer every `setup` question). Widget names: `model`, `location`, `git`, `context`, `cost`, `rate_limit`
 - `claudetower config statusline-refresh <seconds>` — adjusts how often the statusline refreshes (default 3s; if you keep several sessions open at once, raising it to 5s or more reduces load on your computer further). This value is kept even if you run `setup` again. You can also just say "slow down the statusline refresh" in the Claude Code chat instead of using a terminal
 - `claudetower config powerline <on|off>` — switches the separator between widgets from two spaces to Powerline-style arrows (just the divider glyphs, no color theme; off by default). If your terminal doesn't have a Nerd Font installed, the arrows may render as broken glyphs, so check after turning it on
 - `claudetower config padding <n>` — adjusts the official Claude Code statusLine's left/right padding (character count, default 0). Example: `claudetower config padding 2`
 - `claudetower uninstall` — safely removes only the statusline registration (leaves your other Claude Code settings untouched)
 - `claudetower statusline` — the renderer Claude Code invokes internally (you won't run this by hand)
 
-> Account-related commands like `accounts` **do not exist** (the account-switching feature has been decided against — see "② Account switching" below).
+> Account-related commands like `accounts` **do not exist** — the currently distributed release contains no account-related code at all (see "② Account switching" below).
 
 ### Turn widgets on/off right from the Claude Code chat — no terminal needed
 
@@ -166,16 +173,63 @@ This produces one executable in `dist/` matching your OS.
 | `npm run lint:boundary` | Verifies the Display and Account modules never mix |
 | `npm run verify` | Runs lint, module-boundary check, and tests together (recommended before committing) |
 
+### Folder structure
+
+Here's the main layout of the repository root (regular users don't need to look at this).
+
+```
+ClaudeTower/
+├── bin/claudetower.js       # CLI entry point (command routing)
+├── src/
+│   ├── display/               # Statusline feature — a safe module that never touches account data
+│   │   ├── widgets/            # model, location, git, context, cost, rate-limit widgets
+│   │   ├── config/             # settings read/write, gauge & text-safety helpers, etc.
+│   │   └── cache/               # Local Git-info cache
+│   └── accounts/              # Account-switching code — not included in the current release (see "② Account switching" above)
+├── test/                     # Tests for the display/accounts modules
+├── scripts/                  # Build & module-boundary check scripts
+├── .PRD/                     # Design rationale & decision history (for developers)
+├── install.sh / install.ps1  # One-liner install scripts
+└── LICENSE                   # Full text of the Apache License 2.0
+```
+
+### Environment variables (advanced users/developers)
+
+Regular users can skip this table entirely — all of these are optional, and the program works normally with none of them set.
+
+| Variable | Purpose | Notes |
+|---|---|---|
+| `COLUMNS` | Terminal width in columns — set automatically by Claude Code | Used for auto gauge-width expansion and line-length management (see "Example" above). You'll rarely need to set this by hand |
+| `CLAUDETOWER_SETTINGS_PATH` | Path to use instead of Claude Code's `settings.json` | Mainly for testing/isolated runs. Defaults to `~/.claude/settings.json` if unset |
+| `CLAUDETOWER_WIDGET_CONFIG_PATH` | Path to use instead of the widget settings file (`config.json`) | Same purpose as above |
+| `CLAUDETOWER_INSTALL_DIR` | Overrides where the executable installs itself | Same purpose as above |
+| `CLAUDETOWER_SKILLS_DIR` / `CLAUDE_CONFIG_DIR` | Overrides where the `/claudetower-widgets` chat command file installs | Same purpose as above |
+| `CLAUDETOWER_CACHE_DIR` | Overrides where the Git-info cache is stored | Same purpose as above |
+
+> These variables mostly exist so this project's own automated tests can run in isolation without touching your real files. You'll rarely need to set them yourself, but they're documented here precisely in case you ever need to reproduce or diagnose an issue.
+
 ### How it works (concept)
 
 In plain terms: every time you interact with Claude Code, it briefly shares your "current situation" (which folder you're working in, which model you're using, how much you've spent, etc.) with this program. The program takes that information and turns it into a "nicely formatted single line," which it hands back to Claude Code, and Claude Code displays that line at the bottom of your screen. Think of it like having someone sit next to you whose only job is to make a little status sign — they can see where you are (your folder) and what time it is (rate-limit reset time), and they make you a sign based on that. But they never touch your wallet or ID (your account credentials).
 
+### Workflow
+
+Here's the actual sequence of what happens inside your computer to produce one line on screen (all of it happens locally, and it usually takes well under a second).
+
+1. While you're chatting with Claude Code, it automatically runs this program on a set interval (default 3 seconds, adjustable via `config statusline-refresh`).
+2. Claude Code sends this program a short block of text (JSON) describing "the current situation" — your working folder path, the model in use, context usage, cost, and rate limits.
+3. This program checks each enabled widget (model/location/git/context/cost/rate limits) one by one — any item with no value or nothing to show is silently skipped (for example, the Git item is skipped if the folder isn't a git repository).
+4. For the Git item, it asks the `git` program installed on your computer for the branch name and change count. If it's asked again within 5 seconds in the same session, it reuses the value it just checked instead of asking again (a small local cache to reduce load — see "Security & data flow" below).
+5. It joins the confirmed items into one human-readable line. If the line would be too long for your screen width, lower-priority items are automatically dropped first so the line never wraps.
+6. It hands the finished line back to Claude Code, which displays it exactly as-is at the bottom of your screen.
+
 ### Security & data flow
 
 - Nothing is ever sent externally. Everything runs locally on your machine.
-- Each time Claude Code hands the statusline program your current state (project path, context usage, etc.), it's only rendered on screen — never stored.
-- Even if a displayed value (e.g., a project folder name) contains an unusually long string or terminal control characters, it's automatically and safely cleaned up (length-limited and stripped of risky characters) before being shown, so the display never breaks.
-- The only file this program actually saves to your computer is a small "which items to show" list — see "File & document locations" below — and that file never contains any personal or account information.
+- Each time Claude Code hands the statusline program your current state (project path, context usage, etc.), it's only rendered on screen — account information and conversation content are never stored.
+- Even if a displayed value (e.g., a project folder name) contains an unusually long string or terminal control characters, it's automatically and safely cleaned up (length-limited and stripped of risky characters) before being shown, so the display never breaks. The total length of the whole line is also automatically kept within your screen width, not just each individual item (see "Workflow" step 5 above).
+- The Git branch name and change count are cached locally for a brief 5 seconds and then reused. This cache file also never contains any personal or account information (only the branch name and a count of changed files are stored), and the design ensures that even if this caching fails for any reason, it never affects what's shown on screen (see "File & document locations" below).
+- The only files this program actually saves to your computer are the small "which items to show" list and the Git cache above — neither ever contains any personal or account information.
 
 ### File & document locations
 
@@ -185,6 +239,7 @@ Here's where this program actually creates or uses files on your computer.
 |---|---|---|
 | Installed executable | `C:\Users\YourName\.claudetower\bin\claudetower.exe` | The file `setup` automatically copies itself to — this is the actual "real" program |
 | Widget settings | `C:\Users\YourName\.claudetower\config.json` | A small file storing which items to display |
+| Git info cache | `C:\Users\YourName\.claudetower\cache\` | A folder that briefly (5 seconds) caches the Git branch name and change count to reduce load. No personal or account information. Safe to delete — it's recreated automatically next run |
 | Claude Code global settings | `C:\Users\YourName\.claude\settings.json` | Claude Code's own settings file. This program only uses the "statusLine" portion of it and never touches anything else in this file |
 | Settings backup | `C:\Users\YourName\.claude\settings.json.bak` | An automatic backup of your settings taken right before any change — useful if something goes wrong |
 
@@ -194,18 +249,18 @@ Here's where this program actually creates or uses files on your computer.
 
 ### Architecture (in plain terms)
 
-This program was designed from the start with the "statusline" part and the "account-switching" part completely separated. The "statusline room" only displays information on screen, so it's always safe. The "account-switching room" was only ever a design sketch — it was never actually built, and for the reasons explained below, it has now been decided that it never will be.
+This program was designed from the start with the "statusline" part and the "account-switching" part completely separated. The "statusline room" only displays information on screen, so it's always safe. The "account-switching room" is still under careful review because of the Terms-of-Service conflict — some internal components have been built experimentally, but they are not wired into the "statusline room" and are not included in the distributed program (see "② Account switching" below for details).
 
 ---
 
-## ② Account switching (decided not to build)
+## ② Account switching (not included in the current release)
 
 Originally, this project planned to add a feature that would let you automatically switch between multiple Claude accounts. On 2026-07-15, after reading Anthropic's official Terms of Service directly, we confirmed there is no safe way to build this feature.
 
 - Anthropic explicitly prohibits third-party tools from logging in with subscription (Free/Pro/Max) credentials and using that account on a user's behalf. As of 2026-01-09, this is also technically blocked server-side — confirmed by multiple independent news sources.
 - Separately, using automated scripts to access the service through anything other than an API key is also prohibited on its own. So even a workaround that avoids handling login credentials directly (e.g., leaving login to Claude Code itself and only automating which config folder is active) would still run into this rule.
 
-In short, there was no way to build the original goal — automatically cycling through multiple subscription accounts — without breaking the rules. So we have **decided not to build this feature**, with no plans to revisit it later. The statusline feature keeps working normally regardless of this decision.
+This Terms-of-Service conflict finding still stands today, unchanged. That said, this decision was later revisited internally (the review background and reasoning are recorded in the repository's `.PRD/07_OAUTH_FLOW_SPEC.md`). **What hasn't changed either way is that none of the related code is included in the actual distributed executable** — the repository's automated build verification confirms this on every build. The statusline feature keeps working normally regardless of this matter.
 
 ---
 
@@ -228,7 +283,7 @@ A new `claudetower config powerline <on|off>` command lets you switch the separa
 <details>
 <summary><strong>v0.2.0</strong> — Install stabilization, self-healing, widget menu</summary>
 
-Fixed file corruption when the install script and statusline ran at the same time, and fixed the root cause of the `/claudetower-widgets` command disappearing, adding a self-healing fix. Added a Windows PATH auto-registration option and a `config statusline-refresh` command to adjust refresh speed (default refresh interval also changed from 1s to 3s), and closed a gap where `uninstall` could accidentally delete config/skill files. Running `/claudetower-widgets` with no arguments now shows a check-box menu for toggling widgets, and boundary-value bugs in the context, cost, model-name/folder-name, and reset-time displays were fixed. After reviewing Anthropic's Terms of Service, the account auto-switching feature was permanently decided against, so ClaudeTower remains a statusline-only (Display) tool.
+Fixed file corruption when the install script and statusline ran at the same time, and fixed the root cause of the `/claudetower-widgets` command disappearing, adding a self-healing fix. Added a Windows PATH auto-registration option and a `config statusline-refresh` command to adjust refresh speed (default refresh interval also changed from 1s to 3s), and closed a gap where `uninstall` could accidentally delete config/skill files. Running `/claudetower-widgets` with no arguments now shows a check-box menu for toggling widgets, and boundary-value bugs in the context, cost, model-name/folder-name, and reset-time displays were fixed. After reviewing Anthropic's Terms of Service, the account auto-switching feature was decided against as of this point in time, so ClaudeTower remained a statusline-only (Display) tool (this decision was later revisited internally, though the related code is still not included in the distributed release — see "② Account switching" above).
 </details>
 
 <details>
@@ -318,7 +373,7 @@ Initial release. Shows location, context, cost, and rate limits; `setup` install
 
 - **Does installing this automatically collect my account info?** No. Account-related code isn't included in this version at all. This program is structurally unable to see or store your ID, password, or authentication tokens.
 - **Does anything get sent over the internet?** No, everything runs locally only.
-- **Are there plans to build account switching?** No. After review, we decided not to build it due to legal concerns (see "② Account switching" above for details).
+- **Are there plans to build account switching?** This feature has been found to conflict with Anthropic's Terms of Service, and that finding still stands. Internal review continues, but **the currently distributed program does not include this feature at all** (see "② Account switching" above for details).
 - **Is it really okay to delete the file I originally downloaded?** Yes, as long as you've run `setup` at least once first — see "Can I delete or move the installed file?" above.
 - **Does it cost money?** No, this program itself is free. Note that the "cost ($)" figure it *displays* is a separate thing — that's the cost of using Claude Code (the AI) itself, unrelated to this program.
 - **Why does the name say "working title"?** Trademark review finished on 2026-07-15. The result: we decided to keep the name "ClaudeTower" as-is, accepting a low-priority residual risk (see "Legal, copyright, license & commercial use" below for details). That said, we haven't fully ruled out changing the name later — if the user base grows significantly, or if Anthropic reaches out directly — so it's still labeled a "working title" rather than a fully final name.
@@ -334,7 +389,7 @@ Initial release. Shows location, context, cost, and rate limits; `setup` install
 
 **License (not yet finalized)**: The final product name isn't in a fully, permanently finalized state. Trademark review for the name "ClaudeTower" was completed on 2026-07-15, and the decision was to keep this name, accepting a low-priority residual risk (to be revisited only if the user base grows significantly or Anthropic reaches out directly). Until this "working title" status is fully resolved, the `npm install -g` distribution channel is also deliberately not being opened (an npm package name is effectively permanent once claimed).
 
-**Commercial use — strict prohibition**: The current version of this program (v0.4.0, Phase 1 MVP) is not designed for ❌ commercial sale, ❌ being offered as a paid service, or ❌ paid delivery to a company or organization. **This program is distributed for free, personal use only.** Reason for this strict limitation: this project originally planned to eventually add an automatic multi-account switching feature, which would have cycled between multiple Claude accounts automatically. After reading Anthropic's official Terms of Service directly, we confirmed this pattern conflicts with Claude's terms of service and there is no safe way to build it, so we decided not to (see "② Account switching" above). During this review, it also became clear that if this feature had shipped, that risk would have applied to the entire program — even for users who never turned the feature on and only used the statusline. The commercial-use exclusion has been a design principle from the very beginning specifically to avoid amplifying that kind of risk, and it remains in place now that the decision has been made not to build the account-switching feature at all. (Since account switching has been decided against entirely, the terms-of-service conflict risk described above will never actually materialize — but the commercial-use prohibition itself continues to apply to the entire project, independent of this decision.)
+**Commercial use — strict prohibition**: The current version of this program (v0.4.0, Phase 1 MVP) is not designed for ❌ commercial sale, ❌ being offered as a paid service, or ❌ paid delivery to a company or organization. **This program is distributed for free, personal use only.** Reason for this strict limitation: this project originally planned to eventually add an automatic multi-account switching feature, which would have cycled between multiple Claude accounts automatically. After reading Anthropic's official Terms of Service directly, we confirmed this pattern conflicts with Claude's terms of service (see "② Account switching" above). During this review, it also became clear that if this feature ever ships, that risk could apply to the entire program — even for users who never turn the feature on and only use the statusline. The commercial-use exclusion has been a design principle from the very beginning specifically to avoid amplifying that kind of risk, and it remains in place now, while no account-switching code is included in the distributed release. (Since the current release contains no account-related code at all, the terms-of-service conflict risk described above has no way to actually materialize today — but the commercial-use prohibition itself continues to apply to the entire project, independent of this matter.)
 
 **What the license actually permits vs. what this project recommends (important)**: Apache License 2.0 itself contains no "no commercial use" clause. As long as you comply with its conditions (keeping copyright and license notices, etc.), modification, copying, redistribution, and commercial use are, in principle, permitted — it is a widely used permissive license. In other words, the "commercial use — strict prohibition" statement above does **not mean the license legally forbids it — it means this project does not recommend it (a design intent).**
 
@@ -355,7 +410,7 @@ If the project owner wants to legally restrict commercial use with binding force
 
 **About AI's involvement in development**: A substantial part of this project's code and documentation was written with the help of an AI coding tool (Claude Code) — this is recorded in the repository's commit history via "Co-Authored-By: Claude" trailers. Whether AI-generated or AI-assisted content is copyrightable, what training data it derives from, and whether it might resemble or infringe existing works are all legal questions that differ by jurisdiction and remain unsettled. If you plan to use, redistribute, or commercially exploit this project as-is or modified, please be aware that it includes AI-assisted content, and verify copyright, provenance, and commercial-use eligibility yourself where needed (needs legal review).
 
-**About the NOTICE file**: This project does not include a separate `NOTICE` file. Apache License 2.0 Section 4(d) only requires you to carry forward a `NOTICE` file's contents if the Work you are distributing already includes one; the executable ClaudeTower actually distributes has zero runtime dependencies, so there is no third-party code being redistributed at all (confirmed — `package.json` has no `dependencies` entry; the build tools (esbuild, eslint) are development-only and are not included in the distributed executable). This determination should be revisited if third-party code is ever actually included.
+**About the NOTICE file**: This project does not include a separate `NOTICE` file. Apache License 2.0 Section 4(d) only requires you to carry forward a `NOTICE` file's contents if the Work you are distributing already includes one. `package.json` currently lists one runtime dependency (`@napi-rs/keyring`, for OS credential-store access), but it is only used by account-related code that is not yet included in the distributed release (see "② Account switching" above) — it is not included in the executable ClaudeTower actually distributes. Code that isn't referenced by the build is automatically excluded, and the repository's automated verification confirms this on every build (the build tools, esbuild and eslint, are likewise development-only and not included in the distributed executable). This determination should be revisited once this feature is actually included in a release.
 
 For more background, see the "법률·저작권·라이선스·상업적 사용 요구사항" section in [`.PRD/04_PROJECT_SPEC.md`](./.PRD/04_PROJECT_SPEC.md).
 

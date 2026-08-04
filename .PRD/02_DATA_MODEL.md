@@ -5,6 +5,11 @@
 > 절과 `ActiveAccountHandle`은 설계 기록으로만 남는다 — 실제로 만들어지지 않는다. Display
 > 모듈 엔티티(PlatformProfile/StatuslineConfig/Widget 등)만 실제로 존재하고 계속 쓰인다.
 
+> **[2026-07-27 재개]** 위 보류 결정의 법적 근거는 그대로 유효하나, 사용자가 위험을
+> 인지·수용한 뒤 하이브리드(OAuth+API키)로 재개를 확정했다(`07_OAUTH_FLOW_SPEC.md §5`,
+> `CHECKPOINT.md` 트랙3 참고). 아래 Account 모듈 엔티티는 다시 유효한 설계다 — 다만
+> 실제로 만들어지는 건 여전히 다음 세션(구현 세션)부터다.
+
 > 이 문서는 Display 모듈(구 PulseLine)과 Account 모듈(구 QuotaSwitch)의 데이터를 하나로 정리하되, **모듈 경계를 명확히 표시**한다. 두 모듈의 데이터는 원칙적으로 서로 접근하지 않으며, 유일한 연결점은 `ActiveAccountHandle` 파일 하나뿐이다.
 
 ---
@@ -63,6 +68,10 @@
 ### Account / CredentialRef / QuotaState / ProxyConfig / RotationEvent
 필드 정의는 QuotaSwitch 원본의 02_DATA_MODEL.md(`.PRD/.archive/QuotaSwitch원본/02_DATA_MODEL.md`)와 동일하다(토큰 만료 시각, 로컬 프록시 접근 토큰, `reeval_interval_ms`, `Account.last_project_path`/`last_used_at`(2026-07-04 결함 수정 — RotationEvent만으로는 전환이 없을 때 프로젝트 경로가 비는 문제 해결) 등 보안·teamclaude 재검토로 추가된 필드 포함) — 통합 과정에서 변경하지 않았다.
 
+**2026-07-27 하이브리드 스키마 확인**: `Account.auth_type`(`oauth`/`api_key`) 필드가 이미
+존재해 **스키마 변경이 불필요**하다는 것을 확인했다(재개 2라운드 teamclaude 실측 반영,
+상세 근거는 `07_OAUTH_FLOW_SPEC.md §5-3` 참고 — 여기서는 중복 서술하지 않음).
+
 ### ModuleActivationState (신규 — 통합 과정에서 추가)
 Account 모듈이 켜져 있는지, 사용자가 리스크 고지에 언제 동의했는지 기록.
 
@@ -101,5 +110,7 @@ Account 모듈이 Display 모듈에게 "지금 활성 계정이 뭔지"만 알�
 
 ## [NEEDS CLARIFICATION]
 
-- [x] ~~`ActiveAccountHandle` 파일도 다른 사용자가 못 읽게 권한 제한이 필요한지~~ → **N/A(2026-07-15)**: Account 모듈 보류 확정으로 `ActiveAccountHandle` 자체가 만들어지지 않아 질문이 성립하지 않음
-- [x] ~~`consent_text_version`이 바뀌면... 재동의를 요구할지 정책 필요~~ → **N/A(2026-07-15)**: Account 모듈 보류 확정으로 동의 절차 자체가 만들어지지 않아 질문이 성립하지 않음
+- [ ] `ActiveAccountHandle` 파일도 다른 사용자가 못 읽게 권한 제한이 필요한지 — **재개(2026-07-27)**:
+  N/A(2026-07-15) 처리는 보류 결정에 근거했던 것이라 무효화, 구현 세션에서 재검토
+- [ ] `consent_text_version`이 바뀌면... 재동의를 요구할지 정책 필요 — **재개(2026-07-27)**:
+  N/A(2026-07-15) 처리는 보류 결정에 근거했던 것이라 무효화, 구현 세션에서 재검토

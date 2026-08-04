@@ -10,6 +10,12 @@
 > Phase 2 관련 서술(§1·§3·§4)은 "무엇을 검토했고 왜 안 하기로 했는지"를 보여주는 기록으로만
 > 남긴다 — 실제 구현 계획이 아니다.
 
+> **[2026-07-27 재개]** 위 법적 근거는 그대로 유효하나, 사용자가 GitHub `jung-wan-kim/teamclaude`
+> 실측 분석을 근거로 재개를 요청했고, 우회 설계도 동일하게 걸린다는 조항까지 다시 고지한 뒤
+> 위험을 인지·수용하고 하이브리드(OAuth+API키)로 진행하기로 최종 확정했다(`07_OAUTH_FLOW_SPEC.md
+> §5`, `CHECKPOINT.md` 트랙3 참고). 이 문서의 Phase 2 관련 서술은 역사 기록이자 **재개 이후
+> 계속 유효한 설계**다 — 다만 실제 구현은 다음 세션부터다.
+
 > 생성일: 2026-07-04
 > 생성 도구: Show Me The PRD
 > 통합 이력: PulseLine과 QuotaSwitch를 사용자 요청으로 하나의 플러그인(ClaudeTower)으로 통합. 두 프로젝트의 원본 리서치·결정 사항은 `.PRD/.archive/PulseLine원본/`·`.PRD/.archive/QuotaSwitch원본/`에 보존되어 있으며, 모두 계승한다.
@@ -108,12 +114,12 @@ CLI 설치 -> claudetower setup(Display 즉시 활성화) -> (선택) claudetowe
 ## 5. 성공 기준
 
 - [x] Display 모듈은 Account 모듈을 활성화하지 않아도 완전히 독립적으로 동작함(Account 관련 코드가 아예 로드되지 않음을 실측 확인) → **2026-07-15 재확인**: `.github/workflows/build.yml`의 `verify-display-standalone` job이 `src/accounts/`를 지운 뒤 `npm run verify`가 통과하는지 매 push마다 증명 중(CI 로그로 상시 확인 가능)
-- [x] ~~Account 모듈 활성화 전에는 OAuth 관련 코드·자격증명 저장소 접근이 전혀 일어나지 않음~~ → **N/A(2026-07-15)**: Account 모듈 자체가 영구 보류돼 이 항목은 의미가 없어짐(다만 "활성화 전엔 안전하다"는 원래 취지는 결과적으로 항상 성립)
-- [x] ~~`claudetower accounts enable` 동의 절차 없이는 계정 등록이 시작되지 않음~~ → **N/A(2026-07-15)**: `accounts enable` 명령 자체가 만들어지지 않음
+- [ ] Account 모듈 활성화 전에는 OAuth 관련 코드·자격증명 저장소 접근이 전혀 일어나지 않음 — **재개(2026-07-27)**: N/A(2026-07-15) 처리는 보류 결정에 근거했던 것이라 무효화, 구현 미착수(다음 세션)
+- [ ] `claudetower accounts enable` 동의 절차 없이는 계정 등록이 시작되지 않음 — **재개(2026-07-27)**: N/A(2026-07-15) 처리는 보류 결정에 근거했던 것이라 무효화, 구현 미착수(다음 세션)
 - [ ] Windows(PowerShell만 있는 환경)에서 Display 모듈이 폴백 없이 정상 작동
-- [x] ~~Account 모듈 활성화 후 자동 전환·429 failover가 실제 계정으로 검증됨~~ → **N/A(2026-07-15)**: Account 모듈 보류 확정
-- [x] ~~로컬 프록시 접근 토큰 없이 보낸 요청은 거부됨~~ → **N/A(2026-07-15)**: 로컬 프록시 자체가 만들어지지 않음
-- [x] ~~**(신규)** `claudetower`(또는 등록된 셸 별칭)으로 Claude Code를 실행하면 별도 재시작 없이 즉시 프록시가 개입함~~ → **N/A(2026-07-15)**: 이 항목의 "재시작 없음" 가치는 Account 모듈의 프록시 실행 방식 전제였음, Account 모듈 보류로 해당 없음
+- [ ] Account 모듈 활성화 후 자동 전환·429 failover가 실제 계정으로 검증됨 — **재개(2026-07-27)**: N/A(2026-07-15) 처리는 보류 결정에 근거했던 것이라 무효화, 구현 미착수(다음 세션)
+- [ ] 로컬 프록시 접근 토큰 없이 보낸 요청은 거부됨 — **재개(2026-07-27)**: N/A(2026-07-15) 처리는 보류 결정에 근거했던 것이라 무효화, 구현 미착수(다음 세션)
+- [ ] **(신규)** `claudetower`(또는 등록된 셸 별칭)으로 Claude Code를 실행하면 별도 재시작 없이 즉시 프록시가 개입함 — **재개(2026-07-27)**: N/A(2026-07-15) 처리는 보류 결정에 근거했던 것이라 무효화, 구현 미착수(다음 세션)
 - [ ] **(신규, 부분 확정)** Node.js가 설치되지 않은 환경에서도 CLI 설치 스크립트(SEA 바이너리)로 정상 설치·실행됨 — **2026-07-04**: 설치 스크립트 자체(다운로드→고정 위치 설치→실행)는 실측 확인됨(`04_PROJECT_SPEC.md` "배포 방법" 참고). 다만 이 실측은 Node.js가 이미 설치된 개발 PC에서 진행됐고, **"Node.js가 정말 없는" 환경(클린 VM/새 사용자 계정)에서의 실측은 아직 없음** — PATH에서 node만 제거한 시뮬레이션까지만 완료. 체크박스는 이 gap이 해소된 뒤에 닫는다(CHECKPOINT.md 보류 백로그 참고 — Windows 11 Home이라 Sandbox 불가, 별도 클린 환경 확보 시 재검토)
 
 ---
@@ -133,5 +139,5 @@ CLI 설치 -> claudetower setup(Display 즉시 활성화) -> (선택) claudetowe
 - [ ] 프로젝트 최종 이름 확정 ("ClaudeTower/claudetower"은 가제 — 상태 모니터링과 계정 제어를 한 곳에서 다룬다는 의미로 제안) — **2026-07-15**: 상표 리스크 조사 완료, 지금은 이름 유지로 결정(낮은 우선순위 잔존 리스크, 상세는 `04_PROJECT_SPEC.md` NEEDS CLARIFICATION "cc- 접두사·상표 저촉" 참고). "최종" 확정 자체는 여전히 열려있으나 상표 문제가 이름 변경을 강제하는 상태는 아님.
 - [x] ~~라이선스·저작권자~~ → **2026-07-03 확정**: Apache License 2.0, 저작권자 "SoDam AI Studio"(PulseLine/QuotaSwitch 원 제안이었던 MIT에서 최종 변경, 상세는 `04_PROJECT_SPEC.md` "라이선스" 참고)
 - [ ] 배포 채널(개인 마켓플레이스 우선) — 원 결정 계승 제안
-- [x] ~~(최우선, 법무 검토 필요) 여러 계정 자동 순환이 Anthropic 이용약관과 충돌하는지~~ → **2026-07-14 확인됨(충돌)**: `code.claude.com/docs/en/legal-and-compliance`(1차 출처 직접 확인) — "Anthropic does not permit third-party developers to offer Claude.ai login or to route requests through Free, Pro, or Max plan credentials on behalf of their users." 2026-01-09부터 서버 측 기술적 차단까지 이미 시행 중(복수 독립 소스 교차검증). 상세 근거·권고는 `.PRD/07_OAUTH_FLOW_SPEC.md §3-1·§4` 참고. **Account 모듈을 현재 명세(OAuth 기반 구독 quota 자동전환)대로 구현하는 것은 권장하지 않음** — Phase 2 보류/재설계/위험감수 진행 중 사용자가 선택해야 함(CHECKPOINT.md 트랙3 참고).
+- [x] ~~(최우선, 법무 검토 필요) 여러 계정 자동 순환이 Anthropic 이용약관과 충돌하는지~~ → **2026-07-14 확인됨(충돌)**: `code.claude.com/docs/en/legal-and-compliance`(1차 출처 직접 확인) — "Anthropic does not permit third-party developers to offer Claude.ai login or to route requests through Free, Pro, or Max plan credentials on behalf of their users." 2026-01-09부터 서버 측 기술적 차단까지 이미 시행 중(복수 독립 소스 교차검증). 상세 근거·권고는 `.PRD/07_OAUTH_FLOW_SPEC.md §3-1·§4` 참고. **Account 모듈을 현재 명세(OAuth 기반 구독 quota 자동전환)대로 구현하는 것은 권장하지 않음** — **결정 완료(2026-07-27)**: 사용자가 위험감수(하이브리드) 진행으로 확정(CHECKPOINT.md 트랙3 참고).
 - [x] ~~Display 모듈만 쓰고 싶은 사용자를 위해 "Account 모듈 코드 자체가 포함되지 않은 경량판"을 별도로 배포할지 여부~~ → **N/A(2026-07-15)**: Account 모듈이 영구 보류되어 이제 ClaudeTower 자체가 이미 "경량판"이므로 질문이 성립하지 않음

@@ -14,7 +14,10 @@ const { isPartialIsolation, assertNotPartialIsolation } = require('./test-isolat
 // model은 PulseLine 원본 설계(.PRD/.archive/PulseLine원본/02_DATA_MODEL.md 46/79행,
 // enabled_fields 기본값에 model이 가장 먼저 나열됨)에 있었는데 ClaudeTower 통합 과정에서
 // 빠져 있던 것을 복원(실사용 피드백으로 발견). 순서도 원본과 동일하게 맨 앞에 둔다.
-const ALL_WIDGET_TYPES = ['model', 'location', 'context', 'cost', 'rate_limit'];
+// git은 2026-08-03 Phase 3 신규(.PRD/01_PRD.md §3 "Git/PR 위젯 + 캐싱", PR 상태는 제외).
+// location 바로 뒤에 둔 이유: 둘 다 "지금 어디서 작업 중인지"를 알려주는 같은 성격의
+// 위젯이라 나란히 있는 게 자연스럽다는 판단(다른 강한 근거는 없음, 명시적으로 밝혀둠).
+const ALL_WIDGET_TYPES = ['model', 'location', 'git', 'context', 'cost', 'rate_limit'];
 
 function resolveWidgetConfigPath() {
   return (

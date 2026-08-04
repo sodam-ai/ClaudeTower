@@ -20,7 +20,7 @@ test('widgets off: 지정한 항목만 끄고 나머지는 그대로 둔다', ()
   const result = runWidgetsCommand(['off', 'context', 'cost'], { widgetConfigPath });
 
   assert.equal(result.applied, true);
-  assert.deepEqual(readEnabledWidgets(widgetConfigPath), ['model', 'location', 'rate_limit']);
+  assert.deepEqual(readEnabledWidgets(widgetConfigPath), ['model', 'location', 'git', 'rate_limit']);
 });
 
 test('widgets on: 꺼져 있던 항목만 다시 켠다(이미 켜진 항목은 중복 없이 유지)', () => {

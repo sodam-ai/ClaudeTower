@@ -79,10 +79,14 @@ function isPartialTestIsolation() {
 // 5개를 한 질문에 못 담는다 — 두 질문으로 나눈다. "이미 명확한 자연어 요청"은
 // 메뉴 없이 바로 실행하는 빠른 경로를 유지한다(본래 목적인 말로 조절이 후퇴하면
 // 안 됨). 메뉴 도구가 없는 환경을 위한 텍스트 폴백도 지시문에 명시한다.
+//
+// 2026-08-03: git 위젯 추가로 6개가 됐다 — 질문 1(model/location/context)에 git을
+// 더해 4개(AskUserQuestion 한 질문당 허용 최대치)로, 질문 2(cost/rate_limit+갱신속도)는
+// 그대로 3개로 유지한다(재구성 최소화).
 function buildSkillFileContent(exePath) {
   const quotedExe = `"${exePath.replace(/\\/g, '/')}"`;
   return `---
-description: ClaudeTower 상태표시줄(statusline) 위젯을 켜고 끄거나 갱신 속도를 조절합니다. 표시 항목은 사용 모델·프로젝트 위치·컨텍스트 사용량·비용·사용률 5가지. "상태표시줄에서 컨텍스트 꺼줘", "비용 표시 꺼줘", "상태표시줄 설정 바꿔줘", "ClaudeTower 위젯 켜/꺼", "상태표시줄 갱신을 느리게/빠르게 해줘" 같은 요청이면 반드시 이 스킬을 사용하고, config.json이나 settings.json을 직접 편집하지 마세요.
+description: ClaudeTower 상태표시줄(statusline) 위젯을 켜고 끄거나 갱신 속도를 조절합니다. 표시 항목은 사용 모델·프로젝트 위치·Git 브랜치/변경사항·컨텍스트 사용량·비용·사용률 6가지. "상태표시줄에서 컨텍스트 꺼줘", "비용 표시 꺼줘", "상태표시줄 설정 바꿔줘", "ClaudeTower 위젯 켜/꺼", "상태표시줄 갱신을 느리게/빠르게 해줘" 같은 요청이면 반드시 이 스킬을 사용하고, config.json이나 settings.json을 직접 편집하지 마세요.
 argument-hint: [끄거나 켜고 싶은 항목, 또는 갱신 속도를 자연어로 — 비워두면 체크 메뉴가 뜹니다]
 allowed-tools: Bash(${quotedExe} widgets *), Bash(${quotedExe} config *), AskUserQuestion
 ---
@@ -92,6 +96,7 @@ allowed-tools: Bash(${quotedExe} widgets *), Bash(${quotedExe} config *), AskUse
 ## 사용 가능한 항목 (영어 이름 → 화면 표시 이름)
 - model → 사용 모델
 - location → 프로젝트 위치
+- git → Git 브랜치/변경사항
 - context → 컨텍스트 사용량
 - cost → 비용
 - rate_limit → 사용률(5시간/7일)
@@ -101,7 +106,7 @@ allowed-tools: Bash(${quotedExe} widgets *), Bash(${quotedExe} config *), AskUse
 2. **빠른 경로**: 사용자 요청(아래 참고)이 이미 명확하면 — 예: "비용 꺼줘", "갱신 5초로" — 메뉴 없이 바로 4번으로 가서 실행하세요.
 3. **체크 메뉴**: 요청이 없거나 모호하면(예: 인자 없이 호출됨) AskUserQuestion 도구 하나로 아래 두 질문을 함께 보여주세요. **선택지 label에 "무엇을 하게 되는지"를 동사로 직접 쓰는 것이 핵심입니다** — 설명을 읽지 않아도 체크의 효과가 한눈에 보이게(실사용 피드백: 상태+뒤집기 설명 방식은 알아보기 어려웠음).
    - 질문 본문(두 질문 공통): "바꿀 것만 체크하세요 (안 바꿀 항목은 그냥 두면 됩니다)"처럼 짧게.
-   - 질문 1 — header "표시 항목 ①", multiSelect: true, 선택지 3개: 사용 모델 / 프로젝트 위치 / 컨텍스트 사용량. 1번에서 확인한 현재 상태를 반영해, **켜진 항목은 label을 "<이름> 끄기"로, 꺼진 항목은 "<이름> 켜기"로** 쓰세요(예: "사용 모델 끄기", "컨텍스트 사용량 켜기"). description은 "지금 켜져 있어요" / "지금 꺼져 있어요"로 짧게.
+   - 질문 1 — header "표시 항목 ①", multiSelect: true, 선택지 4개: 사용 모델 / 프로젝트 위치 / Git 브랜치·변경사항 / 컨텍스트 사용량. 1번에서 확인한 현재 상태를 반영해, **켜진 항목은 label을 "<이름> 끄기"로, 꺼진 항목은 "<이름> 켜기"로** 쓰세요(예: "사용 모델 끄기", "컨텍스트 사용량 켜기"). description은 "지금 켜져 있어요" / "지금 꺼져 있어요"로 짧게.
    - 질문 2 — header "표시 항목 ②", multiSelect: true, 선택지 3개: 비용 / 사용률(5시간/7일)을 질문 1과 같은 방식으로 + 마지막 선택지 "갱신 속도 조절"(description: "지금 N초마다 새로고침 — 체크하면 이어서 물어봐요").
    - "갱신 속도 조절"이 체크됐다면: 위젯 변경을 먼저 처리한 뒤, AskUserQuestion으로 속도만 한 번 더 물어보세요 — 선택지 "느리게 — 5초" / "빠르게 — 1초" / "그대로 두기", 다른 값은 기타(Other)로 직접 입력 가능하다고 안내(1 이상의 정수만 유효).
    - **체크된 항목만 실행하고, 체크하지 않은 항목은 절대 바꾸지 마세요**(현상 유지가 기본).

@@ -56,38 +56,45 @@ async function withPlatform(value, fn) {
   }
 }
 
-test('5개 질문에 y/y/y/n/y로 답하면 cost만 제외된 위젯 목록이 저장된다', async () => {
+// 2026-08-03: git 위젯이 추가되면서 위젯 질문이 5개 -> 6개(model/location/git/context/
+// cost/rate_limit 순서, widget-config.js ALL_WIDGET_TYPES와 반드시 일치)로 늘었다.
+// 답변 문자열 길이를 안 맞추면, readline async iterator가 EOF에서 빈 문자열을 돌려주는
+// 폴백(기본값 Y 취급)에 답이 밀려 들어가 테스트 이름과 실제로 검증하는 내용이 조용히
+// 어긋나는 결함이 있었다(재확인 중 직접 발견 — 겉보기엔 그대로 통과하지만 다른 이유로
+// 통과하고 있었음). 그래서 모든 답변 문자열을 6개 위젯 기준으로 다시 맞춘다.
+
+test('6개 질문에 y/y/y/y/n/y로 답하면 cost만 제외된 위젯 목록이 저장된다', async () => {
   const { widgetConfigPath, settingsPath } = tempPaths();
-  const rl = fakeInteractiveSession('y\ny\ny\nn\ny\n');
+  const rl = fakeInteractiveSession('y\ny\ny\ny\nn\ny\n'); // model/location/git/context/cost(n)/rate_limit
 
   const result = await runSetupWizard(rl, { widgetConfigPath, settingsPath, registerPath: fakeRegisterPath() });
 
-  assert.deepEqual(result.enabled, ['model', 'location', 'context', 'rate_limit']);
+  assert.deepEqual(result.enabled, ['model', 'location', 'git', 'context', 'rate_limit']);
   const written = JSON.parse(fs.readFileSync(widgetConfigPath, 'utf8'));
-  assert.deepEqual(written.enabled_widgets, ['model', 'location', 'context', 'rate_limit']);
+  assert.deepEqual(written.enabled_widgets, ['model', 'location', 'git', 'context', 'rate_limit']);
 });
 
 test('전부 n으로 답하면 최소 1개 보장을 위해 기본값(전체)으로 폴백한다', async () => {
   const { widgetConfigPath, settingsPath } = tempPaths();
-  const rl = fakeInteractiveSession('n\nn\nn\nn\nn\n');
+  const rl = fakeInteractiveSession('n\nn\nn\nn\nn\nn\n');
 
   const result = await runSetupWizard(rl, { widgetConfigPath, settingsPath, registerPath: fakeRegisterPath() });
 
-  assert.deepEqual(result.enabled, ['model', 'location', 'context', 'cost', 'rate_limit']);
+  assert.deepEqual(result.enabled, ['model', 'location', 'git', 'context', 'cost', 'rate_limit']);
 });
 
 test('엔터만 치면(빈 답변) 기본값 Y로 처리된다', async () => {
   const { widgetConfigPath, settingsPath } = tempPaths();
-  const rl = fakeInteractiveSession('\n\n\n\n\n');
+  const rl = fakeInteractiveSession('\n\n\n\n\n\n');
 
   const result = await runSetupWizard(rl, { widgetConfigPath, settingsPath, registerPath: fakeRegisterPath() });
 
-  assert.deepEqual(result.enabled, ['model', 'location', 'context', 'cost', 'rate_limit']);
+  assert.deepEqual(result.enabled, ['model', 'location', 'git', 'context', 'cost', 'rate_limit']);
 });
 
 test('settings.json에 statusLine.command가 기록된다', async () => {
   const { widgetConfigPath, settingsPath } = tempPaths();
-  const rl = fakeInteractiveSession('y\ny\ny\ny\ny\n');
+  const rl = fakeInteractiveSession('y\ny\ny\ny\ny\ny\n');
 
   await runSetupWizard(rl, { widgetConfigPath, settingsPath, registerPath: fakeRegisterPath() });
 
@@ -105,7 +112,7 @@ test('settings.json에 이미 refreshInterval이 있으면 setup을 다시 실�
     settingsPath,
     JSON.stringify({ statusLine: { type: 'command', command: '이전 명령', refreshInterval: 5 } })
   );
-  const rl = fakeInteractiveSession('y\ny\ny\ny\ny\n');
+  const rl = fakeInteractiveSession('y\ny\ny\ny\ny\ny\n');
 
   await runSetupWizard(rl, { widgetConfigPath, settingsPath, registerPath: fakeRegisterPath() });
 
@@ -115,7 +122,7 @@ test('settings.json에 이미 refreshInterval이 있으면 setup을 다시 실�
 
 test('settings.json에 refreshInterval이 없었으면(최초 설치) 기본값 3으로 설정한다(FR-3, 2026-07-06: 1→3 조정)', async () => {
   const { widgetConfigPath, settingsPath } = tempPaths();
-  const rl = fakeInteractiveSession('y\ny\ny\ny\ny\n');
+  const rl = fakeInteractiveSession('y\ny\ny\ny\ny\ny\n');
 
   await runSetupWizard(rl, { widgetConfigPath, settingsPath, registerPath: fakeRegisterPath() });
 
@@ -129,7 +136,7 @@ test('settings.json에 refreshInterval이 없었으면(최초 설치) 기본값 
 test('Windows에서 PATH 등록 질문에 y로 답하면 설치 폴더로 registerPath가 호출된다', async () => {
   await withPlatform('win32', async () => {
     const { widgetConfigPath, settingsPath } = tempPaths();
-    const rl = fakeInteractiveSession('y\ny\ny\ny\ny\ny\n'); // 위젯 5개 + PATH 질문 1개
+    const rl = fakeInteractiveSession('y\ny\ny\ny\ny\ny\ny\n'); // 위젯 6개 + PATH 질문 1개
     const registerPath = fakeRegisterPath();
 
     await runSetupWizard(rl, { widgetConfigPath, settingsPath, registerPath });
@@ -141,7 +148,7 @@ test('Windows에서 PATH 등록 질문에 y로 답하면 설치 폴더로 regist
 test('Windows에서 PATH 등록 질문에 n으로 답하면 registerPath가 호출되지 않는다', async () => {
   await withPlatform('win32', async () => {
     const { widgetConfigPath, settingsPath } = tempPaths();
-    const rl = fakeInteractiveSession('y\ny\ny\ny\ny\nn\n');
+    const rl = fakeInteractiveSession('y\ny\ny\ny\ny\ny\nn\n'); // 위젯 6개 + PATH 질문(n)
     const registerPath = fakeRegisterPath();
 
     await runSetupWizard(rl, { widgetConfigPath, settingsPath, registerPath });
@@ -153,7 +160,7 @@ test('Windows에서 PATH 등록 질문에 n으로 답하면 registerPath가 호�
 test('Windows에서 PATH 등록 질문에 애매하게 답하면(엔터만 등) 안전하게 "안 함"으로 처리한다 — 위젯 질문과 의도적으로 다른 정책', async () => {
   await withPlatform('win32', async () => {
     const { widgetConfigPath, settingsPath } = tempPaths();
-    const rl = fakeInteractiveSession('y\ny\ny\ny\ny\n\n'); // 마지막 답변이 빈 줄(엔터만)
+    const rl = fakeInteractiveSession('y\ny\ny\ny\ny\ny\n\n'); // 위젯 6개 + PATH 질문(빈 답)
     const registerPath = fakeRegisterPath();
 
     await runSetupWizard(rl, { widgetConfigPath, settingsPath, registerPath });
@@ -162,15 +169,15 @@ test('Windows에서 PATH 등록 질문에 애매하게 답하면(엔터만 등) 
   });
 });
 
-test('Windows가 아니면 PATH 등록 질문 자체를 하지 않는다(질문 6개 중 5개만 소비)', async () => {
+test('Windows가 아니면 PATH 등록 질문 자체를 하지 않는다(질문 7개 중 6개만 소비)', async () => {
   await withPlatform('linux', async () => {
     const { widgetConfigPath, settingsPath } = tempPaths();
-    const rl = fakeInteractiveSession('y\ny\ny\ny\ny\n'); // 위젯 5개뿐, PATH 질문 없음
+    const rl = fakeInteractiveSession('y\ny\ny\ny\ny\ny\n'); // 위젯 6개뿐, PATH 질문 없음
     const registerPath = fakeRegisterPath();
 
     const result = await runSetupWizard(rl, { widgetConfigPath, settingsPath, registerPath });
 
-    assert.deepEqual(result.enabled, ['model', 'location', 'context', 'cost', 'rate_limit']);
+    assert.deepEqual(result.enabled, ['model', 'location', 'git', 'context', 'cost', 'rate_limit']);
     assert.deepEqual(registerPath.calls(), []);
   });
 });
