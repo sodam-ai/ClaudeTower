@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 const { appendRotationEvent, readRotationEvents } = require('../../src/accounts/audit/rotation-log');
 
 // 절대 실제 사용자 감사 로그 경로를 쓰지 않는다 — 매 테스트마다 임시 디렉터리를 새로 만든다
@@ -57,18 +58,38 @@ test('appendRotationEvent: 기록된 JSON 줄에 토큰·비밀값 필드가 없
   );
 });
 
-test('appendRotationEvent: permissionRestricted는 chmod 성공 여부가 아니라 실제 파일 모드(0o600)를 재확인한 값이다', () => {
+test('appendRotationEvent: permissionRestricted는 chmod/icacls 성공 여부가 아니라 실제 권한 상태를 재확인한 값이다', () => {
   const filePath = tempAuditPath();
   const { permissionRestricted } = appendRotationEvent(VALID, filePath);
   assert.equal(typeof permissionRestricted, 'boolean');
   if (process.platform === 'win32') {
-    // 2026-07-28 이 PC 실측: chmodSync(0o600)는 에러 없이 끝나지만 실제 모드는 0o666로
-    // 남는다(fs.statSync 직접 대조) — Windows는 POSIX 모드 비트를 지원하지 않으므로
-    // 반드시 false여야 한다("에러 안 남" = "성공"으로 오판하는 결함을 막기 위한 회귀 테스트.
-    assert.equal(permissionRestricted, false);
+    // 2026-08-17 icacls 구현 후: POSIX 모드 비트 대신 ACL로 강제하므로 신규 생성 파일은
+    // 반드시 true여야 한다(2026-07-28 chmodSync 단독으로는 false였던 것을 icacls로 해소).
+    assert.equal(permissionRestricted, true);
   } else {
     assert.equal(permissionRestricted, true);
   }
+});
+
+test('appendRotationEvent(win32): icacls 결과 실제로 현재 사용자만 접근 가능하고 상속된 ACE가 남아있지 않다', { skip: process.platform !== 'win32' }, () => {
+  const filePath = tempAuditPath();
+  appendRotationEvent(VALID, filePath);
+  const output = execFileSync('icacls', [filePath], { encoding: 'utf8' });
+  const aceLines = output.split('\n').map((line) => line.trimEnd()).filter((line) => /:\([A-Za-z,]+\)$/.test(line));
+  const username = os.userInfo().username;
+  assert.equal(aceLines.length, 1, `ACE는 정확히 1개여야 한다(실제: ${JSON.stringify(aceLines)})`);
+  assert.match(aceLines[0], new RegExp(`${username}:\\(F\\)$`));
+  assert.ok(!aceLines[0].includes('(I)'), '상속된(Inherited) ACE가 남아있으면 안 된다');
+});
+
+test('appendRotationEvent(win32): 파일이 이미 존재하면(추가 기록) icacls를 다시 건드리지 않는다', { skip: process.platform !== 'win32' }, () => {
+  const filePath = tempAuditPath();
+  appendRotationEvent(VALID, filePath);
+  const beforeSecondWrite = execFileSync('icacls', [filePath], { encoding: 'utf8' });
+  const { permissionRestricted } = appendRotationEvent({ ...VALID, eventId: 'evt-002', occurredAt: '2026-07-28T01:00:00Z' }, filePath);
+  const afterSecondWrite = execFileSync('icacls', [filePath], { encoding: 'utf8' });
+  assert.equal(permissionRestricted, false, '기존 파일에 이어 쓸 때는 권한 재설정을 시도하지 않으므로 false');
+  assert.equal(beforeSecondWrite, afterSecondWrite, 'ACL 자체는 변하지 않아야 한다');
 });
 
 test('readRotationEvents: 파일이 없으면 빈 배열을 반환한다(에러로 죽지 않음)', () => {

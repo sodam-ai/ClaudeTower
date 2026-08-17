@@ -1530,3 +1530,69 @@ _2026-07-04.md`가 이미 별도로 지적한 환경 특성과 같은 종류)이
 
 ### 상태: **완료 — 회귀 미재현, 코드 변경 없음(회귀 테스트만 신설), 로컬 커밋**
 (로컬 커밋만, push는 하지 않음 — 사용자가 별도 검토)
+
+---
+
+## M30: 2026-08-17 — Windows ACL(icacls)로 RotationEvent 감사 로그 소유자 전용 권한 실제 구현
+
+`.PRD/04_PROJECT_SPEC.md`의 ASVS V12 Must-Have("RotationEvent 감사 로그 파일은 소유자만
+읽기 가능한 권한으로 생성")가 M20/M23에서 [NEEDS CLARIFICATION]으로 남아있던 유일한
+미이행 보안 요구사항이었다. M20 실측대로 Windows에서 `fs.chmodSync(0o600)`은 에러 없이
+성공하면서도 실제 파일 모드는 안 바뀌어(`fs.statSync` 대조 확인), 지금까지 이 감사
+로그는 명세와 달리 사실상 보호되지 않고 있었다.
+
+**착수 전 위험 점검(사용자 승인 후 진행)**: icacls 명령 자체가 credential-store(M16)처럼
+classifier에 막힐 가능성을 먼저 임시 파일로 격리 테스트했다 — `/inheritance:r`(상속 ACE
+제거) → `/grant:r <사용자>:F`(현재 사용자에게만 전체 권한 명시 부여) → `icacls <path>`로
+재조회, 세 단계 전부 **classifier 차단 없이 정상 실행**됨을 확인. `credential-store`가
+막힌 "OS 자격증명 저장소 I/O"와 "파일 ACL 조작"이 서로 다른 종류의 동작이라는 M25의
+가설이 다시 한번 뒷받침됨.
+
+**구현**: `src/accounts/audit/rotation-log.js`에 `restrictWindowsAcl(filePath)` 신설.
+`process.platform === 'win32'`일 때만 이 경로를 타고, macOS/Linux는 기존
+`fs.chmodSync(0o600)` + 재조회 검증 경로를 그대로 유지(크로스플랫폼 분기, 기존 로직
+변경 없음). Windows 경로도 마찬가지로 "명령이 에러 없이 끝남" ≠ "의도한 상태가 됐음"을
+구분한다 — `icacls` 실행 직후 그 출력을 다시 파싱해 **정확히 1개의 ACE만 있고, 그게
+현재 사용자의 전체 권한(F)인지**까지 재확인한 값만 `permissionRestricted`로 반환한다.
+icacls가 어떤 이유로 실패해도 예외를 던지지 않고 `permissionRestricted: false`로
+안전하게 폴백한다 — "감사 로그를 끄거나 생략하지 마" DO NOT 규칙이 최우선이므로, 권한
+강제가 실패해도 로그 기록 자체는 항상 성공해야 한다.
+
+**실측 검증(라이브, mock 아님)**: 임시 파일에 실제 적용 전/후 `icacls` 조회 결과를
+직접 대조 — 적용 전엔 `DESKTOP-FPDAAO6\CodexSandboxUsers`, 다수의 SID, `NT
+AUTHORITY\SYSTEM`, `BUILTIN\Administrators` 등 **상속된 ACE 20개 이상**이 있었으나,
+`/inheritance:r` + `/grant:r` 적용 후엔 `DESKTOP-FPDAAO6\PC:(F)` **단 하나만** 남음을
+직접 확인.
+
+**테스트**: `test/accounts/rotation-log.test.js`에 2건 추가 — ① 신규 생성 파일의 icacls
+결과가 실제로 ACE 1개(현재 사용자, `(F)`)뿐이고 상속(`(I)`) 표시가 없는지 직접 조회해
+검증, ② 이미 존재하는 파일에 이어 쓸 때는 icacls를 다시 건드리지 않는지(ACL 출력이
+호출 전후 완전히 동일한지) 검증. 기존 "permissionRestricted" 테스트는 Windows 기대값을
+`false`(구 chmod 결과)→`true`(신 icacls 결과)로 갱신.
+
+**검증 결과(전부 직접 실행해 확인, 자기선언 아님)**:
+- `test:accounts`: 91→**93**/93(신규 2건)
+- `npm run lint`: 0 에러
+- `npm run lint:boundary`: PASS(22개 파일, `src/display/` 무변화 — 이 작업은
+  `src/accounts/`만 수정)
+- `npm run verify`(Display 전용): 235/235 무변화(이번 작업과 무관, 회귀 없음 재확인)
+
+**안전지대 원칙 유지**: 이 코드도 M24~M28과 동일하게 안전지대·미배선 상태 — `bin/claudetower.js`
+는 여전히 `accounts` 관련 `require` 0건(재확인), CLI에서 실제로 호출되지 않음.
+module-activation-state 게이트 그대로. main 반영·README 톤 변경 없음(노출 최소화
+원칙, M20/077ade2와 동일 판단).
+
+**미실행/한계(정직하게 명시)**:
+- macOS/Linux 실측 — 여전히 Windows 전용 조사(이 PC 환경 한계, 기존 chmod 경로는 코드
+  변경 없이 그대로 유지했으므로 회귀 위험은 낮다고 판단하나 실측은 아님)
+- 여러 사용자 계정이 동시에 존재하는 실제 다중 사용자 Windows 환경에서의 검증 — 이
+  PC는 단일 사용자라 "다른 계정이 진짜로 못 읽는지"까지는 실측 못함(ACE 목록에 다른
+  계정이 없다는 것까지만 확인, 실제 접근 거부 자체를 다른 사용자 세션으로 시도하진 않음)
+- 이번 세션에서 신설한 sandbox 환경 특유의 SID들(`CodexSandboxUsers` 등)이 상속 제거
+  전에 이미 파일에 많이 붙어있었음을 관찰 — 이는 이 개발 PC의 샌드박스 구성 특성이며
+  일반 사용자 PC의 상속 ACE 목록과는 다를 수 있음(정정 아님, 참고용 기록)
+
+**남은 위험**: 없음(신규). credential-store(M16)만 여전히 유일한 미해결 블로커로 남음.
+
+- 상태: **완료** — 실제 코드 변경, 라이브 icacls 검증까지 끝, 회귀 없음. 로컬 커밋만
+  (push는 하지 않음 — 사용자가 별도 검토).
