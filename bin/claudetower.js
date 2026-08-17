@@ -15,7 +15,7 @@ async function run(args) {
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
     console.log(`${CLI_NAME} — Claude Code statusline CLI`);
     console.log('Usage: claudetower <command>');
-    console.log('Commands: setup, statusline, status, uninstall, widgets, config');
+    console.log('Commands: setup, statusline, status, uninstall, widgets, config, accounts');
     // 인자 없이 실행된 경우(대표적으로 exe 더블클릭)는 Windows가 새 콘솔 창을 열고,
     // 프로세스가 끝나자마자 그 창도 함께 닫혀버려 사용자가 위 안내를 읽을 새도 없이
     // 창이 사라진다("켜졌다 바로 꺼짐" 버그 리포트로 발견). stdin/stdout이 둘 다
@@ -113,6 +113,22 @@ async function run(args) {
     const { runConfigCommand } = require('../src/display/config-command');
     const result = runConfigCommand(args.slice(1), { log: (msg) => console.log(msg) });
     return result.applied === false ? 1 : 0;
+  }
+
+  if (command === 'accounts') {
+    // Account 모듈 안전지대 코드는 이미 상당히 구현돼 있지만 CLI 진입점이 전혀 없어
+    // 사람이 검증할 방법이 없었다(2026-08-17 PRD 준수 감사 발견). status만 읽기
+    // 전용으로 연결한다 — enable/disable 등 상태변경 서브커맨드는 credential-store
+    // 게이트가 풀리기 전까지 의도적으로 만들지 않는다.
+    const subcommand = args[1];
+    if (subcommand === 'status') {
+      const { buildStatusReport, formatStatusReport } = require('../src/accounts/status-report');
+      console.log(formatStatusReport(buildStatusReport()));
+      return 0;
+    }
+    console.log('accounts 서브커맨드: status만 사용 가능합니다.');
+    console.log('(enable 등 계정 활성화 기능은 아직 개발 중입니다 — 사용할 수 있는 방법이 없습니다.)');
+    return subcommand === undefined ? 0 : 1;
   }
 
   if (command === 'uninstall') {
