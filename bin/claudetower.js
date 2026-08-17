@@ -117,16 +117,22 @@ async function run(args) {
 
   if (command === 'accounts') {
     // Account 모듈 안전지대 코드는 이미 상당히 구현돼 있지만 CLI 진입점이 전혀 없어
-    // 사람이 검증할 방법이 없었다(2026-08-17 PRD 준수 감사 발견). status만 읽기
-    // 전용으로 연결한다 — enable/disable 등 상태변경 서브커맨드는 credential-store
-    // 게이트가 풀리기 전까지 의도적으로 만들지 않는다.
+    // 사람이 검증할 방법이 없었다(2026-08-17 PRD 준수 감사 발견). status(읽기전용
+    // 진단)에 이어 config(전환 임계값·전략·포트, credential 무관 로컬 파일)도 연결한다
+    // — enable/disable 등 상태변경·credential-store 접근 서브커맨드는 그 게이트가
+    // 풀리기 전까지 의도적으로 만들지 않는다.
     const subcommand = args[1];
     if (subcommand === 'status') {
       const { buildStatusReport, formatStatusReport } = require('../src/accounts/status-report');
       console.log(formatStatusReport(buildStatusReport()));
       return 0;
     }
-    console.log('accounts 서브커맨드: status만 사용 가능합니다.');
+    if (subcommand === 'config') {
+      const { runAccountsConfigCommand } = require('../src/accounts/accounts-config-command');
+      const result = runAccountsConfigCommand(args.slice(2), { log: (msg) => console.log(msg) });
+      return result.applied === false ? 1 : 0;
+    }
+    console.log('accounts 서브커맨드: status, config 사용 가능합니다.');
     console.log('(enable 등 계정 활성화 기능은 아직 개발 중입니다 — 사용할 수 있는 방법이 없습니다.)');
     return subcommand === undefined ? 0 : 1;
   }

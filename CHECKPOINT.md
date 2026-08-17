@@ -1692,3 +1692,60 @@ QuickSetup 미구현, StatuslineConfig가 `enabled_widgets`+`powerline_separator
 - 상태: **완료** — `src/accounts/status-report.js`, `bin/claudetower.js`,
   `test/accounts/status-report.test.js`, `.PRD/02_DATA_MODEL.md`, `CHECKPOINT.md` 변경.
   로컬 커밋만(push는 사용자가 이후 결정).
+
+---
+
+## M33: 2026-08-17 — `claudetower accounts config`(전환 임계값·전략·포트, credential 무관) 신설
+
+`01_PRD.md` §3 · `03_PHASES.md` 89행이 명시한 "`claudetower config` — 전환 임계값·전략·포트
+조정" 기능이 지금까지 단 한 번도 시도되지 않았던 것을 이번 세션 재감사에서 발견(M20의
+"안전지대 완전 소진" 선언이 뒤집힌 다섯 번째 사례 — M24/M25/M30/M31에 이은).
+
+**설계 판단**: 기존 `createProxyConfig()`(`src/accounts/proxy/proxy-config.js`)는
+`access_token`/`upstream_url`이 필수라 credential-store 없이는 호출 자체가 불가능하다.
+그래서 이 둘을 절대 포함하지 않는 별도의 경량 스키마
+(`threshold_pct`/`port`/`strategy`/`reeval_interval_ms`/`port_retry_max`)를
+`src/accounts/switch-policy-config.js`에 새로 정의했다 — 실제 프록시 기동 시점
+(credential-store 완료 후)에 이 값을 `createProxyConfig()`에 주입하는 구조를 전제로 한다.
+기본값(port 41411, threshold_pct 98, reeval_interval_ms 300000, port_retry_max 10)은
+`.PRD/.archive/QuotaSwitch원본/02_DATA_MODEL.md` ProxyConfig 표의 예시값을 그대로 채택,
+strategy 기본값(`best`)만 그 문서에 명시가 없어 자체 판단으로 채택.
+
+**모듈 경계 주의사항 하나 발견·수정**: 처음엔 Display 쪽 `test-isolation.js`의
+`assertNotPartialIsolation`을 재사용하려 했으나, 이는 Account→Display 참조가 되어
+(반대 방향인 Display→Account만 금지된 기존 규칙에는 안 걸리지만) 이 프로젝트가 지켜온
+"Account는 Display 없이도, Display는 Account 없이도" 원칙과 어긋난다고 판단해 되돌리고,
+`switch-policy-config.js` 안에 동일 로직을 독립적으로 재구현했다(중복 10줄 정도,
+결합도를 낮추는 게 더 중요하다고 판단).
+
+**CLI**: `claudetower accounts config`(인자 없음 → 현재 값 전체 조회),
+`claudetower accounts config <key> <value>`(단일 값 변경). `bin/claudetower.js`의
+`accounts` 라우팅에 `config` 서브커맨드로 연결(`status`와 동일 원칙 — credential-store/
+oauth/proxy 모듈은 이 코드 경로 어디에서도 require되지 않음, 소스 텍스트 정규식 스캔
+테스트로 증명).
+
+**실제 실행 검증** (자기선언 아님, 직접 실행):
+```
+$ node bin/claudetower.js accounts config
+=== ClaudeTower 계정 전환 정책 (credential 무관, 로컬 저장) ===
+threshold_pct: 98  port: 41411  strategy: best  reeval_interval_ms: 300000  port_retry_max: 10
+
+$ node bin/claudetower.js accounts config threshold_pct 85
+threshold_pct을(를) 85(으)로 설정했습니다.   ← 파일에 실제 저장 확인됨
+
+$ node bin/claudetower.js accounts config strategy invalid-value
+strategy는 best 또는 next-available 둘 중 하나여야 합니다.   ← exit code 1 확인됨
+```
+
+**검증**: `npm run test:accounts` **119/119**(기존 99 + 신규 20), `npm run verify`(Display)
+**235/235**(무변경), `npm run lint:boundary` — src/display/ 22개 파일 그대로 준수,
+`npm run lint` 클린. `src/display/`는 이번 작업에서 전혀 건드리지 않음(초안에서
+test-isolation.js를 건드렸다가 위 이유로 되돌림 — git status로 최종 무변경 확인).
+
+**남은 위험**: 없음(신규). credential-store(M16)만 여전히 유일한 하드 블로커.
+
+- 상태: **완료** — `src/accounts/switch-policy-config.js`(신규),
+  `src/accounts/accounts-config-command.js`(신규), `bin/claudetower.js`(수정),
+  `test/accounts/switch-policy-config.test.js`(신규),
+  `test/accounts/accounts-config-command.test.js`(신규), `CHECKPOINT.md` 변경.
+  로컬 커밋만(push는 사용자가 이후 결정).
