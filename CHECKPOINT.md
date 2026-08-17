@@ -1638,3 +1638,57 @@ credential-store가 막는 범위("OS 자격증명 저장소 I/O") 밖이라는 
 
 - 상태: **완료** — 문서만 갱신(`.PRD/07_OAUTH_FLOW_SPEC.md §5-4`, `CHECKPOINT.md`), `src/`
   코드 변경 0건(아래 검증 결과 참조), 로컬 커밋만(push는 사용자가 이후 결정).
+
+---
+
+## M32: 2026-08-17 — PRD 준수 4-way 감사 결과 반영: `accounts status` 신설 + 02_DATA_MODEL.md 정정
+
+**왜**: 4개 영역(핵심기능/Phase, 보안/ASVS, 데이터모델, OAuth흐름/동의문구)에서 CHECKPOINT
+자기선언을 배제하고 실제 소스코드만으로 PRD 준수 감사를 수행한 결과, 보안·OAuth·동의문구는
+갭 0건이었으나 구조적 문제 하나를 발견했다: Account 안전지대 코드(OAuth state/PKCE·프록시·
+감사로그·동의문구)가 상당히 구현·테스트돼 있는데 `bin/claudetower.js`에 `accounts` 서브
+커맨드가 전혀 없어 **사람이 실제로 검증할 방법이 0개**였다. 데이터모델 감사에서도 별개로
+`02_DATA_MODEL.md`가 의도적 축소 구현 3~4건을 반영하지 못한 채 방치돼 있음을 확인했다.
+
+### ① `claudetower accounts status` (읽기 전용 진단 명령)
+
+- `src/accounts/status-report.js` 신설 — `buildStatusReport()`/`formatStatusReport()`.
+  `module-activation-state.js`만 읽고, credential-store/oauth/proxy의 실제 함수는 **일절
+  import하지 않는다**(정적 검사 테스트로 보증, 아래 참고). 구현된 컴포넌트·차단된 컴포넌트
+  목록은 전부 하드코딩된 정적 문자열.
+- `bin/claudetower.js`에 `accounts` 커맨드 라우팅 추가 — `status`만 지원, 그 외
+  서브커맨드(`enable` 등)는 "아직 개발 중, 사용할 방법 없음" 안내 후 exit 1.
+- **모듈 경계 재확인**: `eslint.config.js`의 `ZONES`와 `scripts/check-module-boundary.js`의
+  스캔 대상은 둘 다 `src/display/`뿐 — `bin/`은 CLI 진입점이라 애초에 경계 규칙 대상이 아님을
+  직접 코드로 확인 후 진행(위반 아님).
+- **실제 실행 결과**(자기선언 아님, 직접 커맨드 실행):
+  ```
+  === ClaudeTower Account 모듈 상태 ===
+  활성화 여부: 비활성화됨 (기본값)
+  구현된 안전지대 컴포넌트 (미배선 — 아직 CLI에서 실제로 쓸 수 없음):
+    ✔ OAuth CSRF state 검증 / PKCE / 로컬 프록시 서버 / 회전 감사 로그 / 동의 고지 문구 / quota 헤더 필드명
+  사용 불가능한 부분:
+    ✘ credential-store (OS 자격증명 저장소 연동) — 미구현 스텁
+  ```
+  `accounts`(서브커맨드 없음) → 안내 후 exit 0, `accounts enable` → 동일 안내 후 exit 1(둘 다 확인).
+- `test/accounts/status-report.test.js` 신설(6개) — 기본값 항상 비활성화, activationState 주입
+  반영, 컴포넌트 목록 존재, 문구 포함 여부, **그리고 소스 코드 정적 스캔으로
+  credential-store/oauth/proxy require 여부 0건임을 테스트로 보증**.
+
+### ② `.PRD/02_DATA_MODEL.md` 정정
+
+`Widget.type`에서 `pr` 값이 코드상 의도적으로 제외됐다는 사실(`widget-config.js:17` 주석
+"PR 상태는 제외" 인용), `active_account` 위젯 미구현(Account CLI 미배선이 이유), PlatformProfile/
+QuickSetup 미구현, StatuslineConfig가 `enabled_widgets`+`powerline_separator` 플랫 config로
+축소 구현된 사실을 각주로 추가(근거 파일:줄 인용, M23~M31과 동일한 정정 형식).
+
+**검증 결과** (직접 재실행, 자기선언 아님): `npm run test:accounts` **99/99**(기존 93 + 신규 6),
+`npm run verify`(Display) **235/235**(무변경 확인), `npm run lint` 클린, `npm run lint:boundary`
+**src/display/ 22개 파일 무변경**(Display 쪽은 이번 작업과 무관함을 재확인).
+
+**남은 위험**: 없음(신규). credential-store(M16)만 여전히 유일한 하드 블로커 — `accounts status`도
+이 블로커를 절대 건드리지 않도록 설계됨.
+
+- 상태: **완료** — `src/accounts/status-report.js`, `bin/claudetower.js`,
+  `test/accounts/status-report.test.js`, `.PRD/02_DATA_MODEL.md`, `CHECKPOINT.md` 변경.
+  로컬 커밋만(push는 사용자가 이후 결정).

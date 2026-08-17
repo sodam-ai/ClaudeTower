@@ -61,6 +61,26 @@
 | type | 위젯 종류(신규 값 추가) | active_account | O |
 | source | 값을 읽어오는 곳 | `ActiveAccountHandle` 파일(자격증명 아님) | O |
 
+**(2026-08-17 정정: 2026-08-17 PRD 준수 감사에서 실제 코드와 대조한 결과, 아래 4가지가
+설계 문서와 다르게(의도적으로) 축소 구현되어 있음을 확인했다 — 실수 누락이 아니라 코드
+주석이 사유까지 명시한 의도적 결정이며, 지금까지 이 문서에 반영되지 않아 정정한다.)**
+
+- **`Widget.type`의 `pr` 값은 코드에 없다** — `src/display/config/widget-config.js:17`
+  주석이 "git은 2026-08-03 Phase 3 신규(.PRD/01_PRD.md §3 'Git/PR 위젯 + 캐싱', PR 상태는
+  제외)"라고 명시. 실제 `ALL_WIDGET_TYPES`는 `['model','location','git','context','cost',
+  'rate_limit']` 6종뿐이다.
+- **`active_account` 위젯은 아직 미구현**이다 — Account 모듈 CLI 자체가 미배선 상태(2026-08-17
+  감사로 확인, `bin/claudetower.js`에 `accounts status`만 읽기전용으로 존재)라 이 위젯이
+  읽어올 `ActiveAccountHandle`을 실제로 쓰는 코드 경로가 아직 없다. 설계는 유효하나 구현
+  순서상 Account CLI 배선 이후로 미룬 상태.
+- **PlatformProfile / QuickSetup 엔티티는 별도 데이터 구조로 구현되지 않았다** — Phase 1엔
+  영속화가 필요하지 않다고 판단해(`src/display/config/widget-config.js` 주석 근거) 즉석
+  판단값으로만 쓰이고 저장되지 않는다.
+- **StatuslineConfig는 전체 필드가 아니라 `enabled_widgets`+`powerline_separator`만 있는
+  플랫 `config.json`으로 축소 구현됐다** — `config_id`/`platform_id`(FK)/`project_override`/
+  `padding`/`refresh_interval` 중 `refresh_interval`(별도 `config statusline-refresh` 명령)만
+  구현되고 나머지는 없다(`src/display/config/widget-config.js:3-6`).
+
 ---
 
 ## Account 모듈 엔티티 (QuotaSwitch 원 설계 계승)
