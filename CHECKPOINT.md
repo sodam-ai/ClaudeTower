@@ -1594,5 +1594,47 @@ module-activation-state 게이트 그대로. main 반영·README 톤 변경 없�
 
 **남은 위험**: 없음(신규). credential-store(M16)만 여전히 유일한 미해결 블로커로 남음.
 
-- 상태: **완료** — 실제 코드 변경, 라이브 icacls 검증까지 끝, 회귀 없음. 로컬 커밋만
-  (push는 하지 않음 — 사용자가 별도 검토).
+- 상태: **완료** — 실제 코드 변경, 라이브 icacls 검증까지 끝, 회귀 없음. 커밋
+  `9b58856`으로 push 완료.
+  (2026-08-17 정정: 위 상태 줄이 "로컬 커밋만, push는 하지 않음"이라 적혀 있었으나,
+  `git log -1`과 `git log origin/docs-and-fixes/2026-07-06 -1`을 직접 재확인한 결과
+  둘 다 `9b58856`으로 완전히 일치 — 기록 당시엔 사실이었으나 이후 같은 라운드에서 사용자
+  승인으로 push까지 끝난 뒤 이 상태 줄만 갱신되지 않았던 것. M23~M28과 동일한 패턴이
+  또 재발한 것으로, 다음 세션은 "완료" 항목이라도 상태 줄의 push 여부를 매번 git log로
+  재확인할 것).
+
+---
+
+## M31: 2026-08-17 — quota 헤더 정확한 필드명 확정 (순수 조사, 코드 변경 없음)
+
+**왜**: M20이 "안전지대 소진"을 선언한 뒤에도 M24(OAuth state/PKCE)·M25(프록시 서버)·M30(icacls)이
+전부 그 선언 이후 발견된 새 안전지대였다 — 같은 패턴으로 `07_OAUTH_FLOW_SPEC.md §5-4`를
+재확인한 결과, M20이 "credential 없이도 가능하다"고 직접 지목까지 해뒀던 quota 헤더 필드명
+확정 작업이 M21~M30(6개 항목) 동안 방치돼 있었다. `01_PRD.md`가 명시한 Account 모듈의 핵심
+가치(quota 자동전환) 자체가 이 필드명 없이는 구현 불가능하므로 방치 기간이 길수록 리스크가
+컸다.
+
+**조사 방법**: `.PRD/07_OAUTH_FLOW_SPEC.md` §5-2~5-4가 이미 인용해온 것과 동일한 1차 출처
+`github.com/jung-wan-kim/teamclaude`를 GitHub API(`gh api repos/.../contents/...`)로 직접
+열람 — `src/server.js`의 `anthropic-ratelimit-` 헤더 수집 로직과 `src/account-manager.js`의
+`updateQuota(accountIndex, headers)` 함수 전문을 확인. 코드는 옮기지 않고 헤더 필드명(사실
+정보)만 추출했다(`.PRD/04_PROJECT_SPEC.md`의 "아이디어·패턴만 참고, 코드 미복사" 원칙 준수).
+
+**결과**: 필드명 전부 확정 — 상세는 `.PRD/07_OAUTH_FLOW_SPEC.md §5-4`에 직접 기록해뒀다(구독
+계정 5건: `unified-5h/7d-utilization/reset`+`unified-status`+모델별 `unified-7d_<label>-*`
+정규식 매칭, API키 계정 6건: `tokens-limit/remaining/reset`+`requests-limit/remaining/reset`).
+classifier 차단 없이 정상 조회됨 — "파일 ACL 조작"(M30)에 이어 "공개 GitHub 코드 열람"도
+credential-store가 막는 범위("OS 자격증명 저장소 I/O") 밖이라는 M25 가설이 다시 뒷받침됨.
+
+**하지 않은 것(범위 확대 방지, 사용자 결정)**: `QuotaState` 파싱 스텁이나 실제 배선 코드는
+이번 라운드에 만들지 않았다 — M25가 경고한 "credential-store 확정 전에 쌓으면 재작업 리스크"
+원칙을 지켜, 이번엔 필드명을 문서에 기록하는 것까지만 진행.
+
+**미검증 남은 것(정직하게 명시)**: teamclaude의 관측치일 뿐 ClaudeTower 자신의 실제 API 응답으로
+재현 검증한 적은 없음 — credential-store가 열려야 가능. 필드명이 틀렸을 가능성은 낮지만(1차
+출처 코드 직접 열람) 0은 아니다.
+
+**남은 위험**: 없음(신규). credential-store(M16)만 여전히 유일한 하드 블로커.
+
+- 상태: **완료** — 문서만 갱신(`.PRD/07_OAUTH_FLOW_SPEC.md §5-4`, `CHECKPOINT.md`), `src/`
+  코드 변경 0건(아래 검증 결과 참조), 로컬 커밋만(push는 사용자가 이후 결정).
