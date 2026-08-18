@@ -1810,3 +1810,60 @@ shim이 없음(과거 세션에 수동 삭제됨, `05_FIELD_ISSUES §2.4` 참고
   `src/display/config/test-isolation.js`(수정), `CHECKPOINT.md` 변경.
   로컬 커밋만(push는 사용자가 이후 결정 — git log로 실측: 로컬이 원격보다
   5커밋 앞섬, M31/M32/M33/M34).
+
+---
+
+## M35: 2026-08-18 — credential-store 실제 OS 키체인 구현 (major unblock, 저장소 계층만)
+
+**배경**: M16(2026-07-27)·M20(2026-07-28)이 A/B로 확인했던 차단(`@napi-rs/keyring`
+실 I/O를 Claude Code 상위 안전장치가 막음, 되돌리면 통과)을 이번 세션에서 사용자가
+직접 지켜보는 대화형 세션에서 다시 시도했다. **막히지 않았다** — require →
+`new Entry(service, username)` → `setPassword`/`getPassword`/`deletePassword`
+전부 테스트 전용 항목으로 round-trip 성공(즉시 삭제, 흔적 없음 확인).
+
+**정직한 불확실성**: 왜 이번엔 안 막혔는지 확인하지 못했다. 가능성(전부 미검증
+추측): ① 이번 세션이 Auto Mode라 권한 처리가 다를 수 있음, ② M16/M20 이후 3주
+가까이 지나며 Claude Code 자체 분류기 동작이 바뀌었을 수 있음, ③ 당시와 조건이
+미묘하게 달랐을 가능성. 확실한 사실은 "오늘 이 세션에서 막히지 않았다"는 것뿐 —
+다음 세션에서 재현 안 될 수도 있다는 걸 전제하고 작업했다.
+
+**구현**: `src/accounts/credential-store/index.js`의 `getSecret`/`setSecret`/
+`deleteSecret` throw-스텁을 실제 구현으로 교체.
+- service='claudetower'(고정), username=`CredentialRef.external_ref`(기존 필드
+  의미 그대로 재사용, 새 키 조합 규칙 안 만듦)
+- `getSecret`: 존재하지 않는 항목은 에러 없이 `null` 반환(라이브러리 네이티브
+  동작을 그대로 노출, 실측으로 확인됨)
+- `deleteSecret`: 존재하지 않는 항목 삭제도 에러 없이 멱등 처리(마찬가지로
+  네이티브 동작 실측 확인 — widgets off/on과 같은 멱등성 원칙과 일관)
+- 비밀값은 에러 메시지·로그 어디에도 노출 안 함(테스트로 검증)
+- `file_fallback_encrypted` 백엔드는 미구현(범위 밖, OS 키체인 자체가 없는
+  환경은 별도 작업)
+
+**검증 범위 — 정직하게**: **Windows만 실제 검증**(대화형 라이브 테스트 +
+`npm run test:accounts`의 통합 테스트 둘 다 win32에서 성공). macOS/Linux는
+`@napi-rs/keyring`이 동일 API로 크로스플랫폼을 표방한다는 것에 근거한 **추정**일
+뿐 실측 아님.
+
+**테스트**: 단위 테스트(require.cache 치환으로 실제 OS 키체인 미접촉, mock
+Entry가 올바른 service/username/method를 받는지 검증) 8개 + 통합 테스트(win32
+전용, 실제 Credential Manager 왕복 후 정리) 1개 — 기존 게이트-증명 테스트 2개는
+전면 재작성. `npm run test:accounts` **127/127**(119+10-2), `npm run verify`
+(Display) 245/245(무변경), `npm run lint:boundary` 23개 파일 무변경 — 전부
+직접 실행해 확인. 테스트 종료 후 `cmdkey /list`로 Credential Manager에
+`claudetower` 관련 잔재 없음 재확인.
+
+**이번에 안 한 것(다음 라운드로 명시적으로 남김)**:
+- `bin/claudetower.js`에 `accounts add`/`accounts enable` CLI 배선 — 안 함
+  (이번 승인 범위는 저장소 계층 교체까지)
+- macOS/Linux 실측 — 안 함
+- `file_fallback_encrypted` 백엔드 — 안 함
+
+**남은 위험**: OAuth 자동전환 ToS 리스크는 그대로 유효(`.PRD/07_OAUTH_FLOW_SPEC.md
+§3-3` — credential-store는 중립 기술이나 이미 승인된 하이브리드 자동전환 위험을
+상속받음, 이 결정 자체는 재검토 조건 없음으로 이미 닫힘). credential-store가
+풀렸다고 해서 곧바로 전체 기능이 완성되는 게 아니다 — CLI 배선·프록시 실기동
+등 최소 1~2단계가 더 남아있다.
+
+- 상태: **완료(저장소 계층만)** — `src/accounts/credential-store/index.js`(구현),
+  `test/accounts/credential-store-index.test.js`(전면 재작성), `CHECKPOINT.md` 변경.
+  로컬 커밋만(push는 사용자가 이후 결정).
