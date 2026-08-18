@@ -39,7 +39,14 @@
 //   - `file_fallback_encrypted` 백엔드(OS 키체인 자체가 없는 환경 대응) — 안 함,
 //     그런 환경에서는 `@napi-rs/keyring` 생성자/호출이 던지는 에러를 그대로 전파한다.
 
-const { Entry } = require('@napi-rs/keyring');
+// 변수를 거친 require: esbuild(scripts/build-sea.js)가 문자열 리터럴 require만 정적으로
+// 번들링 시도한다 — '@napi-rs/keyring'을 리터럴로 쓰면 esbuild가 그 안의 20여 개 플랫폼별
+// require('./keyring.*.node')를 전부 따라가다 이 PC에 없는 다른 OS/아치텍처용 .node
+// 파일에서 번들링이 깨진다(실측 확인, 2026-08-19). 네이티브 addon은 애초에 번들링 대상이
+// 아니므로, 변수를 거쳐 esbuild의 정적 분석을 피하고 실행 시점에만 진짜 require한다
+// (표준적인 esbuild 우회 기법 — 파일시스템 동작 자체는 바뀌지 않음).
+const NATIVE_KEYRING_MODULE = '@napi-rs/keyring';
+const { Entry } = require(NATIVE_KEYRING_MODULE);
 
 const SERVICE_NAME = 'claudetower';
 
