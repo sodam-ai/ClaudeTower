@@ -39,6 +39,17 @@ async function run(args) {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     try {
       await runSetupWizard(rl, { log: (msg) => console.log(msg) });
+      // 과거 npm-global 설치가 남긴 댕글링 shim(.PRD/05_FIELD_ISSUES_2026-07-04.md §2)이
+      // 있으면 재설치 시점에 함께 정리한다 — 실패해도 setup 자체는 이미 끝난 뒤이므로 무시.
+      try {
+        const { cleanupStaleNpmShims } = require('../src/display/config/npm-shim-cleanup');
+        const shimResult = cleanupStaleNpmShims();
+        if (shimResult.cleaned && shimResult.cleaned.length > 0) {
+          console.log(`\n낡은 npm 전역 명령 잔재도 함께 정리했습니다: ${shimResult.cleaned.join(', ')}`);
+        }
+      } catch {
+        // 조용히 무시 — setup 본 기능(위젯/설정 등록)은 이미 성공했다.
+      }
       return 0;
     } catch (err) {
       console.error(`setup 실패: ${err.message}`);
@@ -177,6 +188,18 @@ async function run(args) {
     }
     if (skillRemoveResult.cleanedStaleDirs.length > 0) {
       console.log(`이전 버전이 다른 위치에 남겨둔 낡은 설정도 함께 정리했습니다: ${skillRemoveResult.cleanedStaleDirs.join(', ')}`);
+    }
+
+    // 과거 npm-global 설치가 남긴 댕글링 shim(.PRD/05_FIELD_ISSUES_2026-07-04.md §2)도
+    // 제거 시점에 함께 정리한다 — 실패해도 위의 본 제거 작업은 이미 끝난 뒤이므로 무시.
+    try {
+      const { cleanupStaleNpmShims } = require('../src/display/config/npm-shim-cleanup');
+      const shimResult = cleanupStaleNpmShims();
+      if (shimResult.cleaned && shimResult.cleaned.length > 0) {
+        console.log(`낡은 npm 전역 명령 잔재도 함께 정리했습니다: ${shimResult.cleaned.join(', ')}`);
+      }
+    } catch {
+      // 조용히 무시.
     }
 
     // "제거 여부를 확실히 알 수 있게" — 지우고 끝내는 대신, 설정 파일을 다시 읽어서

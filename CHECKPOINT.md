@@ -1749,3 +1749,64 @@ test-isolation.js를 건드렸다가 위 이유로 되돌림 — git status로 �
   `test/accounts/switch-policy-config.test.js`(신규),
   `test/accounts/accounts-config-command.test.js`(신규), `CHECKPOINT.md` 변경.
   로컬 커밋만(push는 사용자가 이후 결정).
+
+---
+
+## M34: 2026-08-18 — Account 안전지대 5차 재소진 확인 후 트랙 전환: npm stale shim 자동 정리(installer/uninstaller)
+
+**계기**: M33 직후 사용자가 다시 한번 같은 절차(PRD 전수 재정독+안전지대 소진 여부
+재확인)를 요구. 이번엔 `accounts enable`(영속화 함수 자체가 없어 신규 설계 필요 +
+`add` 없이 동의만 받으면 consent-theater가 됨)과 `accounts add/list` CRUD
+(credential-store 없이는 등록할 계정이 없어 항상 빈 목록) 둘 다 기각 —
+**Account 트랙은 이번엔 실제로 소진**. `.PRD/05_FIELD_ISSUES_2026-07-04.md §2.5`
+(P2, "installer/uninstaller가 stale npm shim을 탐지·정리")로 트랙 전환.
+
+**배경**: 과거 npm-global 설치가 남긴 shim(`claudetower`/`.cmd`/`.ps1`, Windows는
+prefix 루트에 3개, POSIX는 `<prefix>/bin/`에 심볼릭 링크 1개)이 백킹 모듈
+(`node_modules/claudetower`) 삭제 후에도 남아 bare `claudetower`가
+`MODULE_NOT_FOUND`로 깨지던 실측 결함(§2.1~2.3)의 근본 수정.
+
+**구현**: `src/display/config/npm-shim-cleanup.js`(신규) — `cleanupStaleNpmShims()`.
+오삭제 방지 2단계: (1) shim 파일 내용에 `node_modules`+`claudetower` 참조가 실제로
+있는지 확인(이름만 같은 무관한 파일 보호), (2) 그런데도 백킹 모듈 폴더가 정말 없는지
+확인한 뒤에만 삭제. npm prefix 위치는 하드코딩하지 않고 `npm config get prefix`로
+직접 조회(테스트 격리는 신규 `CLAUDETOWER_NPM_PREFIX_DIR`을 `test-isolation.js`의
+`ISOLATION_VARS`에 추가해 기존 부분격리 방어막에 편입). PATH 자동등록(§3, 별도 P2)은
+이번 범위에서 명확히 제외 — 관련 코드 전혀 안 건드림. `bin/claudetower.js`의 `setup`
+(재설치 시)과 `uninstall`(제거 시) 양쪽에 배선, 둘 다 try/catch로 감싸 실패해도 본
+설치/제거 기능은 절대 막지 않음.
+
+**격리 테스트로 실제 확인**(임시 디렉터리, 실제 시스템 `%APPDATA%\npm`은 전혀 안 건드림):
+- 백킹 모듈 존재 → 정상 shim 삭제 안 됨
+- 백킹 모듈 없는 stale shim 3종 전부 삭제됨
+- 이름만 같고 내용이 무관한 파일 → 백킹이 없어도 삭제 안 됨(오삭제 방지 실증)
+- shim 자체가 없으면 에러 없이 빈 목록(멱등)
+- 다른 CLAUDETOWER_* 격리 변수만 설정된 부분격리 상태 → 실제 npm 폴더 조회 자체를
+  건너뜀(`skipped: 'partial-test-isolation'`) — 이 상태로 `npm run verify`의
+  `uninstall-command.test.js`가 실제로 이 코드 경로를 통과했고 정상 동작 확인
+- POSIX 끊어진 심볼릭 링크 판정 함수는 이 PC(Windows)에서도 직접 심볼릭 링크를
+  만들어 검증(개발자 모드 활성 상태라 실제 실행됨) — 정상/끊어짐 양쪽 다 확인.
+  **한계(정직)**: `cleanupStaleNpmShims()` 전체 경로 중 POSIX 분기
+  (`process.platform !== 'win32'`)는 이 PC가 Windows라 실행 자체는 못했다 —
+  개별 판정 함수 단위 검증까지만.
+
+**실제 시스템 미접촉 확인**: 이 PC의 실제 `%APPDATA%\npm`에는 애초에 `claudetower`
+shim이 없음(과거 세션에 수동 삭제됨, `05_FIELD_ISSUES §2.4` 참고) — `ls`로
+재확인했고, 이번 작업 전체가 격리된 임시 디렉터리에서만 실행·검증됨.
+또한 이 PC에 ClaudeTower가 **실제로 라이브 설치**돼 있어(현재 세션 상태표시줄이
+이걸로 동작 중) `uninstall`을 실제로 실행하는 실사용 테스트는 하지 않음(위험) —
+대신 `uninstall-command.test.js`(격리 환경)가 같은 코드 경로를 이미 통과시킴.
+
+**검증**: `npm run test:accounts` 119/119(무변경), `npm run verify`(Display)
+**245/245**(기존 235 + 신규 10), `npm run lint:boundary` — src/display/ **23개**
+파일(신규 1개 포함) 전부 모듈 경계 준수, `npm run lint` 클린.
+
+**남은 위험**: 없음(신규). PATH 자동등록(§3)은 여전히 별도 미해결 P2로 남음(이번
+범위 아님, 더 침습적이라 사용자 동의 하 별도 작업 필요). credential-store(M16)는
+여전히 유일한 하드 블로커.
+
+- 상태: **완료** — `src/display/config/npm-shim-cleanup.js`(신규),
+  `test/display/npm-shim-cleanup.test.js`(신규), `bin/claudetower.js`(수정),
+  `src/display/config/test-isolation.js`(수정), `CHECKPOINT.md` 변경.
+  로컬 커밋만(push는 사용자가 이후 결정 — git log로 실측: 로컬이 원격보다
+  5커밋 앞섬, M31/M32/M33/M34).

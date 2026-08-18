@@ -21,6 +21,7 @@ const ISOLATION_VARS = [
   'CLAUDETOWER_SKILLS_DIR',
   'CLAUDETOWER_INSTALL_DIR',
   'CLAUDETOWER_CACHE_DIR',
+  'CLAUDETOWER_NPM_PREFIX_DIR',
 ];
 
 function isPartialIsolation(ownOverrideVar) {
