@@ -165,8 +165,21 @@ async function run(args) {
       const result = runAddApiKeyCommand({ label, apiKeyValue }, { log: (msg) => console.log(msg) });
       return result.applied === false ? 1 : 0;
     }
-    console.log('accounts 서브커맨드: status, config, enable, add --api-key 사용 가능합니다.');
-    console.log('(로그인 계정 자동 등록·자동전환 기동은 아직 개발 중입니다.)');
+    if (subcommand === 'list') {
+      const { runAccountsListCommand } = require('../src/accounts/accounts/accounts-list-command');
+      runAccountsListCommand({ log: (msg) => console.log(msg) });
+      return 0;
+    }
+    if (subcommand === 'disable') {
+      // 동의 문구(consent-text.js)가 "언제든지 disable로 다시 끌 수 있다"고 약속하는데
+      // 이 명령이 없으면 그 약속이 거짓이 된다(2026-08-19 발견) — 확인 없이 즉시 처리한다
+      // (accounts-disable-command.js 상단 주석 참고: purge와 달리 가역적이라 마찰 없음).
+      const { runAccountsDisableCommand } = require('../src/accounts/accounts-disable-command');
+      runAccountsDisableCommand({ log: (msg) => console.log(msg) });
+      return 0;
+    }
+    console.log('accounts 서브커맨드: status, config, enable, add --api-key, list, disable 사용 가능합니다.');
+    console.log('(계정 완전 삭제(purge)·자동전환 기동은 아직 개발 중입니다.)');
     return subcommand === undefined ? 0 : 1;
   }
 

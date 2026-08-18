@@ -28,7 +28,13 @@ const { readCachedValue, writeCachedValue } = require('../cache/file-cache');
 
 const CACHE_KEY = 'git_status';
 const CACHE_TTL_SEC = 5;
-const EXEC_OPTS = { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] };
+// timeout 없이는 느린 네트워크 드라이브·멈춘 git 훅·손상된 인덱스 등에서 git 명령이
+// 무한정 멈출 수 있고, 그러면 이 execFileSync가 상태표시줄 렌더 전체를 함께 멈춰
+// 세운다(100ms 성능 목표와 직접 충돌하는 실패 모드). 정상 케이스(~35ms 실측,
+// CHECKPOINT M29)보다 넉넉히 여유를 둔 1초로 상한을 걸어, 멈추더라도 위젯 하나가
+// 숨겨지는 선에서 그치게 한다(기존 try/catch가 이미 처리하는 "git 없음/저장소 아님"과
+// 동일한 폴백 경로를 그대로 탄다 — 새 에러 처리 없이 안전하게 통합됨).
+const EXEC_OPTS = { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 1000 };
 
 function queryGitStatus(cwd) {
   let branch;
