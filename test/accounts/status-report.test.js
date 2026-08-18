@@ -7,11 +7,11 @@ const path = require('node:path');
 const { buildStatusReport, formatStatusReport } = require('../../src/accounts/status-report');
 const { createModuleActivationState } = require('../../src/accounts/module-activation-state');
 
-test('buildStatusReport: 기본값(영속화 계층 없음)은 항상 비활성화 상태를 반환한다', () => {
+test('buildStatusReport: activationState를 안 넘기면 기본값(비활성화)을 반환한다', () => {
   const report = buildStatusReport();
   assert.equal(report.enabled, false);
   assert.equal(report.consentGivenAt, null);
-  assert.equal(report.canEnable, false);
+  assert.equal(report.canEnable, true); // M36부터 enable 명령이 실재하므로 true
 });
 
 test('buildStatusReport: activationState를 주입하면 그 값을 그대로 반영한다', () => {
@@ -29,13 +29,14 @@ test('buildStatusReport: activationState를 주입하면 그 값을 그대로 �
 test('buildStatusReport: 구현된 컴포넌트와 차단된 컴포넌트 목록을 둘 다 포함한다', () => {
   const report = buildStatusReport();
   assert.ok(report.implementedComponents.length >= 5);
-  assert.ok(report.blockedComponents.some((c) => c.name.includes('credential-store')));
+  assert.ok(report.implementedComponents.some((c) => c.name.includes('credential-store')));
+  assert.ok(report.blockedComponents.some((c) => c.name.includes('OAuth 로그인')));
 });
 
-test('formatStatusReport: 비활성화 상태일 때 "비활성화됨"과 "실제로 켤 수 있는 방법이 없습니다" 문구를 포함한다', () => {
+test('formatStatusReport: 비활성화 상태일 때 "비활성화됨"과 enable 사용법 안내를 포함한다', () => {
   const text = formatStatusReport(buildStatusReport());
   assert.match(text, /비활성화됨/);
-  assert.match(text, /실제로 켤 수 있는 방법이 없습니다/);
+  assert.match(text, /accounts enable/);
 });
 
 test('formatStatusReport: 활성화 상태일 때는 동의 시각을 함께 보여준다', () => {

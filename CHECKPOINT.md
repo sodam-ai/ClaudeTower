@@ -1867,3 +1867,86 @@ Entry가 올바른 service/username/method를 받는지 검증) 8개 + 통합 �
 - 상태: **완료(저장소 계층만)** — `src/accounts/credential-store/index.js`(구현),
   `test/accounts/credential-store-index.test.js`(전면 재작성), `CHECKPOINT.md` 변경.
   로컬 커밋만(push는 사용자가 이후 결정).
+
+---
+
+## M36: 2026-08-19 — Account 모듈 최초 실사용 기능: `accounts enable` + `accounts add --api-key`
+
+**이정표**: M35(credential-store 언락) 이후 4방향 재감사가 공통으로 지목한 유일한
+안전·의미 있는 다음 단계(OAuth 로그인은 ToS로 여전히 금지, API키 경로만 예외)를
+실행했다. 이번이 Account 모듈에서 **처음으로 실제 작동하는 계정 하나를 등록**할 수
+있게 된 지점이다.
+
+### 왜 `enable`과 `add`를 함께 만들었나
+
+`add-api-key-request.js`가 이미 `isAccountModuleEnabled(activationState)`를 필수
+조건으로 요구하는데, `module-activation-state.js`엔 영속화 함수가 없어(순수
+팩토리만 존재, 2026-07-11 결정으로 이미 review 끝난 파일이라 건드리지 않음) `enable`
+없이는 `add`가 항상 거부된다. 둘을 분리할 수 없었다.
+
+### 신설 파일
+
+- `src/accounts/module-activation-state-store.js` — ModuleActivationState 영속화
+  (`~/.claudetower/accounts-activation-state.json`, `CLAUDETOWER_ACCOUNTS_ACTIVATION_
+  STATE_PATH` override, 손상 시 안전하게 비활성화로 폴백, 부분격리 방어 포함)
+- `src/accounts/accounts/accounts-registry.js` — Account 레코드 목록 영속화
+  (`~/.claudetower/accounts-registry.json`, `CLAUDETOWER_ACCOUNTS_REGISTRY_PATH`
+  override). Account 엔티티 자체에 시크릿 필드가 없어 구조적으로 비밀값이 못 들어감.
+- `src/accounts/accounts-enable-command.js` — `claudetower accounts enable`.
+  consent-text.js를 그대로 출력하고 setup-wizard.js와 동일한 비동기 이터레이터
+  readline 패턴(EOF 버그 회피, rl.output 사용)으로 [y/N] 확인. 이미 활성화된
+  상태에서 재실행하면 멱등하게 처리.
+- `src/accounts/accounts/add-api-key-command.js` — `claudetower accounts add
+  --api-key <라벨> <키값>`. 검증(`buildAddApiKeyRequest`) → `setSecret`(credential-
+  store) → 레지스트리 기록 순서. 레지스트리 쓰기가 실패하면 방금 저장한 키를
+  `deleteSecret`으로 롤백 시도하고, 롤백도 실패하면 사람이 놓칠 수 없게 명시적으로
+  경고("심각: 자격증명은 저장됐지만...")한다 — "키는 있는데 목록엔 없는" 상태를
+  조용히 남기지 않는다.
+- `bin/claudetower.js`에 `enable`/`add --api-key` 서브커맨드 배선. `accounts status`도
+  이제 `readActivationState()`로 실제 상태를 읽어 보여주도록 갱신(이전엔 항상
+  기본값만 보여줬음). `status-report.js`의 컴포넌트 목록도 credential-store/enable/
+  add가 이제 "구현·사용 가능"으로 갱신(이전엔 전부 "미배선"으로 표시했었음).
+- `switch-policy-config.js`의 `ACCOUNTS_ISOLATION_VARS`에 신설 변수 2개 추가
+  (대칭 방어 원칙 — 새 파일이 격리된 채 이 파일만 격리 안 된 상태를 놓치지 않도록).
+
+### 설계 판단
+
+- **API키 만료 표현**: CredentialRef.token_expires_at은 스키마상 비어있지 않은 ISO
+  문자열이 필수(이미 review 끝난 credential-ref.js를 안 바꿈)인데 API키는 전통적
+  만료 개념이 없어 `'9999-12-31T23:59:59.999Z'` sentinel 값으로 "만료 없음"을 표현.
+- **backend 필드**: `process.platform` 기반 매핑(win32→windows_dpapi 등), 미지원
+  플랫폼은 명확히 에러(추측으로 지원한다고 하지 않음).
+- **네트워크 호출 없음**: 등록만 하고 Anthropic API로 키 유효성을 실제로 검증하지
+  않는다(이번 범위 밖, 명시).
+
+### 검증 (전부 직접 실행)
+
+- 단위 테스트 신규 21개(활성화상태 5 + 레지스트리 6 + enable명령 4 + add명령 6):
+  `npm run test:accounts` **148/148**(127+21)
+- `npm run verify`(Display) 245/245(무변경), `npm run lint:boundary` 23개 파일
+  무변경, `npm run lint` 클린
+- **라이브 CLI 전체 흐름 실행**(격리 경로: `CLAUDETOWER_ACCOUNTS_ACTIVATION_STATE_
+  PATH`/`CLAUDETOWER_ACCOUNTS_REGISTRY_PATH`를 임시파일로 지정, credential-store는
+  경로 override가 없어 실제 Windows Credential Manager를 그대로 씀):
+  1. enable 전 add 시도 → 거부(exit 1) 확인
+  2. enable에 `n` 입력 → 비활성화 유지 확인
+  3. enable에 `y` 입력 → 활성화 확인
+  4. 활성화 후 add → 성공(exit 0), 레지스트리에 계정 1건 기록 확인
+  5. 같은 라벨 재등록 → 거부 확인
+  6. 레지스트리 파일 원문에 비밀값("test-marker-value-12345") 미노출 확인
+- **뒷정리**: 실제 생성된 계정(`account_id: 43c484bb-...`)의 실제 키체인 항목을
+  별도 스크립트로 `deleteSecret` 후 `getSecret`이 null임을 재확인. 임시 활성화상태·
+  레지스트리 파일 삭제. `cmdkey /list`로 Credential Manager에 claudetower 관련
+  잔재 0건 재확인. 실제 프로덕션 경로(`~/.claudetower/accounts-activation-state.json`,
+  `~/.claudetower/accounts-registry.json`)는 이번 라이브 테스트 내내 한 번도
+  생성되지 않았음을 확인(이 PC의 실제 ClaudeTower 설치는 전혀 영향받지 않음).
+
+### 이번에 안 한 것 (다음 라운드로 명시적으로 남김)
+
+- `accounts disable`, `account-purge`, `accounts list`, `accounts remove` — 안 만듦
+- OAuth 로그인 흐름(--import 포함) — ToS §3-1/§3-3 금지 그대로, 계획 자체가 없음
+- 프록시 실제 기동(`startProxyServer`), quota 헤더 파싱 배선, 자동전환 로직 — 안 만듦
+- API키 실제 유효성 네트워크 검증 — 안 함(등록만)
+- macOS/Linux 실측 — 여전히 미검증
+
+- 상태: **완료(enable + add --api-key만)** — 로컬 커밋만(push는 사용자가 이후 결정).

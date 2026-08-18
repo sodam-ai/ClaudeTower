@@ -35,7 +35,14 @@ const DISPLAY_ISOLATION_VARS = [
   'CLAUDETOWER_INSTALL_DIR',
   'CLAUDETOWER_CACHE_DIR',
 ];
-const ACCOUNTS_ISOLATION_VARS = ['CLAUDETOWER_ACCOUNTS_SWITCH_POLICY_PATH'];
+// M36에서 CLAUDETOWER_ACCOUNTS_ACTIVATION_STATE_PATH/CLAUDETOWER_ACCOUNTS_REGISTRY_PATH
+// 신설 — 이 목록에도 함께 추가해야 그 두 파일이 격리된 상태에서 이 파일만 격리 안 된
+// 채로 실행되는 "부분 격리" 시나리오를 정확히 탐지한다(대칭 방어 원칙).
+const ACCOUNTS_ISOLATION_VARS = [
+  'CLAUDETOWER_ACCOUNTS_SWITCH_POLICY_PATH',
+  'CLAUDETOWER_ACCOUNTS_ACTIVATION_STATE_PATH',
+  'CLAUDETOWER_ACCOUNTS_REGISTRY_PATH',
+];
 const ALL_ISOLATION_VARS = [...DISPLAY_ISOLATION_VARS, ...ACCOUNTS_ISOLATION_VARS];
 
 function assertNotPartialIsolation(ownOverrideVar, targetLabel) {
@@ -102,6 +109,14 @@ function validateField(key, value) {
     return value;
   }
   if (key === 'reeval_interval_ms') {
+    // 하한이 0이라 Number('')===0(NaN 아님, JS 특유의 함정)이 "< 0"에 안 걸리고
+    // 통과한다 — threshold_pct(하한 50)/port(하한 1024)/port_retry_max(하한 1)는
+    // 우연히 하한에 걸려 막히지만 이 필드만 하한이 0이라 그 우연이 성립하지 않는다.
+    // config-command.js의 padding(공식 기본값 0)이 이미 겪은 것과 동일한 결함
+    // 부류(M18) — 빈/공백 문자열을 Number() 호출 전에 명시적으로 거부한다.
+    if (typeof value !== 'string' || value.trim() === '') {
+      throw new TypeError('reeval_interval_ms는 0 이상의 정수여야 합니다(0 = 주기적 재평가 비활성화).');
+    }
     const n = Number(value);
     if (!Number.isInteger(n) || n < 0) {
       throw new TypeError('reeval_interval_ms는 0 이상의 정수여야 합니다(0 = 주기적 재평가 비활성화).');
@@ -110,8 +125,11 @@ function validateField(key, value) {
   }
   if (key === 'port_retry_max') {
     const n = Number(value);
-    if (!Number.isInteger(n) || n < 1) {
-      throw new TypeError('port_retry_max는 1 이상의 정수여야 합니다.');
+    // 상한 없이 큰 값을 허용하면(예: 999999) EADDRINUSE 시 순차 포트 재시도가
+    // 비정상적으로 오래 걸릴 수 있다(proxy/server.js의 재시도 루프) — 실사용에서
+    // 65535-1024개 포트를 전부 소진할 일은 없으므로 넉넉하되 명확한 상한(100)을 둔다.
+    if (!Number.isInteger(n) || n < 1 || n > 100) {
+      throw new TypeError('port_retry_max는 1~100 사이의 정수여야 합니다.');
     }
     return n;
   }

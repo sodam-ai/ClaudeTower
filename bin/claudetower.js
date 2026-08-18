@@ -127,15 +127,15 @@ async function run(args) {
   }
 
   if (command === 'accounts') {
-    // Account 모듈 안전지대 코드는 이미 상당히 구현돼 있지만 CLI 진입점이 전혀 없어
-    // 사람이 검증할 방법이 없었다(2026-08-17 PRD 준수 감사 발견). status(읽기전용
-    // 진단)에 이어 config(전환 임계값·전략·포트, credential 무관 로컬 파일)도 연결한다
-    // — enable/disable 등 상태변경·credential-store 접근 서브커맨드는 그 게이트가
-    // 풀리기 전까지 의도적으로 만들지 않는다.
+    // Account 모듈 안전지대 코드는 이미 상당히 구현돼 있었지만 CLI 진입점이 전혀 없어
+    // 사람이 검증할 방법이 없었다(2026-08-17 PRD 준수 감사 발견). status/config에
+    // 이어, M36(2026-08-19)부터 enable(동의→활성화)·add --api-key(계정 등록)도 연결한다
+    // — 로그인 계정 자동화(OAuth)는 Anthropic ToS 이중 금지로 여전히 만들지 않는다.
     const subcommand = args[1];
     if (subcommand === 'status') {
       const { buildStatusReport, formatStatusReport } = require('../src/accounts/status-report');
-      console.log(formatStatusReport(buildStatusReport()));
+      const { readActivationState } = require('../src/accounts/module-activation-state-store');
+      console.log(formatStatusReport(buildStatusReport({ activationState: readActivationState() })));
       return 0;
     }
     if (subcommand === 'config') {
@@ -143,8 +143,30 @@ async function run(args) {
       const result = runAccountsConfigCommand(args.slice(2), { log: (msg) => console.log(msg) });
       return result.applied === false ? 1 : 0;
     }
-    console.log('accounts 서브커맨드: status, config 사용 가능합니다.');
-    console.log('(enable 등 계정 활성화 기능은 아직 개발 중입니다 — 사용할 수 있는 방법이 없습니다.)');
+    if (subcommand === 'enable') {
+      const { runAccountsEnableCommand } = require('../src/accounts/accounts-enable-command');
+      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+      try {
+        const result = await runAccountsEnableCommand(rl, { log: (msg) => console.log(msg) });
+        return result.applied === false ? 1 : 0;
+      } finally {
+        rl.close();
+      }
+    }
+    if (subcommand === 'add') {
+      const flagIndex = args.indexOf('--api-key');
+      if (flagIndex === -1) {
+        console.log('사용법: claudetower accounts add --api-key <라벨> <키값>');
+        console.log('(로그인 계정 자동 등록은 지원하지 않습니다 — Anthropic 이용약관상 자동화 금지 대상입니다.)');
+        return 1;
+      }
+      const [label, apiKeyValue] = args.slice(flagIndex + 1);
+      const { runAddApiKeyCommand } = require('../src/accounts/accounts/add-api-key-command');
+      const result = runAddApiKeyCommand({ label, apiKeyValue }, { log: (msg) => console.log(msg) });
+      return result.applied === false ? 1 : 0;
+    }
+    console.log('accounts 서브커맨드: status, config, enable, add --api-key 사용 가능합니다.');
+    console.log('(로그인 계정 자동 등록·자동전환 기동은 아직 개발 중입니다.)');
     return subcommand === undefined ? 0 : 1;
   }
 
