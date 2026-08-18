@@ -70,7 +70,12 @@ test('writeSwitchPolicyField: reeval_interval_ms 음수는 거부한다', () => 
 
 test('writeSwitchPolicyField: port_retry_max가 0이면 거부한다', () => {
   const filePath = tmpPath();
-  assert.throws(() => writeSwitchPolicyField('port_retry_max', '0', filePath), /1 이상/);
+  assert.throws(() => writeSwitchPolicyField('port_retry_max', '0', filePath), /1~100 사이/);
+});
+
+test('writeSwitchPolicyField: port_retry_max가 100을 초과하면 거부한다', () => {
+  const filePath = tmpPath();
+  assert.throws(() => writeSwitchPolicyField('port_retry_max', '101', filePath), /1~100 사이/);
 });
 
 test('writeSwitchPolicyField: 알 수 없는 키는 거부한다', () => {
