@@ -2234,6 +2234,51 @@ README.html/README.en.html 재생성(별도 pandoc 파이프라인 필요, 범�
 있음(`--model`로 덮어쓰기 가능, 실패 시 에러 메시지에서 안내). 이번 커밋도 로컬 전용(push
 안 함).
 
+## M44: 2026-08-20 — 프록시 실제 요청 전달 로직(request-forwarder) 신설
+
+**배경**: M41(파싱+전환 결정)·M42(헤더 실측 진단 명령)에 이어, `startProxyServer`가
+여전히 비워둔 `onAuthorizedRequest` 콜백 — "검증된 요청을 실제 업스트림으로 전달하고
+응답 헤더를 관찰하는" 부분을 만들었다. **실제 트래픽 진입점(`claudetower run` 등)에는
+여전히 연결하지 않는다** — 그 배선은 다음 세션 이후로 계속 미룬다(2026-08-19 방향
+결정 유지).
+
+**만든 것**:
+- [x] `src/accounts/proxy/request-forwarder.js` — `createRequestForwarder({ getApiKey,
+  onUpstreamHeaders, upstreamHost, upstreamPort, useTls, timeoutMs })`가
+  `startProxyServer`와 바로 맞물리는 `onAuthorizedRequest(req, res)`를 반환한다.
+  요청·응답 본문을 전부 스트리밍(`.pipe()`)으로 중계 — 버퍼링해서 통째로 재전송하지
+  않는다. 업스트림 상태코드·헤더는 그대로 중계(429 등 에러도 삼키지 않음). 활성 계정의
+  API 키를 `x-api-key`로 항상 주입(클라이언트가 보낸 값은 덮어씀), 로컬 전용 접근 토큰
+  헤더는 업스트림으로 전달하지 않음. 업스트림 연결 실패·타임아웃(기본 30초)은 502로
+  안전하게 응답(무한 대기·크래시 없음). `onUpstreamHeaders` 관찰 콜백은 예외를 던져도
+  응답 전달을 막지 않음.
+- [x] "현재 활성 계정이 무엇인지"·"전환 시 어디에 기록할지"는 이 파일이 알지 못하게
+  의도적으로 설계 — 전부 호출부 주입(`getApiKey`/`onUpstreamHeaders`). 실제 활성 계정
+  포인터(`src/shared/active-account-handle/`)는 이 세션 조사 결과 **여전히 어디서도
+  호출되지 않는 미배선 상태**임을 확인했다 — 그 연결도 다음 배선 단계의 몫이다.
+- [x] 신규 테스트 13건, 전부 **실제 로컬 TCP 서버**(가짜 업스트림 + 진짜
+  `startProxyServer`)로 검증(require.cache mock 아님) — 정상 중계·스트리밍 청크
+  분할 전달·429 전달·API 키 주입/클라이언트값 덮어쓰기/토큰헤더 비유출·getApiKey 실패
+  시 업스트림 미호출·연결실패 502·타임아웃 502·관찰콜백 예외 무시·**M41 파서+전환결정과의
+  실제 end-to-end 연동**(가짜 quota 초과 헤더 → 올바른 전환 대상 계산 확인)·로컬 접근
+  토큰 검증과의 통합까지 포함. `test:accounts` 196→211(대조 세션이 동시에 credential-store
+  테스트도 늘리고 있어 이 커밋만으로 정확히 +13은 아님 — 아래 "동시 작업" 참고).
+  `npm run verify`(display 245) 회귀 없음.
+
+**동시 작업(그대로 두고 건드리지 않음)**: 이 세션 도중 다른 세션이 `scripts/build-sea.js`·
+`src/accounts/credential-store/index.js`·`test/accounts/credential-store-index.test.js`·
+`install.sh`를 실시간으로(미커밋 상태로) 고치고 있는 것을 확인했다 — 겹치는 파일이 없어
+충돌은 없었고, 파일명을 명시 지정해 스테이징(`git add -A` 사용 안 함)해 그 변경들은
+전혀 건드리지 않았다.
+
+**남은 위험**:
+1. 여전히 아무것도 `startProxyServer`를 실제로 호출하지 않는다 — 이 파일이 있어도
+   지금 설치된 실사용 환경의 동작은 전혀 바뀌지 않는다(의도된 것).
+2. "전환 시 활성 계정 상태를 실제로 어떻게 갱신할지"(active-account-handle 연결,
+   registry의 `status`를 `cooldown`으로 바꿀지 등)는 아직 설계·구현 안 됨 — 다음 배선
+   단계에서 반드시 다뤄야 한다.
+3. 이번 커밋도 로컬 전용(push 안 함).
+
 - 상태: **CHECKPOINT 기록 완료, PR #8 main 병합 진행 중(이 커밋 직후)**.
 
 **2026-08-20 정정(M40 자체 오류 + 별도 발견 1건)**: PRD 전수 재검독 중 `bin/claudetower.js`
