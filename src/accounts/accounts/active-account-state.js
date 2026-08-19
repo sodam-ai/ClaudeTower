@@ -45,6 +45,23 @@ const ACCOUNTS_ISOLATION_VARS = [
 ];
 const ALL_ISOLATION_VARS = [...DISPLAY_ISOLATION_VARS, ...ACCOUNTS_ISOLATION_VARS];
 
+// 통째로 덮어쓰는 fs.writeFileSync는 원자적이지 않다 — 이 파일은 앞으로 프록시가 응답을
+// 받을 때마다(사용자 명령 1회당 1번이 아니라) 자동으로 갱신되므로, 터미널 여러 개에서
+// 동시에 claudetower를 켜두면 두 프로세스가 같은 순간에 쓰다가 파일이 반쯤 쓰인 채로
+// 깨질 수 있다. 이 프로젝트가 install.ps1에서 이미 실제로 겪은 것과 같은 결함 부류
+// (`.PRD/05_FIELD_ISSUES_2026-07-04.md` 이슈#1, self-collision) — 그때 검증된 해법을
+// 그대로 따른다: 같은 디렉터리의 임시 파일에 먼저 다 쓴 뒤 rename()으로 교체한다.
+// rename()은 POSIX·Windows(libuv가 MOVEFILE_REPLACE_EXISTING 사용) 양쪽에서 대상 파일이
+// 이미 존재해도 원자적으로 교체된다 — 다른 프로세스가 읽는 도중이라도 "옛 내용 전체" 아니면
+// "새 내용 전체"만 보이지, 중간 상태를 볼 수 없다.
+function atomicWriteFileSync(filePath, content) {
+  const dir = path.dirname(filePath);
+  fs.mkdirSync(dir, { recursive: true });
+  const tmpPath = path.join(dir, `.${path.basename(filePath)}.tmp-${process.pid}-${Date.now()}`);
+  fs.writeFileSync(tmpPath, content, 'utf8');
+  fs.renameSync(tmpPath, filePath);
+}
+
 function assertNotPartialIsolation(ownOverrideVar, targetLabel) {
   const partiallyIsolated =
     !process.env[ownOverrideVar] &&
@@ -90,12 +107,7 @@ function writeActiveAccountId(accountId, filePath) {
     assertNotPartialIsolation('CLAUDETOWER_ACCOUNTS_ACTIVE_ACCOUNT_PATH', '활성 계정 상태 파일');
     filePath = resolveActiveAccountStatePath();
   }
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(
-    filePath,
-    JSON.stringify({ account_id: accountId, updated_at: new Date().toISOString() }, null, 2),
-    'utf8'
-  );
+  atomicWriteFileSync(filePath, JSON.stringify({ account_id: accountId, updated_at: new Date().toISOString() }, null, 2));
 }
 
 // switch-decision.js(evaluateSwitchDecision)의 반환값을 실제로 적용한다.
