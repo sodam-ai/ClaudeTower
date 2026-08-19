@@ -52,15 +52,45 @@ const ALL_ISOLATION_VARS = [...DISPLAY_ISOLATION_VARS, ...ACCOUNTS_ISOLATION_VAR
 // 깨질 수 있다. 이 프로젝트가 install.ps1에서 이미 실제로 겪은 것과 같은 결함 부류
 // (`.PRD/05_FIELD_ISSUES_2026-07-04.md` 이슈#1, self-collision) — 그때 검증된 해법을
 // 그대로 따른다: 같은 디렉터리의 임시 파일에 먼저 다 쓴 뒤 rename()으로 교체한다.
-// rename()은 POSIX·Windows(libuv가 MOVEFILE_REPLACE_EXISTING 사용) 양쪽에서 대상 파일이
-// 이미 존재해도 원자적으로 교체된다 — 다른 프로세스가 읽는 도중이라도 "옛 내용 전체" 아니면
-// "새 내용 전체"만 보이지, 중간 상태를 볼 수 없다.
+// rename()은 "중간 상태가 절대 보이지 않는다"는 원자성은 POSIX·Windows 둘 다 보장하지만
+// (내용이 섞이거나 반쯤 쓰인 채로 읽히는 일은 없음), **Windows에서는 이 rename() 호출
+// 자체가 일시적으로 실패할 수 있다**는 걸 2026-08-20 실측으로 발견해 이 문단을 정정한다
+// — 원래 이 주석은 "양쪽에서 항상 성공한다"고 적혀 있었으나, 진짜 프로세스 10개를 동시에
+// 띄워 쓰기 경합을 재현하는 테스트(test/accounts/active-account-state.test.js)를 이
+// 프로젝트가 상시 겪는 다중 세션 환경(프로세스 수백~천 개대)에서 돌려보니 자식 프로세스
+// 1개가 `EPERM: operation not permitted, rename ...`으로 실제로 죽는 것을 확인했다(격리
+// 실행 시엔 3/3 재현 안 됨 — 이 PC의 배경 프로세스 부하가 경합 창을 넓힐 때만 드러남).
+// 원인: 대상 파일을 다른 프로세스가 그 찰나에 열어(읽기/쓰기) 붙잡고 있으면 Windows의
+// MoveFile이 공유 위반으로 거부될 수 있다(POSIX rename()에는 없는 제약) — install.ps1이
+// 이미 겪은 것과 같은 부류의 문제라 같은 해법(재시도)을 그대로 적용한다.
+const RENAME_MAX_RETRIES = 10;
+const RENAME_RETRY_DELAY_MS = 20;
+
 function atomicWriteFileSync(filePath, content) {
   const dir = path.dirname(filePath);
   fs.mkdirSync(dir, { recursive: true });
   const tmpPath = path.join(dir, `.${path.basename(filePath)}.tmp-${process.pid}-${Date.now()}`);
   fs.writeFileSync(tmpPath, content, 'utf8');
-  fs.renameSync(tmpPath, filePath);
+
+  for (let attempt = 1; ; attempt++) {
+    try {
+      fs.renameSync(tmpPath, filePath);
+      return;
+    } catch (err) {
+      const isTransient = err.code === 'EPERM' || err.code === 'EBUSY';
+      if (!isTransient || attempt >= RENAME_MAX_RETRIES) {
+        try {
+          fs.unlinkSync(tmpPath);
+        } catch {
+          // 임시파일 정리 실패는 무시 — 원래 에러(rename 실패)가 더 중요하므로 그대로 던진다.
+        }
+        throw err;
+      }
+      // 동기 함수라 async/await를 쓸 수 없다 — Atomics.wait로 이벤트 루프를 블로킹하지
+      // 않으면서(spin-wait 아님) 짧게 대기한 뒤 재시도한다(Node 표준 동기 sleep 기법).
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, RENAME_RETRY_DELAY_MS);
+    }
+  }
 }
 
 function assertNotPartialIsolation(ownOverrideVar, targetLabel) {

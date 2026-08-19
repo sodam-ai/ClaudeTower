@@ -32,9 +32,33 @@ function writeActiveAccountHandle(accountLabel, filePath) {
   // 내용을 볼 수 있다. active-account-state.js의 atomicWriteFileSync와 동일한 이유·동일한
   // 해법(임시 파일 + rename) — install.ps1이 이미 겪은 결함 부류
   // (`.PRD/05_FIELD_ISSUES_2026-07-04.md` 이슈#1)를 여기서도 미리 막는다.
+  //
+  // 2026-08-20 정정: rename()이 Windows에서 대상 파일을 다른 프로세스가 그 찰나에 붙잡고
+  // 있으면 EPERM으로 일시 실패할 수 있음을 active-account-state.js와 동일한 실측(10개
+  // 동시 프로세스 테스트, 이 PC의 배경 부하 아래서 재현)으로 확인 — 같은 재시도 해법을
+  // 여기도 대칭으로 적용한다(두 파일이 코드를 공유하지 않는 이 프로젝트 관례 그대로 유지).
   const tmpPath = path.join(dir, `.${path.basename(handlePath)}.tmp-${process.pid}-${Date.now()}`);
   fs.writeFileSync(tmpPath, payload, 'utf8');
-  fs.renameSync(tmpPath, handlePath);
+
+  const MAX_RETRIES = 10;
+  const RETRY_DELAY_MS = 20;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      fs.renameSync(tmpPath, handlePath);
+      return;
+    } catch (err) {
+      const isTransient = err.code === 'EPERM' || err.code === 'EBUSY';
+      if (!isTransient || attempt >= MAX_RETRIES) {
+        try {
+          fs.unlinkSync(tmpPath);
+        } catch {
+          // 임시파일 정리 실패는 무시 — 원래 에러가 더 중요하므로 그대로 던진다.
+        }
+        throw err;
+      }
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, RETRY_DELAY_MS);
+    }
+  }
 }
 
 module.exports = { writeActiveAccountHandle };
