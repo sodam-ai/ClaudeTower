@@ -271,6 +271,7 @@ After an internal re-review (background and reasoning recorded in the repository
 - `claudetower accounts add --api-key <label> <key>` — registers an API-key account. The key value is stored only in this computer's OS credential vault (Windows: Credential Manager / macOS: Keychain) and is never transmitted anywhere
 - `claudetower accounts list` — view registered accounts (key values themselves are never shown)
 - `claudetower accounts disable` — turn it back off (registered account info is kept)
+- `claudetower accounts diagnose-quota <label> [--model <model-id>]` — sends one tiny real request (requires `[y/N]` confirmation, incurs a negligible real cost) using the registered account, to check whether usage info comes back in the expected format. **Does not switch accounts** — it's diagnostic only
 
 **What still doesn't exist**:
 - Automatic registration/cycling of login (subscription) accounts — no code exists for this, due to the Terms-of-Service issue above

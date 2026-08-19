@@ -271,6 +271,7 @@ ClaudeTower/
 - `claudetower accounts add --api-key <라벨> <키값>` — API 키 계정을 등록합니다. 키값은 이 컴퓨터의 운영체제 금고(Windows: Credential Manager / macOS: Keychain)에만 저장되고 어디로도 전송되지 않습니다
 - `claudetower accounts list` — 등록된 계정 목록 확인(키값 자체는 표시되지 않음)
 - `claudetower accounts disable` — 다시 끄기(등록해둔 계정 정보는 남아있음)
+- `claudetower accounts diagnose-quota <라벨> [--model <모델ID>]` — 등록한 계정으로 아주 작은 실제 요청 1건을 보내([y/N] 확인 필수, 미세한 실비용 발생) 사용량 정보가 예상한 형식으로 오는지 점검하는 진단 명령입니다. **계정을 전환하지 않습니다** — 확인용일 뿐입니다
 
 **여전히 없는 것**:
 - 로그인(구독) 계정 자동 등록·자동 순환 — 위 이용약관 문제로 코드 자체가 없습니다
