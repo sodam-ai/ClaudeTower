@@ -41,8 +41,10 @@ const BLOCKED_COMPONENTS = [
   {
     name: '프록시 실제 기동·자동전환·quota 실사용',
     detail:
-      '전환 판단 로직 자체는 준비됐지만(위 항목), 실제 트래픽에 연결(startProxyServer 배선)하지 않음 —' +
-      ' 실제 API 응답으로 헤더 필드명 검증(실사용 비용 발생, 사용자 승인 필요)이 먼저 필요',
+      '요청 중계(request-forwarder.js)·활성 계정 상태 관리(active-account-state.js)까지 전부 구현·테스트' +
+      ' 완료돼 그대로 이어붙일 수 있는 상태지만, bin/claudetower.js는 의도적으로 아직 연결하지 않음' +
+      '(실거래 트래픽을 가로채는 마지막 단계라 별도 명시 승인 필요, test/accounts/live-wiring-gate.test.js가' +
+      ' 이 상태를 기계적으로 강제) — 실제 API 응답으로 헤더 필드명 검증(실사용 비용 발생)도 여전히 미실행',
   },
 ];
 
