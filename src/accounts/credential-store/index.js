@@ -82,6 +82,20 @@ const Entry = loadKeyringEntry();
 
 const SERVICE_NAME = 'claudetower';
 
+// 2026-08-20 결정(사용자 확정): Account 기능(계정 등록·자동전환)은 Windows/macOS 전용으로
+// 범위를 좁힌다 — Linux는 물리 환경이 없어 이 세션 내내 라이브 검증이 불가능했고(CHECKPOINT
+// M40 잔여 위험 참고), CI 워크플로에 라이브 왕복 테스트를 추가하려던 시도도 별도 이유로
+// 보류됐다. `@napi-rs/keyring` 라이브러리 자체는 Linux(libsecret)도 지원하지만, "검증 안 된
+// 채로 조용히 실패하거나 반쯤 동작하는" 상태로 내보내는 대신 명확히 거부한다 — Display
+// 모듈(상태표시줄)은 이 결정과 무관하게 Linux에서 계속 정상 지원된다(Account 모듈만 해당).
+function assertSupportedPlatform() {
+  if (process.platform === 'linux') {
+    throw new Error(
+      'Account 기능(계정 등록·자동전환)은 현재 Linux에서 지원되지 않습니다 — Windows/macOS 전용입니다. 상태표시줄(Display) 기능은 이 제한과 무관하게 그대로 사용하실 수 있습니다.'
+    );
+  }
+}
+
 function assertValidCredentialRef(credentialRef) {
   if (
     !credentialRef ||
@@ -93,6 +107,7 @@ function assertValidCredentialRef(credentialRef) {
 }
 
 function entryFor(credentialRef) {
+  assertSupportedPlatform();
   assertValidCredentialRef(credentialRef);
   return new Entry(SERVICE_NAME, credentialRef.external_ref);
 }

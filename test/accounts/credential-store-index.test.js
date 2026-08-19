@@ -128,6 +128,38 @@ test('credentialRef.external_ref가 없거나 빈 문자열이면 세 함수 모
   });
 });
 
+function withMockedPlatform(platform, fn) {
+  const original = process.platform;
+  Object.defineProperty(process, 'platform', { value: platform, configurable: true });
+  try {
+    fn();
+  } finally {
+    Object.defineProperty(process, 'platform', { value: original, configurable: true });
+  }
+}
+
+test('getSecret/setSecret/deleteSecret: Linux에서는 명확한 미지원 오류로 거부한다(2026-08-20 결정)', () => {
+  withMockedEntry({}, (store) => {
+    withMockedPlatform('linux', () => {
+      assert.throws(() => store.getSecret(REF), /Linux에서 지원되지 않습니다/);
+      assert.throws(() => store.setSecret(REF, 'x'), /Linux에서 지원되지 않습니다/);
+      assert.throws(() => store.deleteSecret(REF), /Linux에서 지원되지 않습니다/);
+    });
+  });
+});
+
+test('getSecret/setSecret/deleteSecret: Windows/macOS에서는 평소대로 동작한다(회귀 확인)', () => {
+  withMockedEntry({ getPassword: () => 'ok' }, (store, calls) => {
+    withMockedPlatform('win32', () => {
+      assert.equal(store.getSecret(REF), 'ok');
+    });
+    withMockedPlatform('darwin', () => {
+      store.setSecret(REF, 'y');
+    });
+    assert.equal(calls.length, 2);
+  });
+});
+
 test('채택된 라이브러리 결정이 코드에 기록되어 있다', () => {
   withMockedEntry({}, (store) => {
     assert.equal(store.PLANNED_LIBRARY, '@napi-rs/keyring');

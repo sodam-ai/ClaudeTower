@@ -262,11 +262,13 @@ ClaudeTower/
 
 이후 내부 재검토를 거쳐(검토 배경과 근거는 저장소의 `.PRD/07_OAUTH_FLOW_SPEC.md`에 기록), **로그인 계정 자동화는 여전히 만들지 않되, 이용약관이 예외로 인정하는 API 키 경로만 하이브리드로 진행**하기로 결정했습니다. 그 결과 다음 릴리스부터 실제로 포함·동작하는 것과, 여전히 없는 것은 다음과 같습니다.
 
-**지금 실제로 되는 것** (기본값은 꺼짐 — 아래 "켜는 방법" 먼저 확인하세요):
+> **지원 플랫폼(중요, 2026-08-20)**: 이 "② 계정 자동전환" 기능은 **Windows·macOS 전용**입니다. Linux는 이 기능을 지원하지 않습니다(실제 자격증명 저장소로 라이브 검증할 물리 환경이 없어 안전하게 검증되지 않은 채로 내보내지 않기로 결정 — 상세는 `CHECKPOINT.md` 참고). Linux에서도 **상태표시줄(①) 기능은 이 제한과 무관하게 계속 정상 지원**됩니다.
+
+**지금 실제로 되는 것** (기본값은 꺼짐 — 아래 "켜는 방법" 먼저 확인하세요, **Windows·macOS만 해당**):
 - `claudetower accounts status` — 계정 모듈이 켜져 있는지, 어떤 부분이 구현/미구현인지 조회(읽기 전용)
 - `claudetower accounts config` — 전환 임계값·포트 등을 계정 등록 없이 미리 로컬에 설정
 - `claudetower accounts enable` — 아래 동의문구를 화면에 보여주고, 직접 `y`를 입력해야만 켜집니다
-- `claudetower accounts add --api-key <라벨> <키값>` — API 키 계정을 등록합니다. 키값은 이 컴퓨터의 운영체제 금고(Windows: Credential Manager / macOS: Keychain / Linux: Secret Service)에만 저장되고 어디로도 전송되지 않습니다
+- `claudetower accounts add --api-key <라벨> <키값>` — API 키 계정을 등록합니다. 키값은 이 컴퓨터의 운영체제 금고(Windows: Credential Manager / macOS: Keychain)에만 저장되고 어디로도 전송되지 않습니다
 - `claudetower accounts list` — 등록된 계정 목록 확인(키값 자체는 표시되지 않음)
 - `claudetower accounts disable` — 다시 끄기(등록해둔 계정 정보는 남아있음)
 

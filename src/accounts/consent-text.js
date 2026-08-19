@@ -44,8 +44,9 @@ const CONSENT_TEXT = `⚠️  계정 자동 전환 기능을 켜기 전에 꼭 �
    확인되지 않았습니다 — 안전하다고 단정하지 않습니다.
 
 3. 계정 정보(현재는 API 키 값)는 이 컴퓨터의 운영체제 금고
-   (Windows: Credential Manager, macOS: Keychain, Linux: Secret Service)에만
-   저장됩니다. 어디로도 전송되지 않습니다.
+   (Windows: Credential Manager, macOS: Keychain)에만 저장됩니다. 어디로도
+   전송되지 않습니다. (이 기능은 Windows·macOS에서만 지원됩니다 — Linux는
+   지원하지 않으며, 상태표시줄 기능은 이와 무관하게 계속 정상 작동합니다.)
 
 4. 언제든지 claudetower accounts disable로 다시 끌 수 있고, 꺼도 등록해둔 계정
    정보는 남아있습니다(완전히 지우려면 claudetower account-purge — 삭제 전 다시

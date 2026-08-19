@@ -44,11 +44,6 @@ main() {
   platform="$(detect_platform)"
   artifact="claudetower-${platform}"
   url="https://github.com/${REPO}/releases/latest/download/${artifact}"
-  # M38: credential-store(계정 등록 등)가 실제로 동작하려면 exe와 같은 폴더에 네이티브
-  # addon(keyring-native.node)이 반드시 함께 있어야 한다(process.dlopen 우회 로딩,
-  # src/accounts/credential-store/index.js 참고).
-  native_artifact="keyring-native-${platform}.node"
-  native_url="https://github.com/${REPO}/releases/latest/download/${native_artifact}"
 
   mkdir -p "$INSTALL_DIR"
   echo "다운로드: $url"
@@ -63,10 +58,23 @@ main() {
   chmod +x "$tmp_path"
   mv -f "$tmp_path" "$INSTALL_DIR/claudetower"
 
-  echo "다운로드: $native_url"
-  local native_tmp_path="$INSTALL_DIR/keyring-native.node.download.$$"
-  curl -fsSL "$native_url" -o "$native_tmp_path"
-  mv -f "$native_tmp_path" "$INSTALL_DIR/keyring-native.node"
+  # 2026-08-20 결정: Account 기능(계정 등록·자동전환)은 Windows/macOS 전용으로 범위를
+  # 좁혔다 — Linux 배포판은 애초에 이 네이티브 addon을 빌드하지 않는다(build-sea.js
+  # SUPPORTS_ACCOUNT_KEYRING 참고). Linux에서는 이 다운로드를 건너뛴다 — 상태표시줄
+  # (Display) 기능은 이 파일 없이도 완전히 정상 동작한다.
+  if [ "$platform" != "linux-x64" ]; then
+    # M38: credential-store(계정 등록 등)가 실제로 동작하려면 exe와 같은 폴더에 네이티브
+    # addon(keyring-native.node)이 반드시 함께 있어야 한다(process.dlopen 우회 로딩,
+    # src/accounts/credential-store/index.js 참고).
+    native_artifact="keyring-native-${platform}.node"
+    native_url="https://github.com/${REPO}/releases/latest/download/${native_artifact}"
+    echo "다운로드: $native_url"
+    local native_tmp_path="$INSTALL_DIR/keyring-native.node.download.$$"
+    curl -fsSL "$native_url" -o "$native_tmp_path"
+    mv -f "$native_tmp_path" "$INSTALL_DIR/keyring-native.node"
+  else
+    echo "(Linux는 계정 자동전환 기능을 지원하지 않아 관련 파일 다운로드를 건너뜁니다 — 상태표시줄 기능은 정상 설치됩니다.)"
+  fi
 
   echo ""
   echo "설치 완료: $INSTALL_DIR/claudetower"

@@ -178,7 +178,28 @@ async function run(args) {
       runAccountsDisableCommand({ log: (msg) => console.log(msg) });
       return 0;
     }
-    console.log('accounts 서브커맨드: status, config, enable, add --api-key, list, disable 사용 가능합니다.');
+    if (subcommand === 'diagnose-quota') {
+      // 실제 비용/쿼터가 발생하는 유일한 Account 명령 — account-purge와 동일하게 [y/N]
+      // 확인 없이는 절대 실행하지 않는다(diagnose-quota-command.js 상단 주석 참고).
+      const label = args[2];
+      if (!label) {
+        console.log('사용법: claudetower accounts diagnose-quota <라벨> [--model <모델ID>]');
+        return 1;
+      }
+      const modelFlagIndex = args.indexOf('--model');
+      const modelOverride = modelFlagIndex !== -1 ? args[modelFlagIndex + 1] : undefined;
+      const { runDiagnoseQuotaCommand } = require('../src/accounts/accounts/diagnose-quota-command');
+      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+      try {
+        const opts = { log: (msg) => console.log(msg) };
+        if (modelOverride) opts.model = modelOverride;
+        const result = await runDiagnoseQuotaCommand(rl, label, opts);
+        return result.applied === false ? 1 : 0;
+      } finally {
+        rl.close();
+      }
+    }
+    console.log('accounts 서브커맨드: status, config, enable, add --api-key, list, disable, diagnose-quota 사용 가능합니다.');
     console.log('(자동전환 기동은 아직 개발 중입니다. 계정 완전 삭제는 claudetower account-purge를 쓰세요.)');
     return subcommand === undefined ? 0 : 1;
   }
