@@ -182,7 +182,10 @@ async function run(args) {
       // 실제 비용/쿼터가 발생하는 유일한 Account 명령 — account-purge와 동일하게 [y/N]
       // 확인 없이는 절대 실행하지 않는다(diagnose-quota-command.js 상단 주석 참고).
       const label = args[2];
-      if (!label) {
+      // label.startsWith('--')도 "라벨 없음"으로 취급 — 그렇지 않으면 예: `diagnose-quota
+      // --model X`(라벨을 빼먹고 플래그만 준 경우) 실행 시 "--model"을 라벨로 오인해
+      // "계정을 찾을 수 없습니다: --model"이라는 혼란스러운 메시지가 뜬다(실측으로 확인).
+      if (!label || label.startsWith('--')) {
         console.log('사용법: claudetower accounts diagnose-quota <라벨> [--model <모델ID>]');
         return 1;
       }
