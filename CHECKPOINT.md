@@ -2197,6 +2197,43 @@ README.html/README.en.html 재생성(별도 pandoc 파이프라인 필요, 범�
 3. 이번 커밋은 로컬 전용(push 안 함, 사용자 결정 대기) — `docs-and-fixes/2026-07-06` 브랜치
    기준 origin 대비 ahead 1.
 
+## M42: 2026-08-20 — accounts diagnose-quota 명령 신설(실제 헤더 실측용, [y/N] 확인 필수)
+
+**배경**: M41이 남긴 두 개의 "다음 결정 지점" 중 하나("teamclaude발 헤더 필드명을 ClaudeTower
+자신의 실제 API 응답으로 재검증") — credential-store가 M35부터 실동작해 등록된 API 키로 실제
+요청을 보낼 수 있게 됐지만, 실제 요청은 비용/쿼터가 드는 행동이라 AI가 사용자 승인 없이 자체
+판단으로 실행하지 않는다는 원칙에 따라, "코드는 완성·테스트하되 실제 발사는 사용자가 명령을
+직접 실행할 때만 일어나게" 범위를 좁혀 진행했다.
+
+**만든 것**:
+- [x] `src/accounts/accounts/diagnose-quota-command.js` — `claudetower accounts
+  diagnose-quota <라벨> [--model <ID>]`. 등록된 API 키 계정으로 최소 크기 요청 1건
+  (`max_tokens: 1`)을 실제 `api.anthropic.com`에 보내 응답 헤더가 파서가 기대하는
+  6개 필드(`anthropic-ratelimit-tokens/requests-limit/remaining/reset`)와 일치하는지
+  비교·보고한다. **계정을 전환하지 않는다** — `switch-decision.js`를 호출하지 않고
+  헤더 실측 결과만 보여준다.
+- [x] account-purge와 동일한 안전장치: 계정 없음/oauth 계정/시크릿 없음이면 확인 절차
+  자체를 생략하고 즉시 거부(네트워크 요청 0건 보장) — 실제 발사 직전에만 비용을 명시
+  고지하고 `[y/N]` 확인을 받는다. `N`이면 요청을 보내지 않고 취소.
+- [x] `bin/claudetower.js`에 `accounts diagnose-quota` 서브커맨드 연결, 라벨 없으면
+  사용법 안내 후 종료.
+- [x] 신규 테스트 9건(`test:accounts` 187→196), `npm run verify`(display 245) 회귀
+  없음. CLI 레벨 스모크 3건 직접 실행: 서브커맨드 목록에 정상 노출, 라벨 없이 실행
+  시 사용법 안내, **존재하지 않는 라벨로 실제 CLI 실행** — 실제 등록 계정 레지스트리를
+  읽었지만(다른 읽기 명령들과 동일) 네트워크 요청은 발생하지 않음을 실행으로 직접 확인
+  (이 세션은 실제 API 요청을 단 한 번도 발사하지 않았다).
+- [x] `status-report.js` 갱신 — 새 명령을 정확히 반영(과대·과소 고지 둘 다 피함).
+
+**의도적으로 하지 않은 것**: 이 명령을 실제로 실행해 헤더를 확인하는 것 자체 — 사용자의 실제
+계정으로 실비용이 발생하는 행동이라 AI가 대신 실행하지 않는다. 다음 세션(또는 사용자가 원하는
+시점)에 `claudetower accounts diagnose-quota <본인 계정 라벨>`을 직접 실행해보는 것이 남은
+유일한 검증 단계다 — 결과에 따라 파서 필드명이 그대로 맞으면 프록시 배선(M41이 미룬 나머지
+항목)으로 넘어갈 수 있고, 다르면 파서를 실측값으로 정정하면 된다.
+
+**남은 위험**: 기본 모델 ID(`claude-3-5-haiku-20241022`)는 시간이 지나면 폐기·변경될 수
+있음(`--model`로 덮어쓰기 가능, 실패 시 에러 메시지에서 안내). 이번 커밋도 로컬 전용(push
+안 함).
+
 - 상태: **CHECKPOINT 기록 완료, PR #8 main 병합 진행 중(이 커밋 직후)**.
 
 **2026-08-20 정정(M40 자체 오류 + 별도 발견 1건)**: PRD 전수 재검독 중 `bin/claudetower.js`
