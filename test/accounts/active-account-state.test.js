@@ -169,6 +169,50 @@ test('applySwitch: 이전 전환 기록이 없으면(최초 전환) reevalInterv
   fs.unlinkSync(activeAccountHandlePath);
 });
 
+test('writeActiveAccountId: 여러 프로세스가 동시에 같은 파일에 써도 파일이 항상 유효한 상태로 남는다', async () => {
+  const { spawn } = require('node:child_process');
+  const statePath = tmpJsonPath('concurrent-state');
+  const modulePath = path.join(__dirname, '..', '..', 'src', 'accounts', 'accounts', 'active-account-state.js');
+
+  // 실제 별도 OS 프로세스 10개를 동시에 띄워 같은 파일에 동시 쓰기를 시도한다.
+  // 정직하게 명시: 이 테스트를 원자적 쓰기 적용 "전" 코드(fs.writeFileSync 직접 호출)로
+  // 5회 반복 실행해봤지만 손상을 재현하지 못했다 — 이 페이로드가 작고(수십 바이트) 쓰기가
+  // 매우 빨라, 이 PC(Windows/NTFS)에서는 경합 창이 이 테스트로 안정적으로 재현될 만큼
+  // 넓지 않은 것으로 보인다. 그래서 이 테스트는 "이전엔 깨졌는데 지금은 안 깨진다"를
+  // 증명하는 게 아니라, 원자적 쓰기 적용 후에도 정상적인 동시 다발 상황에서 회귀가
+  // 없는지 확인하는 안전망이다 — 원자적 쓰기 자체의 정당성은 이 프로젝트가 실제로 겪은
+  // 전례(install.ps1, `.PRD/05_FIELD_ISSUES_2026-07-04.md` 이슈#1)와 rename()의 표준
+  // 원자성 보장에 근거한다.
+  const N = 10;
+  const runs = Array.from({ length: N }, (_, i) => {
+    const code = `
+      const { writeActiveAccountId } = require(${JSON.stringify(modulePath)});
+      writeActiveAccountId(${JSON.stringify(`acc-${i}`)}, ${JSON.stringify(statePath)});
+    `;
+    return new Promise((resolve, reject) => {
+      const child = spawn(process.execPath, ['-e', code]);
+      let stderr = '';
+      child.stderr.on('data', (d) => (stderr += d));
+      child.on('exit', (code2) => (code2 === 0 ? resolve() : reject(new Error(`child ${i} exit ${code2}: ${stderr}`))));
+      child.on('error', reject);
+    });
+  });
+
+  await Promise.all(runs);
+
+  // 파일이 존재하고, 손상 없이 파싱 가능하며, 실제로 그 10개 프로세스 중 하나가 쓴 값이어야 한다
+  // (깨진 절반짜리 JSON이거나 두 값이 섞인 내용이면 여기서 JSON.parse가 던지거나 값이 안 맞는다).
+  const raw = fs.readFileSync(statePath, 'utf8');
+  const parsed = JSON.parse(raw); // 손상됐으면 여기서 예외
+  assert.match(parsed.account_id, /^acc-\d$/);
+
+  // 임시 파일이 하나도 안 남아야 한다(성공 시 전부 rename으로 소비됨).
+  const leftoverTmp = fs.readdirSync(os.tmpdir()).filter((f) => f.includes(path.basename(statePath)) && f.includes('.tmp-'));
+  assert.equal(leftoverTmp.length, 0, `임시 파일이 남아있음: ${leftoverTmp.join(', ')}`);
+
+  fs.unlinkSync(statePath);
+});
+
 test('active-account-state.js는 credential-store/oauth/proxy를 절대 require하지 않는다(정적 검사)', () => {
   const source = fs.readFileSync(
     path.join(__dirname, '..', '..', 'src', 'accounts', 'accounts', 'active-account-state.js'),

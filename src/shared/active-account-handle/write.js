@@ -21,12 +21,20 @@ function writeActiveAccountHandle(accountLabel, filePath) {
     throw new TypeError('accountLabel must be a non-empty string');
   }
   const handlePath = filePath || getHandlePath();
-  fs.mkdirSync(path.dirname(handlePath), { recursive: true });
+  const dir = path.dirname(handlePath);
+  fs.mkdirSync(dir, { recursive: true });
   const payload = JSON.stringify({
     account_label: accountLabel,
     updated_at: new Date().toISOString(),
   });
-  fs.writeFileSync(handlePath, payload, 'utf8');
+  // 통째로 덮어쓰기(writeFileSync)는 원자적이지 않다 — 이 파일은 계정 전환마다 자동
+  // 갱신되므로, 다른 프로세스(Display 위젯 등)가 read.js로 읽는 순간과 겹치면 반쯤 쓰인
+  // 내용을 볼 수 있다. active-account-state.js의 atomicWriteFileSync와 동일한 이유·동일한
+  // 해법(임시 파일 + rename) — install.ps1이 이미 겪은 결함 부류
+  // (`.PRD/05_FIELD_ISSUES_2026-07-04.md` 이슈#1)를 여기서도 미리 막는다.
+  const tmpPath = path.join(dir, `.${path.basename(handlePath)}.tmp-${process.pid}-${Date.now()}`);
+  fs.writeFileSync(tmpPath, payload, 'utf8');
+  fs.renameSync(tmpPath, handlePath);
 }
 
 module.exports = { writeActiveAccountHandle };

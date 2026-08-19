@@ -2430,3 +2430,99 @@ Windows Credential Manager 서비스명을 동시에 왕복하며 생기는 것�
 수 있어 이번 라운드에서는 손대지 않았다 — 다음에 이 결과를 보는 세션은 "purge가 실제로
 깨졌다"고 성급히 결론 내리기 전에 반드시 해당 테스트 파일만 격리 실행해 재현되는지 먼저
 확인할 것.
+
+## M47: 2026-08-20 — 활성 계정 상태·핸들 파일 쓰기를 원자적(임시파일+rename)으로 변경
+
+**배경**: M46이 끝난 뒤 위험 재검토 중 발견 — `active-account-state.js`(전환 상태 포인터)와
+`active-account-handle/write.js`(Display 노출용 라벨)가 둘 다 `fs.writeFileSync`로
+파일을 통째로 덮어쓴다. 이 두 파일은 계정 목록·설정 파일과 달리, 나중에 실거래 배선이
+켜지면 **응답이 올 때마다 자동으로** 갱신되므로(사용자가 명령을 하나씩 실행할 때만 쓰이는
+다른 Account 상태 파일들과 다름), 터미널 여러 개에서 동시에 `claudetower`를 켜두면 두
+프로세스가 같은 순간에 같은 파일을 쓰다가 반쯤 쓰인 채로 깨질 실제 위험이 있다 — 이
+프로젝트가 `install.ps1`에서 이미 겪은 것과 정확히 같은 결함 부류
+(`.PRD/05_FIELD_ISSUES_2026-07-04.md` 이슈#1, self-collision).
+
+**만든 것**:
+- [x] 두 파일 모두 "임시 파일에 먼저 쓰고 `rename()`으로 교체" 방식으로 전환(install.ps1이
+  이미 검증한 것과 동일한 해법). `rename()`은 POSIX·Windows(libuv가
+  `MOVEFILE_REPLACE_EXISTING` 사용) 양쪽에서 대상이 이미 존재해도 원자적으로 교체된다.
+- [x] 신규 테스트: 실제 별도 OS 프로세스 10개를 동시에 띄워 같은 파일에 동시 쓰기를
+  시도한 뒤, 파일이 항상 유효한 JSON으로 남고 임시 파일 잔재가 없는지 확인(양쪽 파일
+  전부). `active-account-handle`에는 이번에 처음으로 전용 테스트 파일도 생겼다(그동안
+  Account·Display 어느 쪽에도 직접 테스트가 없었다 — 2026-08-20 발견).
+- **정직하게 명시(과대 검증 주장 금지)**: 이 동시성 테스트를 원자적 쓰기 적용 "전" 코드로
+  5회 반복 실행해봤지만 손상을 **재현하지 못했다** — 페이로드가 작고(수십 바이트) 쓰기가
+  빨라, 이 PC(Windows/NTFS)에서는 경합 창이 이 테스트로 안정적으로 재현될 만큼 넓지
+  않은 것으로 보인다. 그래서 "실측으로 결함을 재현하고 고쳤다"고는 말할 수 없다 — 이
+  수정은 이 프로젝트가 실제로 겪은 전례(install.ps1)와 `rename()`의 표준 원자성 보장에
+  근거한 예방적 하드닝이며, 신규 테스트는 "고친 뒤에도 정상 동작 회귀 없음"을 보장하는
+  안전망이다.
+- 검증: `npm run verify`(display 245) 회귀 없음, `test:accounts` 233→241(신규 8건: 상태
+  파일 동시성 1건 + handle 전용 테스트 6건). 로컬 커밋만(push 안 함).
+
+**남은 위험**: 이번 수정은 "쓰기 손상"만 막는다 — 서로 다른 프로세스가 동시에 **다른**
+전환 판단을 내려 순서만 다르게 마지막에 쓴 쪽이 이기는 것(last-write-wins) 자체는 여전히
+가능하다(예: A→B 전환과 A→C 전환이 동시에 결정되면 둘 중 나중에 rename한 쪽만 남음).
+이건 파일 손상과는 다른 종류의 문제(어느 쪽이 "이겨야 하는지"의 정책 문제)라 이번 범위에
+포함하지 않았다 — 실거래 배선 이후 실제 다중 프로세스 사용 패턴을 관찰한 뒤 필요하면
+다룰 것.
+
+## M48: 2026-08-20 — 계정 CRUD 나머지(remove/rename) + 사용률 표시(quota 캐시) 신설
+
+**배경**: PRD 재검독 중 `.PRD/03_PHASES.md` Phase 2 체크리스트를 실제 코드와 대조해 3가지
+갭을 발견했다 — `account-purge`(전체삭제)만 있고 계정 1개만 지우는 `remove`, 라벨만 고치는
+`rename`이 없었고, `accounts list`가 계정별 사용률을 전혀 보여주지 않았다(PRD가 "teamclaude
+session(5h)/weekly(7d) quota 용어 채택, 기본 표시"라고 명시한 요구사항). 실거래 배선(위험 최고
+등급)과 달리 셋 다 순수 로컬 CRUD/표시라 안전지대에서 바로 완성 가능하다고 판단해 진행했다
+(사용자 승인, "그룹 A 전부 진행").
+
+**만든 것**:
+- [x] `remove-account-command.js` — 계정 1개 삭제. account-purge와 동일한 원칙(자격증명
+  먼저 삭제 → 재조회 검증 → 성공 시에만 레지스트리에서 제거, [y/N] 확인 필수). 활성화
+  상태는 건드리지 않음(disable과 동일 원칙 — 계정 1개 삭제로 기능 전체를 끄지 않음).
+- [x] `rename-account-command.js` — 라벨만 변경(credential-store는 account_id로 키를
+  잡아 전혀 안 건드림). 라벨 길이 100자 상한·제어문자 거부(add-api-key-request.js와 동일
+  규칙 재사용), 라벨 충돌 거부. 가역적이라 확인 절차 없음.
+- [x] `quota/quota-cache-store.js`(신규) — `diagnose-quota`가 실측한 사용률을 계정별로
+  저장, `accounts list`가 읽어서 보여준다. **QuotaState 엔티티를 그대로 쓰지 않은 이유**:
+  그 엔티티의 `five_hour_used_pct`/`seven_day_used_pct`는 OAuth/구독 계정의 시간창 헤더용
+  이름인데, 이 프로젝트는 자동전환을 API 키 계정으로만 한정했고(2026-08-19) API 키 헤더는
+  시간창 개념이 없다 — 실제로 재는 것과 다른 이름을 붙이면 이 프로젝트가 반복 잡아온
+  "부정확한 능력 고지"가 된다. 그래서 파서의 실제 출력 모양(`tokens_used_pct`/
+  `requests_used_pct`) 그대로 저장한다.
+- [x] `list`는 실시간으로 API를 호출하지 않는다(diagnose-quota만 [y/N] 확인 후 실비용
+  드는 실제 호출) — 캐시가 없으면 "확인 안 됨 + diagnose-quota로 확인 가능" 안내만 표시.
+- [x] `bin/claudetower.js`에 `accounts remove`/`accounts rename` 배선, 서브커맨드 안내
+  문구 갱신. README.md/README.en.md는 이번 라운드에 아직 갱신 안 함(다음 정리 대상).
+- [x] 신규 테스트 40건 전부 직접 실행 통과 확인(remove 4 + rename 6 + quota-cache 9 +
+  list 갱신분 3 + diagnose-quota 갱신분 2 + 기존 16), `npm run lint`·`test:display`(245)
+  회귀 없음, `live-wiring-gate.test.js` 재확인(여전히 통과 — 이번 작업도 `bin/claudetower.js`에
+  `startProxyServer` 계열을 전혀 추가하지 않음).
+- [x] 실제 빌드 없이 `node bin/claudetower.js`로 격리 경로 라이브 스모크: enable→add x2→
+  list→**rename**→list(라벨 변경 확인)→**remove**→list(1개만 남음 확인) 전체 흐름 실행 확인.
+
+**작업 중 발견·즉시 처리한 사고(정직하게 기록)**: 위 라이브 스모크 도중 credential-store에는
+격리 경로가 없다는 걸(설계상 항상 실제 OS 저장소를 씀, 2026-08-18 M35부터 알려진 사실) 깜빡하고
+레지스트리 파일을 먼저 지워버려, `rename`한 계정의 가짜 키("fake-key-a")가 **실제 Windows
+Credential Manager에 남는 사고**가 발생했다. `@napi-rs/keyring`의 `findCredentials(service)`
+API(이번에 처음 사용 — `cmdkey /list`보다 신뢰도 높음, 이 세션이 반복 확인해온 "cmdkey는
+`@napi-rs/keyring` 항목을 못 잡는다"는 한계가 없음)로 서비스 `claudetower`의 전체 잔재를
+조회했더니 **3건**이 나왔다: 이번 사고분(`fake-key-a`) 외에 `claudetower-test-*`·
+`claudetower-purge-test-*` 이름의 **과거 라운드 잔재 2건도 함께 발견**됐다(2026-08-19 QA
+라운드에서 기록했던 "전체 스위트 동시 실행 시 통합테스트 간섭"으로 정리(cleanup)가 중간에
+끊겼던 흔적으로 추정 — 값 자체가 테스트 마커 문자열이라 실사용자 데이터 아님 확인). 3건
+모두 `deletePassword()` 후 `getPassword()` 재조회로 `null` 확인, `findCredentials()`
+재조회로 0건까지 확인해 완전히 정리했다.
+
+**교훈(하네스 반영 권장)**: `findCredentials(service)`가 `cmdkey /list`보다 신뢰도 높은
+Windows Credential Manager 잔재 확인 수단이다 — 앞으로 이 프로젝트의 라이브 정리 검증은
+이 API를 1순위로 쓸 것.
+
+**남은 위험**:
+1. README.md/README.en.md에 remove/rename 명령이 아직 문서화되지 않음(다음 라운드 정리
+   대상 — 이 프로젝트가 반복 겪은 "코드는 있는데 문서가 못 따라간" 패턴을 또 만들지 않게
+   빨리 닫을 것).
+2. 사용률 캐시는 diagnose-quota를 최소 1번 실행해야만 채워진다 — 등록만 하고 한 번도
+   diagnose-quota를 안 돌린 계정은 계속 "확인 안 됨"으로 보임(의도된 동작, 실비용 없이는
+   채울 방법이 없음).
+3. 이번 커밋도 로컬 전용(push는 검증 완료 후).

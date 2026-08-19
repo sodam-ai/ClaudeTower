@@ -18,6 +18,7 @@ const { readRegistry } = require('./accounts-registry');
 const { getSecret } = require('../credential-store');
 const { backendForPlatform } = require('./add-api-key-command');
 const { parseApiKeyQuotaHeaders } = require('../quota/api-key-quota-reading');
+const { writeQuotaCacheEntry } = require('../quota/quota-cache-store');
 
 const API_HOST = 'api.anthropic.com';
 const API_PATH = '/v1/messages';
@@ -78,7 +79,7 @@ function sendMinimalProbeRequest(apiKey, model) {
 async function runDiagnoseQuotaCommand(
   rl,
   label,
-  { registryPath, model = DEFAULT_MODEL, log = () => {}, send = sendMinimalProbeRequest } = {}
+  { registryPath, quotaCachePath, model = DEFAULT_MODEL, log = () => {}, send = sendMinimalProbeRequest } = {}
 ) {
   const accounts = readRegistry(registryPath);
   const account = accounts.find((a) => a.label === label);
@@ -133,6 +134,14 @@ async function runDiagnoseQuotaCommand(
       ? `파서 결과: 정상적으로 사용률을 계산했습니다 — ${JSON.stringify(parsed)}`
       : '파서 결과: 파싱 실패(기대한 헤더가 하나도 없음) — api-key-quota-reading.js의 필드명을 재검토해야 할 수 있습니다.'
   );
+
+  // 성공적으로 파싱된 값만 캐시에 남긴다 — accounts list가 "마지막으로 확인된 사용률"을
+  // 보여줄 수 있게(quota-cache-store.js 참고). 파싱 실패(null)는 저장하지 않는다 —
+  // "확인했지만 실패했다"와 "확인한 적 없다"를 캐시에서 구분할 필요는 없고, 실패값을
+  // 저장하면 오래된 성공 캐시를 덮어써 오히려 정보를 잃는다.
+  if (parsed) {
+    writeQuotaCacheEntry(account.account_id, parsed, quotaCachePath);
+  }
 
   return { applied: true, statusCode: response.statusCode, foundFields, missingFields, parsed };
 }

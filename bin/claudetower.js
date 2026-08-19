@@ -170,6 +170,36 @@ async function run(args) {
       runAccountsListCommand({ log: (msg) => console.log(msg) });
       return 0;
     }
+    if (subcommand === 'remove') {
+      // 계정 1개만 삭제 — 전체 삭제는 account-purge. 확인 없이는 절대 실행하지
+      // 않는다(remove-account-command.js 상단 주석 참고, DO NOT 규칙).
+      const label = args[2];
+      if (!label) {
+        console.log('사용법: claudetower accounts remove <라벨>');
+        return 1;
+      }
+      const { runRemoveAccountCommand } = require('../src/accounts/accounts/remove-account-command');
+      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+      try {
+        const result = await runRemoveAccountCommand(rl, label, { log: (msg) => console.log(msg) });
+        return result.applied === false ? 1 : 0;
+      } finally {
+        rl.close();
+      }
+    }
+    if (subcommand === 'rename') {
+      // 라벨만 바꾸는 가역적 쓰기 — remove/purge와 달리 확인 절차 없이 즉시 처리한다
+      // (rename-account-command.js 상단 주석 참고).
+      const oldLabel = args[2];
+      const newLabel = args[3];
+      if (!oldLabel || !newLabel) {
+        console.log('사용법: claudetower accounts rename <기존라벨> <새라벨>');
+        return 1;
+      }
+      const { runRenameAccountCommand } = require('../src/accounts/accounts/rename-account-command');
+      const result = runRenameAccountCommand(oldLabel, newLabel, { log: (msg) => console.log(msg) });
+      return result.applied === false ? 1 : 0;
+    }
     if (subcommand === 'disable') {
       // 동의 문구(consent-text.js)가 "언제든지 disable로 다시 끌 수 있다"고 약속하는데
       // 이 명령이 없으면 그 약속이 거짓이 된다(2026-08-19 발견) — 확인 없이 즉시 처리한다
@@ -202,7 +232,7 @@ async function run(args) {
         rl.close();
       }
     }
-    console.log('accounts 서브커맨드: status, config, enable, add --api-key, list, disable, diagnose-quota 사용 가능합니다.');
+    console.log('accounts 서브커맨드: status, config, enable, add --api-key, list, remove, rename, disable, diagnose-quota 사용 가능합니다.');
     console.log('(자동전환 기동은 아직 개발 중입니다. 계정 완전 삭제는 claudetower account-purge를 쓰세요.)');
     return subcommand === undefined ? 0 : 1;
   }
