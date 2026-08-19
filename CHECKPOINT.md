@@ -2110,7 +2110,7 @@ README.html/README.en.html 재생성(별도 pandoc 파이프라인 필요, 범�
   `lint:boundary`·`test:display`(245/245)·`test:accounts`(165/165)·`build`(네이티브
   keyring 바이너리 exe 옆 복사 단계 포함)·`npm audit`(기존에 알려진 devDependency
   `brace-expansion` HIGH 1건 외 신규 없음) 전부 직접 재실행. 병렬로 격리 환경(`CLAUDETOWER_*`
-  경로만 사용, 실제 설치·실제 Credential Manager 미접촉)에서 `accounts purge`(빈 상태/취소/
+  경로만 사용, 실제 설치·실제 Credential Manager 미접촉)에서 `account-purge`(빈 상태/취소/
   실제삭제 3가지)·`accounts disable`·`accounts list`·`install.ps1`의 신규 네이티브 자산
   다운로드 로직 코드검토·실제 빌드된 v0.5.0 SEA exe로 `enable→add→list→purge` 전체 흐름
   1회 라이브 실행까지 12개 시나리오 탐색 — **신규 결함 0건**(1차 QA에서 발견한 3건 — esbuild
@@ -2151,3 +2151,13 @@ README.html/README.en.html 재생성(별도 pandoc 파이프라인 필요, 범�
    명시적으로 제외함(파일명 개별 지정으로 스테이징, `git add -A` 사용 안 함).
 
 - 상태: **CHECKPOINT 기록 완료, PR #8 main 병합 진행 중(이 커밋 직후)**.
+
+**2026-08-20 정정(M40 자체 오류 + 별도 발견 1건)**: PRD 전수 재검독 중 `bin/claudetower.js`
+라우팅 코드를 직접 대조하다가 두 가지를 발견해 정정했다. ① 위 M40 본문이 삭제 명령을
+`accounts purge`(accounts의 하위명령)로 잘못 적었으나, 실제로는 `account-purge`라는
+**최상위 명령**이다(186행, `accounts` 분기와 별개) — 위 문단 정정 완료. ② `src/accounts/
+consent-text.js` 상단 주석이 "purge는 여전히 미구현"이라고 적혀 있었는데, 이는 그 주석을
+쓴 바로 그 커밋(`fc4cefe`)이 실제로는 account-purge를 신설·배선까지 마친 커밋이라 **같은
+커밋 안에서부터 사실과 반대로 stale**했던 것으로 확인됨 — 주석을 실제 구현 상태에 맞게
+정정했다(기능 코드·사용자에게 보이는 동의 문구 자체는 원래부터 정확했음, 개발자용 주석만
+틀려 있었음). 둘 다 순수 문서/주석 수정이며 동작 코드는 건드리지 않음.
