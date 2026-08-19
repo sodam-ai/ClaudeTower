@@ -4,6 +4,34 @@
 
 > **2026-07-26 정정**: 이 문서가 2026-07-18 01:43 이후 갱신되지 않은 채 "M11 배포 미완료·승인 대기"로 남아있었으나, 그 사이(2026-07-16~17) main 병합과 v0.2.0/v0.3.0 릴리스가 이미 실제로 완료되어 있었다(`gh release list`·`git log origin/main` 직접 재확인, 아래 M11·M13 참고) — CHECKPOINT 자신이 stale해진 사례. M13에 정리했다.
 
+> ## 🛑 실거래 배선 승인 게이트 (2026-08-20 결정 — 모든 세션이 반드시 먼저 읽을 것)
+>
+> `src/accounts/proxy/active-account-provider.js`(M44 이후)가 registry·credential-store·
+> quota 파싱·전환 결정·회전 로그·`active-account-handle` 기록까지 전부 실제로 이어 붙여,
+> `request-forwarder.js`가 요구하는 콜백을 그대로 반환하는 상태까지 완성됐다.
+> `startProxyServer`에 이걸 넘기고 `bin/claudetower.js`에 진입점(예: `claudetower run`)
+> 하나만 추가하면 **실제 사용자 트래픽을 가로채 진짜로 계정을 자동 전환하는 코드가
+> 즉시 라이브로 켜진다.**
+>
+> **지금까지 사용자가 승인한 것**("하이브리드로 진행", `07_OAUTH_FLOW_SPEC.md §5`)은
+> *원칙*에 대한 승인이지, **"지금 이 순간 실전 배선을 켜도 된다"는 승인이 아니다.**
+> 이 프로젝트는 M9("차단벽 앞까지만")부터 M24·M41·M42·M44까지 매번 "실제 배선은
+> 다음 세션 몫"이라고 반복해서 선을 그어왔다 — 그 선을 지금 넘지 않는다.
+>
+> **이유(숨기지 않고 명시)**: 지금까지의 모든 Account 코드는 격리된 단위테스트로만
+> 검증됐고 실제 사용자 트래픽에 영향을 준 적이 단 한 번도 없다. 배선이 켜지는 순간
+> 그 성격이 근본적으로 바뀐다 — 버그가 나면 그 자리에서 사용자의 실제 Claude Code
+> 사용에 영향을 준다. `consent-text.js` 2-1항이 이미 고지한 "API 키 여러 개 로테이션이
+> 남용방지 조항에 걸리는지 확인 안 됨"이라는 법적 불확실성도 이 시점부터 실제로
+> 작동하기 시작한다.
+>
+> **기계적 강제(문서만으로는 여러 세션이 동시에 작업하는 이 환경에서 놓칠 수 있어
+> 추가)**: `test/accounts/live-wiring-gate.test.js`가 `bin/claudetower.js`에
+> `startProxyServer`/`active-account-provider`/`createRequestForwarder` 참조가
+> 없음을 정적으로 강제한다(ESLint 모듈 경계 규칙과 동일한 방어 원칙). **이 게이트를
+> 해제하려면 사용자가 이 구체적인 단계에 한해 별도로 명시 승인한 뒤, 그 테스트
+> 자체를 의도적으로 수정해야 한다.**
+
 ---
 
 ## M1: install.ps1/install.sh 설치 잠금 경합(self-collision) 수정 — P0
@@ -2290,3 +2318,31 @@ consent-text.js` 상단 주석이 "purge는 여전히 미구현"이라고 적혀
 커밋 안에서부터 사실과 반대로 stale**했던 것으로 확인됨 — 주석을 실제 구현 상태에 맞게
 정정했다(기능 코드·사용자에게 보이는 동의 문구 자체는 원래부터 정확했음, 개발자용 주석만
 틀려 있었음). 둘 다 순수 문서/주석 수정이며 동작 코드는 건드리지 않음.
+
+## M45: 2026-08-20 — 실거래 배선 승인 게이트 신설(기계적 강제)
+
+**배경**: PRD 전수 재검독 중 `src/accounts/proxy/active-account-provider.js`(동시 세션이
+방금 완성)가 `request-forwarder.js`(M44)에 그대로 주입 가능한 상태까지 이르렀음을 확인 —
+`startProxyServer`에 연결하고 `bin/claudetower.js`에 진입점 하나만 추가하면 실제 사용자
+트래픽을 가로채는 배선이 즉시 라이브로 켜지는 상태. 이 저장소를 최소 두 개 세션이 조율
+없이 동시에 작업 중인 것도 이 세션 내내 반복 확인됨 — 문서 경고만으로는 놓칠 수 있다고
+판단해 기계적 강제를 추가했다.
+
+**만든 것**:
+- [x] 이 문서 최상단에 "🛑 실거래 배선 승인 게이트" 배너 신설 — 모든 세션이 CHECKPOINT를
+  열자마자 가장 먼저 보게 배치.
+- [x] `.PRD/07_OAUTH_FLOW_SPEC.md` §5-1에 "원칙 승인 ≠ 지금 배선해도 된다는 승인" 구분
+  추가.
+- [x] `test/accounts/live-wiring-gate.test.js` 신설 — `bin/claudetower.js` 소스 텍스트에
+  `startProxyServer`/`active-account-provider`/`createRequestForwarder` 참조가 없음을
+  정적으로 강제(우회 조건 없음). ESLint 모듈 경계 규칙·`check-module-boundary.js`와 동일한
+  방어 원칙(문서+코드 이중 강제).
+- 검증: 신규 테스트 통과(1/1), `npm run lint`·`npm run lint:boundary` 회귀 없음. 동시
+  세션의 미커밋 작업(`accounts-registry.js`·`active-account-provider.js` 등)은 전혀
+  건드리지 않음(파일명 개별 지정 스테이징).
+
+**의도**: 이 게이트는 기능을 막는 게 아니라 "언제 켤지"를 사용자의 별도 결정으로 명시적으로
+분리하는 것이다 — 게이트 해제 방법 자체를 이 테스트 안에 문서화해뒀다(사용자가 이 구체적
+단계를 승인한 뒤 테스트를 의도적으로 수정).
+
+- 상태: **완료, 로컬 커밋만(push는 사용자가 이후 결정)**.
