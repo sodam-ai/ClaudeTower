@@ -2095,3 +2095,59 @@ README.html/README.en.html 재생성(별도 pandoc 파이프라인 필요, 범�
 실제 신설.
 
 - 상태: **완료, 로컬 커밋만(push는 사용자가 이후 결정)**.
+
+---
+
+## M40: 2026-08-19 — 버전 0.5.0 상향 + 2차 종합 QA(결함 0건) + PR #8 main 병합 (M39 이후 문서 갱신 누락 정정)
+
+**발견한 사실**: M39 이후 `package.json` 버전이 0.4.0 → **0.5.0**으로 상향된 커밋
+(`934ca23`)이 이미 만들어졌는데 이 문서엔 반영되지 않은 채였다(M39가 "0.4.0 유지"라고
+적어둔 문장이 그새 stale해짐 — 이 프로젝트에서 반복돼온 "실제 작업과 CHECKPOINT 기록의
+시차" 패턴, M10·M13과 동일 부류).
+
+**이번 세션에서 직접 실행·확인한 것**:
+- [x] **2차 종합 QA(사용자 요청, 정상/예외/경계값/실패 케이스 포함)**: `lint`·
+  `lint:boundary`·`test:display`(245/245)·`test:accounts`(165/165)·`build`(네이티브
+  keyring 바이너리 exe 옆 복사 단계 포함)·`npm audit`(기존에 알려진 devDependency
+  `brace-expansion` HIGH 1건 외 신규 없음) 전부 직접 재실행. 병렬로 격리 환경(`CLAUDETOWER_*`
+  경로만 사용, 실제 설치·실제 Credential Manager 미접촉)에서 `accounts purge`(빈 상태/취소/
+  실제삭제 3가지)·`accounts disable`·`accounts list`·`install.ps1`의 신규 네이티브 자산
+  다운로드 로직 코드검토·실제 빌드된 v0.5.0 SEA exe로 `enable→add→list→purge` 전체 흐름
+  1회 라이브 실행까지 12개 시나리오 탐색 — **신규 결함 0건**(1차 QA에서 발견한 3건 — esbuild
+  빌드 크래시, 라벨 길이 100자 상한, 제어문자 거부 — 는 전부 그대로 정상 유지 재확인).
+  삭제 검증은 매번 `cmdkey` 대신 `getPassword()`/`deletePassword()` 직접 재조회로 확인(이
+  프로젝트에서 `cmdkey /list`가 `@napi-rs/keyring` 항목을 못 잡는 것을 실측으로 이미 확인한
+  전례가 있어 신뢰하지 않음).
+- [x] **PR #8(`934ca23` 기준) CI 매트릭스 3-OS 결과 직접 재확인**: `gh run view`로
+  `build (windows-latest, ...)`·`build (macos-latest, ...)`·`build (ubuntu-latest, ...)`
+  3개 job 모두 **success** 확인(빌드+`--version`/`--help` 스모크테스트+
+  `test -f dist/keyring-native.node` 존재확인까지 포함) + `verify-display-standalone`
+  job도 success. **단, 이 스모크테스트는 실행 여부만 확인할 뿐 `accounts enable→add`류
+  실제 키체인 왕복 동작까지는 검증하지 않는다** — macOS/Linux에서의 `process.dlopen()`
+  기반 credential-store 실동작(M37)은 여전히 라이브 미검증(물리 macOS/Linux 환경 없음),
+  Windows에서만 라이브 검증 완료된 상태 그대로임을 명시.
+- [x] **main 병합 안전성 사전 확인**: `git merge-tree $(git merge-base origin/main HEAD)
+  origin/main HEAD` — 충돌마커 0건, `origin/main..HEAD` 22개 커밋 / `HEAD..origin/main` 0개
+  커밋(main이 그 사이 움직이지 않아 fast-forward 성격 병합 가능). README.md가 이미
+  "현재 정식 출시된 버전(v0.4.0)에는 이 계정 기능이 아직 포함돼 있지 않습니다"라고
+  자체적으로 정직하게 고지하고 있음을 재확인(M39 반영분) — main 병합이 릴리스 발행과
+  같은 뜻이 아님을 문서 자체가 이미 구분해서 설명하는 상태.
+- [x] **결정**: M10과 동일한 유형의 위험(작업 브랜치·main 간 정보/코드 격차 방치)이
+  재발하지 않도록, PR #8을 지금 main으로 병합하기로 결정(제안 후 사용자 승인,
+  "CHECKPOINT M40 기록 후 병합"). **릴리스 발행(`gh release create`)은 여전히 별도
+  결정 사항으로 보류** — 병합해도 `install.ps1`/`install.sh`가 참조하는 "latest release"는
+  기존 v0.4.0 그대로라 실사용자에게 아직 라이브 미검증인 macOS/Linux credential-store가
+  실수로 노출되는 일은 없음.
+
+**병합 후 남는 위험(숨기지 않고 명시, 병합으로 해소되는 위험이 아님)**:
+1. macOS/Linux의 `process.dlopen()` 기반 credential-store 실동작 라이브 미검증(빌드/실행
+   자체는 CI로 검증됐으나 실제 키체인 왕복은 Windows에서만 확인됨) — 실제 릴리스 발행
+   전에 반드시 해소해야 함.
+2. `@napi-rs/keyring`(MIT) 서드파티 라이선스 고지 파일 신설 여부 — 법무 검토 항목으로
+   남음(M39에서 이미 기록, 변화 없음).
+3. 저장소 루트에 `.active-agents`·`.active-agents.lock`·`.active-agents.tmp`·
+   `.failure-tracker.jsonl`·`.pair-programming-session.md` 등 미추적 파일 존재 —
+   ClaudeTower 프로젝트 산출물이 아닌 세션 도구 부산물로 판단되어 이번 커밋 대상에서
+   명시적으로 제외함(파일명 개별 지정으로 스테이징, `git add -A` 사용 안 함).
+
+- 상태: **CHECKPOINT 기록 완료, PR #8 main 병합 진행 중(이 커밋 직후)**.
