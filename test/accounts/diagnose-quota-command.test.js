@@ -8,6 +8,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const { appendAccount } = require('../../src/accounts/accounts/accounts-registry');
+const { readQuotaCacheEntry } = require('../../src/accounts/quota/quota-cache-store');
 
 const CREDENTIAL_STORE_PATH = require.resolve('../../src/accounts/credential-store');
 const COMMAND_PATH = require.resolve('../../src/accounts/accounts/diagnose-quota-command');
@@ -265,6 +266,59 @@ test('model 옵션을 넘기면 그 값 그대로 send에 전달된다(기본값
     });
     rl.close();
     assert.equal(calls[0], 'custom-model-id');
+    fs.unlinkSync(registryPath);
+  });
+});
+
+test('파싱 성공 시 accounts list가 읽을 사용률 캐시에 저장한다(quotaCachePath)', async () => {
+  await withMockedCredentialStore({ getSecret: () => 'sk-ant-test-marker' }, async (runDiagnoseQuotaCommand) => {
+    const registryPath = tmpJsonPath('registry');
+    const quotaCachePath = tmpJsonPath('quota-cache');
+    appendAccount(
+      { account_id: 'a1', label: 'work', auth_type: 'api_key', status: 'active', created_at: '2026-08-20T00:00:00Z' },
+      registryPath
+    );
+    const rl = fakeInteractiveSession('y\n');
+    await runDiagnoseQuotaCommand(rl, 'work', {
+      registryPath,
+      quotaCachePath,
+      log: () => {},
+      send: async () => ({
+        statusCode: 200,
+        headers: {
+          'anthropic-ratelimit-tokens-limit': '1000',
+          'anthropic-ratelimit-tokens-remaining': '400',
+          'anthropic-ratelimit-requests-limit': '50',
+          'anthropic-ratelimit-requests-remaining': '49',
+        },
+      }),
+    });
+    rl.close();
+    const cached = readQuotaCacheEntry('a1', quotaCachePath);
+    assert.ok(cached, '캐시에 저장돼야 한다');
+    assert.equal(cached.tokens_used_pct, 60);
+    fs.unlinkSync(registryPath);
+    fs.unlinkSync(quotaCachePath);
+  });
+});
+
+test('파싱 실패(헤더 없음)면 캐시에 아무것도 쓰지 않는다', async () => {
+  await withMockedCredentialStore({ getSecret: () => 'sk-ant-test-marker' }, async (runDiagnoseQuotaCommand) => {
+    const registryPath = tmpJsonPath('registry');
+    const quotaCachePath = tmpJsonPath('quota-cache');
+    appendAccount(
+      { account_id: 'a1', label: 'work', auth_type: 'api_key', status: 'active', created_at: '2026-08-20T00:00:00Z' },
+      registryPath
+    );
+    const rl = fakeInteractiveSession('y\n');
+    await runDiagnoseQuotaCommand(rl, 'work', {
+      registryPath,
+      quotaCachePath,
+      log: () => {},
+      send: async () => ({ statusCode: 200, headers: {} }),
+    });
+    rl.close();
+    assert.equal(readQuotaCacheEntry('a1', quotaCachePath), null);
     fs.unlinkSync(registryPath);
   });
 });
