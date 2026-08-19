@@ -8,14 +8,19 @@ const path = require('path');
 const { CONFIG_DIR_NAME } = require('../constants');
 
 function getHandlePath() {
-  return path.join(require('os').homedir(), CONFIG_DIR_NAME, 'active-account.json');
+  return (
+    process.env.CLAUDETOWER_ACTIVE_ACCOUNT_HANDLE_PATH ||
+    path.join(require('os').homedir(), CONFIG_DIR_NAME, 'active-account.json')
+  );
 }
 
-function writeActiveAccountHandle(accountLabel) {
+// filePath 인자는 CLAUDETOWER_ACTIVE_ACCOUNT_HANDLE_PATH보다 우선한다(단위테스트가
+// 임시 경로를 직접 넘기는 경우) — 이 모듈 전체(다른 Account 상태 파일들)와 동일한 관례.
+function writeActiveAccountHandle(accountLabel, filePath) {
   if (typeof accountLabel !== 'string' || accountLabel.length === 0) {
     throw new TypeError('accountLabel must be a non-empty string');
   }
-  const handlePath = getHandlePath();
+  const handlePath = filePath || getHandlePath();
   fs.mkdirSync(path.dirname(handlePath), { recursive: true });
   const payload = JSON.stringify({
     account_label: accountLabel,
