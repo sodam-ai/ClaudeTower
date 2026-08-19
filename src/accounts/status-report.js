@@ -22,9 +22,14 @@ const IMPLEMENTED_COMPONENTS = [
     name: 'API 키 계정 quota 파싱 + 전환 결정 로직',
     detail:
       'anthropic-ratelimit-tokens/requests-* 헤더 파싱 + best/next-available 전환 판단 순수 함수 구현·테스트 완료' +
-      '(src/accounts/quota/) — 단, ClaudeTower 자신의 실제 API 응답으로 필드명 재검증은 아직 안 했고, 실제' +
-      ' 프록시 요청 경로(server.js)에도 아직 연결하지 않음. OAuth/구독 계정(anthropic-ratelimit-unified-*)은' +
-      ' 범위 밖 — 다루지 않음.',
+      '(src/accounts/quota/) — 단, 실제 프록시 요청 경로(server.js)에는 아직 연결하지 않음. OAuth/구독 계정' +
+      '(anthropic-ratelimit-unified-*)은 범위 밖 — 다루지 않음.',
+  },
+  {
+    name: 'claudetower accounts diagnose-quota <라벨>',
+    detail:
+      '실제 API로 최소 크기 요청 1건을 보내([y/N] 확인 필수, 미세한 실비용 발생) 위 파서가 기대하는 헤더' +
+      ' 필드명이 실제 응답과 일치하는지 1회 확인하는 진단 명령. 계정을 전환하지 않음 — 헤더만 보여줌.',
   },
 ];
 
