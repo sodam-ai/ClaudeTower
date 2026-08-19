@@ -2,9 +2,9 @@
 
 [한국어](./README.md) | [English](./README.en.md)
 
-A statusline CLI for Claude Code. Written so that anyone can follow it from start to finish, even with little or no prior experience with computers or AI tools — this single document covers everything from installation to troubleshooting and legal information. (The account auto-switching feature is not included in the current release, per our Terms-of-Service review — see "② Account switching" below.)
+A statusline CLI for Claude Code. Written so that anyone can follow it from start to finish, even with little or no prior experience with computers or AI tools — this single document covers everything from installation to troubleshooting and legal information. (An experimental feature for registering API-key accounts is included but disabled by default; login-account automation and real auto-switching still don't exist — see "② Account switching" below.)
 
-> **Current status (important)**: This project ships the statusline (Display) feature only (current released version: v0.4.0). "① Statusline" below works right now. "② Account switching" is **not included in the current release at all** — after reading Anthropic's official Terms of Service directly, we confirmed this feature conflicts with the ToS, and that finding still stands. The related code is not included in the actual distributed executable (confirmed 2026-07-15; see "② Account switching" below for details).
+> **Current status (important)**: "① Statusline" below is always safe and works right now. "② Account switching" will experimentally include API-key account registration starting with the next release, but it is **always disabled by default** — you must read the consent notice and explicitly opt in via `accounts enable`. Login (subscription) account automation still has no code at all, since it still conflicts with Anthropic's official Terms of Service, and there is still no usage-triggered auto-switching — all you can do today is "register" an API-key account (see "② Account switching" below for details). **The currently released version (v0.4.0) does not yet include this account feature** — everything below describes the latest development state that will ship in the next release (see "This document is written to the latest completed development state" right below).
 >
 > **This document is written against the latest developed state of the code.** The actual downloadable release (GitHub Release) is a snapshot from its own release date, so there can be a gap between what this document describes and what's in the build you download — check "Version history summary" below and the [Releases page](https://github.com/sodam-ai/ClaudeTower/releases/latest) for what's actually in a given release.
 
@@ -28,7 +28,7 @@ A statusline CLI for Claude Code. Written so that anyone can follow it from star
   - [Security & data flow](#security--data-flow)
   - [File & document locations](#file--document-locations)
   - [Architecture](#architecture-in-plain-terms)
-- [② Account switching (not included in the current release)](#②-account-switching-not-included-in-the-current-release)
+- [② Account switching (experimental, disabled by default)](#②-account-switching-experimental-disabled-by-default)
 - [Version history summary](#version-history-summary)
 - [Troubleshooting](#troubleshooting)
 - [FAQ](#faq)
@@ -148,7 +148,7 @@ If you accidentally delete that fixed-location copy too and the statusline stops
 - `claudetower uninstall` — safely removes only the statusline registration (leaves your other Claude Code settings untouched)
 - `claudetower statusline` — the renderer Claude Code invokes internally (you won't run this by hand)
 
-> Account-related commands like `accounts` **do not exist** — the currently distributed release contains no account-related code at all (see "② Account switching" below).
+> `accounts` commands will be included starting with the next release, but are **disabled by default** — until you run `accounts enable` to consent, everything except `status`/`config` lookups is refused. This is a fully separate feature from the statusline; see "② Account switching" below for details. Commands that actually exist: `accounts status` (check components) · `accounts config` (pre-set switch thresholds etc.) · `accounts enable` (opt in after reading consent) · `accounts add --api-key <label> <key>` (register an API-key account) · `accounts list` (view registered accounts) · `accounts disable` (turn back off).
 
 ### Turn widgets on/off right from the Claude Code chat — no terminal needed
 
@@ -185,7 +185,7 @@ ClaudeTower/
 │   │   ├── widgets/            # model, location, git, context, cost, rate-limit widgets
 │   │   ├── config/             # settings read/write, gauge & text-safety helpers, etc.
 │   │   └── cache/               # Local Git-info cache
-│   └── accounts/              # Account-switching code — not included in the current release (see "② Account switching" above)
+│   └── accounts/              # Account registration/switching code — included in the exe starting next release (disabled by default; see "② Account switching" above)
 ├── test/                     # Tests for the display/accounts modules
 ├── scripts/                  # Build & module-boundary check scripts
 ├── .PRD/                     # Design rationale & decision history (for developers)
@@ -249,18 +249,35 @@ Here's where this program actually creates or uses files on your computer.
 
 ### Architecture (in plain terms)
 
-This program was designed from the start with the "statusline" part and the "account-switching" part completely separated. The "statusline room" only displays information on screen, so it's always safe. The "account-switching room" is still under careful review because of the Terms-of-Service conflict — some internal components have been built experimentally, but they are not wired into the "statusline room" and are not included in the distributed program (see "② Account switching" below for details).
+This program was designed from the start with the "statusline" part and the "account-switching" part completely separated. The "statusline room" only displays information on screen, so it's always safe, and it has no code-level connection to the "account-switching room" at all (the repository proves this independence automatically on every build). The "account-switching room" will ship inside the executable starting next release, but its door is locked by default — it only opens once you consent via `accounts enable` — and even inside, all you can do today is register an API-key account. Login-account automation and real auto-switching still don't exist because of the Terms-of-Service conflict (see "② Account switching" below for details).
 
 ---
 
-## ② Account switching (not included in the current release)
+## ② Account switching (experimental, disabled by default)
 
-Originally, this project planned to add a feature that would let you automatically switch between multiple Claude accounts. On 2026-07-15, after reading Anthropic's official Terms of Service directly, we confirmed there is no safe way to build this feature.
+Originally, this project planned to add a feature that would let you automatically switch between multiple Claude accounts. On 2026-07-15, after reading Anthropic's official Terms of Service directly, we confirmed there is no safe way to automatically cycle login (subscription) accounts.
 
 - Anthropic explicitly prohibits third-party tools from logging in with subscription (Free/Pro/Max) credentials and using that account on a user's behalf. As of 2026-01-09, this is also technically blocked server-side — confirmed by multiple independent news sources.
-- Separately, using automated scripts to access the service through anything other than an API key is also prohibited on its own. So even a workaround that avoids handling login credentials directly (e.g., leaving login to Claude Code itself and only automating which config folder is active) would still run into this rule.
+- Access via API key, on the other hand, is an **explicit exception** Anthropic's Terms of Service carves out from this automation ban. However, whether registering and rotating multiple API keys at once runs afoul of a separate anti-abuse clause has not been confirmed — we don't assume it's safe.
 
-This Terms-of-Service conflict finding still stands today, unchanged. That said, this decision was later revisited internally (the review background and reasoning are recorded in the repository's `.PRD/07_OAUTH_FLOW_SPEC.md`). **What hasn't changed either way is that none of the related code is included in the actual distributed executable** — the repository's automated build verification confirms this on every build. The statusline feature keeps working normally regardless of this matter.
+After an internal re-review (background and reasoning recorded in the repository's `.PRD/07_OAUTH_FLOW_SPEC.md`), we decided to **keep login-account automation out entirely, and proceed only with the hybrid API-key path that the Terms of Service carve out as an exception**. As a result, starting with the next release, here's exactly what's actually included and working, and what still isn't.
+
+**What actually works today** (disabled by default — see "How to turn it on" below first):
+- `claudetower accounts status` — check whether the account module is on, and which parts are implemented vs. not (read-only)
+- `claudetower accounts config` — pre-set switch threshold, port, etc. locally without registering any account
+- `claudetower accounts enable` — shows the consent notice below and requires you to type `y` yourself before it turns on
+- `claudetower accounts add --api-key <label> <key>` — registers an API-key account. The key value is stored only in this computer's OS credential vault (Windows: Credential Manager / macOS: Keychain / Linux: Secret Service) and is never transmitted anywhere
+- `claudetower accounts list` — view registered accounts (key values themselves are never shown)
+- `claudetower accounts disable` — turn it back off (registered account info is kept)
+
+**What still doesn't exist**:
+- Automatic registration/cycling of login (subscription) accounts — no code exists for this, due to the Terms-of-Service issue above
+- Importing an already-logged-in Claude Code account as-is (`--import`)
+- **Actual usage-triggered auto-switching** — even with multiple accounts registered, nothing automatically switches to the next account when usage runs out today (only registration/lookup work)
+
+**How to turn it on, and what you're consenting to**: Running `claudetower accounts enable` shows a consent notice summarizing the above, and it only activates once you type `y` yourself. If you never run `enable`, this feature stays off indefinitely and has zero effect on the statusline feature.
+
+The statusline (Display) feature keeps working safely regardless of any of this — the repository automatically verifies on every build that the two parts are completely separated at the code level.
 
 ---
 
@@ -371,9 +388,9 @@ Initial release. Shows location, context, cost, and rate limits; `setup` install
 
 ## FAQ
 
-- **Does installing this automatically collect my account info?** No. Account-related code isn't included in this version at all. This program is structurally unable to see or store your ID, password, or authentication tokens.
+- **Does installing this automatically collect my account info?** No. Installing and using the statusline alone never touches account information at all. The account-registration feature is disabled by default — only after you explicitly consent via `accounts enable` and explicitly enter a key via `accounts add` does that account info (an API key) get stored in this computer's OS credential vault. Nothing is collected unless you explicitly tell it to.
 - **Does anything get sent over the internet?** No, everything runs locally only.
-- **Are there plans to build account switching?** This feature has been found to conflict with Anthropic's Terms of Service, and that finding still stands. Internal review continues, but **the currently distributed program does not include this feature at all** (see "② Account switching" above for details).
+- **Are there plans to build account switching?** Automatically cycling login (subscription) accounts has been found to conflict with Anthropic's Terms of Service, so it won't be built. That said, "registering" API-key accounts — the path the Terms of Service carve out as an exception — will be experimentally included starting with the next release, disabled by default. Actual usage-triggered auto-switching still doesn't exist (see "② Account switching" above for details).
 - **Is it really okay to delete the file I originally downloaded?** Yes, as long as you've run `setup` at least once first — see "Can I delete or move the installed file?" above.
 - **Does it cost money?** No, this program itself is free. Note that the "cost ($)" figure it *displays* is a separate thing — that's the cost of using Claude Code (the AI) itself, unrelated to this program.
 - **Why does the name say "working title"?** Trademark review finished on 2026-07-15. The result: we decided to keep the name "ClaudeTower" as-is, accepting a low-priority residual risk (see "Legal, copyright, license & commercial use" below for details). That said, we haven't fully ruled out changing the name later — if the user base grows significantly, or if Anthropic reaches out directly — so it's still labeled a "working title" rather than a fully final name.
@@ -389,7 +406,7 @@ Initial release. Shows location, context, cost, and rate limits; `setup` install
 
 **License (not yet finalized)**: The final product name isn't in a fully, permanently finalized state. Trademark review for the name "ClaudeTower" was completed on 2026-07-15, and the decision was to keep this name, accepting a low-priority residual risk (to be revisited only if the user base grows significantly or Anthropic reaches out directly). Until this "working title" status is fully resolved, the `npm install -g` distribution channel is also deliberately not being opened (an npm package name is effectively permanent once claimed).
 
-**Commercial use — strict prohibition**: The current version of this program (v0.4.0, Phase 1 MVP) is not designed for ❌ commercial sale, ❌ being offered as a paid service, or ❌ paid delivery to a company or organization. **This program is distributed for free, personal use only.** Reason for this strict limitation: this project originally planned to eventually add an automatic multi-account switching feature, which would have cycled between multiple Claude accounts automatically. After reading Anthropic's official Terms of Service directly, we confirmed this pattern conflicts with Claude's terms of service (see "② Account switching" above). During this review, it also became clear that if this feature ever ships, that risk could apply to the entire program — even for users who never turn the feature on and only use the statusline. The commercial-use exclusion has been a design principle from the very beginning specifically to avoid amplifying that kind of risk, and it remains in place now, while no account-switching code is included in the distributed release. (Since the current release contains no account-related code at all, the terms-of-service conflict risk described above has no way to actually materialize today — but the commercial-use prohibition itself continues to apply to the entire project, independent of this matter.)
+**Commercial use — strict prohibition**: This program is not designed for ❌ commercial sale, ❌ being offered as a paid service, or ❌ paid delivery to a company or organization. **This program is distributed for free, personal use only.** Reason for this strict limitation: this project planned to add an automatic multi-account switching feature, and after reading Anthropic's official Terms of Service directly, we confirmed that automating login-account cycling conflicts with Claude's terms of service (see "② Account switching" above). Starting with the next release, the API-key registration path the Terms of Service carve out as an exception is actually included — but whether rotating multiple API keys itself runs afoul of a separate anti-abuse clause is still unconfirmed. In other words, this risk is no longer hypothetical — it now exists in the actual distributed release. It doesn't apply to anyone who leaves the feature off and only uses the statusline (disabled by default, fully separated at the code level), but the commercial-use exclusion — a design principle from the very beginning meant to avoid amplifying exactly this kind of risk — remains in place.
 
 **What the license actually permits vs. what this project recommends (important)**: Apache License 2.0 itself contains no "no commercial use" clause. As long as you comply with its conditions (keeping copyright and license notices, etc.), modification, copying, redistribution, and commercial use are, in principle, permitted — it is a widely used permissive license. In other words, the "commercial use — strict prohibition" statement above does **not mean the license legally forbids it — it means this project does not recommend it (a design intent).**
 
@@ -410,7 +427,7 @@ If the project owner wants to legally restrict commercial use with binding force
 
 **About AI's involvement in development**: A substantial part of this project's code and documentation was written with the help of an AI coding tool (Claude Code) — this is recorded in the repository's commit history via "Co-Authored-By: Claude" trailers. Whether AI-generated or AI-assisted content is copyrightable, what training data it derives from, and whether it might resemble or infringe existing works are all legal questions that differ by jurisdiction and remain unsettled. If you plan to use, redistribute, or commercially exploit this project as-is or modified, please be aware that it includes AI-assisted content, and verify copyright, provenance, and commercial-use eligibility yourself where needed (needs legal review).
 
-**About the NOTICE file**: This project does not include a separate `NOTICE` file. Apache License 2.0 Section 4(d) only requires you to carry forward a `NOTICE` file's contents if the Work you are distributing already includes one. `package.json` currently lists one runtime dependency (`@napi-rs/keyring`, for OS credential-store access), but it is only used by account-related code that is not yet included in the distributed release (see "② Account switching" above) — it is not included in the executable ClaudeTower actually distributes. Code that isn't referenced by the build is automatically excluded, and the repository's automated verification confirms this on every build (the build tools, esbuild and eslint, are likewise development-only and not included in the distributed executable). This determination should be revisited once this feature is actually included in a release.
+**About the NOTICE file**: This project does not include a separate `NOTICE` file. Apache License 2.0 Section 4(d) only requires you to carry forward a `NOTICE` file's contents when a different Apache-licensed dependency already ships one. Starting with the next release, `@napi-rs/keyring`'s (OS credential-store access) native binary is actually distributed alongside the executable (the account-registration feature ships disabled by default; see "② Account switching" above) — this package is **MIT licensed**, not Apache (confirmed directly from `node_modules/@napi-rs/keyring/LICENSE` in the repository), so it isn't subject to Apache NOTICE propagation. That said, the MIT license separately requires carrying its copyright/permission notice along with distributed copies, so whether to add a dedicated third-party license notice file is still under consideration (not yet done as of this revision — left as a legal-review item). The build tools, esbuild and eslint, remain development-only and are not included in the distributed executable.
 
 For more background, see the "법률·저작권·라이선스·상업적 사용 요구사항" section in [`.PRD/04_PROJECT_SPEC.md`](./.PRD/04_PROJECT_SPEC.md).
 

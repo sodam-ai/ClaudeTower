@@ -16,10 +16,13 @@ jobs:
         include:
           - os: windows-latest
             artifact: claudetower-win-x64.exe
+            native-artifact: keyring-native-win-x64.node
           - os: macos-latest
             artifact: claudetower-macos-arm64
+            native-artifact: keyring-native-macos-arm64.node
           - os: ubuntu-latest
             artifact: claudetower-linux-x64
+            native-artifact: keyring-native-linux-x64.node
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
@@ -42,10 +45,27 @@ jobs:
           ./dist/${{ matrix.artifact }} --version
           ./dist/${{ matrix.artifact }} --help
 
+      # M38: credential-store가 SEA exe에서 실제로 동작하려면 exe와 같은 폴더에
+      # keyring-native.node(네이티브 addon)가 반드시 함께 있어야 한다(process.dlopen
+      # 우회 로딩, src/accounts/credential-store/index.js 참고) — 빌드가 그 파일을
+      # 만들었는지 여기서 바로 확인한다(빌드가 성공했어도 파일이 없으면 배포 채널이
+      # 조용히 깨진 채로 릴리스될 위험을 CI에서 미리 잡는다).
+      - name: 네이티브 keyring 바이너리 생성 확인
+        shell: bash
+        run: test -f dist/keyring-native.node
+
       - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}
           path: dist/${{ matrix.artifact }}
+
+      # 릴리스 자산명은 install.ps1/install.sh가 다운로드할 때 기대하는 이름과 반드시
+      # 일치해야 한다(플랫폼별 접미사 포함) — 실제 릴리스 발행(`gh release create`) 시
+      # 이 워크플로우 아티팩트를 정확히 이 이름 그대로 첨부해야 한다.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.native-artifact }}
+          path: dist/keyring-native.node
 
   # .PRD/03_PHASES.md Phase 1 "진짜 제품" 체크리스트: "Account 모듈 코드(src/accounts/)가
   # 아예 존재하지 않아도(빈 디렉토리여도) Display 모듈이 완전히 독립적으로 동작함을 확인".

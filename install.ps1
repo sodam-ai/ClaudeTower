@@ -18,8 +18,16 @@ if ([System.Environment]::Is64BitOperatingSystem -eq $false) {
 $Artifact = 'claudetower-win-x64.exe'
 $Url = "https://github.com/$Repo/releases/latest/download/$Artifact"
 
+# M38: credential-store(계정 등록 등)가 실제로 동작하려면 exe와 같은 폴더에 네이티브
+# addon(keyring-native.node)이 반드시 함께 있어야 한다(process.dlopen 우회 로딩,
+# src/accounts/credential-store/index.js 참고). 이 파일 없이 exe만 설치되면 status/
+# widgets 같은 Display 기능은 멀쩡히 동작하지만 accounts add 등은 조용히 깨진다.
+$NativeArtifact = 'keyring-native-win-x64.node'
+$NativeUrl = "https://github.com/$Repo/releases/latest/download/$NativeArtifact"
+
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 $TargetPath = Join-Path $InstallDir 'claudetower.exe'
+$NativeTargetPath = Join-Path $InstallDir 'keyring-native.node'
 
 Write-Host "다운로드: $Url"
 
@@ -48,6 +56,31 @@ for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
 if (-not $replaced) {
     Remove-Item -LiteralPath $TempPath -Force -ErrorAction SilentlyContinue
     Write-Error "claudetower.exe가 사용 중이라 교체하지 못했습니다. 열려 있는 Claude Code 창을 모두 닫고 다시 시도해주세요."
+    exit 1
+}
+
+Write-Host "다운로드: $NativeUrl"
+# 이 파일은 statusLine처럼 매초 실행되지 않아 잠금 경합 가능성은 exe보다 훨씬 낮지만,
+# accounts add 등이 실행 중이면 네이티브 addon이 dlopen으로 로드된 채 잠길 수 있어
+# 같은 원자적 교체+재시도 원칙을 그대로 적용한다(이 프로젝트 관례, 05_FIELD_ISSUES 이슈#1).
+$NativeTempPath = Join-Path $InstallDir ('keyring-native.node.download.' + $PID)
+Invoke-WebRequest -Uri $NativeUrl -OutFile $NativeTempPath
+
+$nativeReplaced = $false
+for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+    try {
+        Move-Item -LiteralPath $NativeTempPath -Destination $NativeTargetPath -Force -ErrorAction Stop
+        $nativeReplaced = $true
+        break
+    } catch {
+        if ($attempt -lt $maxAttempts) {
+            Start-Sleep -Milliseconds 200
+        }
+    }
+}
+if (-not $nativeReplaced) {
+    Remove-Item -LiteralPath $NativeTempPath -Force -ErrorAction SilentlyContinue
+    Write-Error "keyring-native.node가 사용 중이라 교체하지 못했습니다. 열려 있는 Claude Code 창을 모두 닫고 다시 시도해주세요."
     exit 1
 }
 

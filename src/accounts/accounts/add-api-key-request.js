@@ -18,6 +18,11 @@
 const { createAccount } = require('./account');
 const { isAccountModuleEnabled } = require('../module-activation-state');
 
+// src/display/config/text-safety.js와 같은 부류의 제어문자 정규식이지만, Account↔Display
+// 모듈은 서로 import하지 않는다는 경계 원칙(M36에서 재확인)에 따라 독립적으로 정의한다.
+const MAX_LABEL_LENGTH = 100;
+const CONTROL_CHARS = /[\x00-\x1F\x7F]/;
+
 function buildAddApiKeyRequest({
   label,
   apiKeyValue,
@@ -33,6 +38,17 @@ function buildAddApiKeyRequest({
   }
   if (typeof label !== 'string' || label.trim().length === 0) {
     throw new TypeError('계정 라벨을 입력해주세요.');
+  }
+  // 2026-08-19 실측 발견: 길이 상한·제어문자 검증이 없어 2000자 라벨이나 개행이 포함된
+  // 라벨이 그대로 accepts-registry.json에 저장됐다 — 나중에 accounts list 같은 걸 만들면
+  // 터미널 출력이 깨질 위험(text-safety.js가 다루는 것과 같은 부류의 문제이나, 그건 렌더
+  // 시점에 신뢰 못 할 stdin을 잘라내는 용도이고 이건 등록 시점 입력이라 여기서는 조용히
+  // 자르는 대신 명확히 거부해 사용자가 의도한 라벨이 아닌 값으로 저장되지 않게 한다).
+  if (label.length > MAX_LABEL_LENGTH) {
+    throw new TypeError(`계정 라벨은 ${MAX_LABEL_LENGTH}자를 넘을 수 없습니다.`);
+  }
+  if (CONTROL_CHARS.test(label)) {
+    throw new TypeError('계정 라벨에는 줄바꿈 등 제어문자를 쓸 수 없습니다.');
   }
   if (typeof apiKeyValue !== 'string' || apiKeyValue.trim().length === 0) {
     throw new TypeError('API 키 값을 입력해주세요.');

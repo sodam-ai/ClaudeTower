@@ -30,8 +30,34 @@ function step(label) {
   console.log(`\n=== ${label} ===`);
 }
 
+// 2026-08-19 추가: SEA blob 안에는 node_modules가 없어 @napi-rs/keyring을 패키지 이름으로
+// require할 수 없다(credential-store/index.js가 SEA 실행 시 이 파일을 절대경로로 직접
+// require하도록 분기 처리함, 그쪽 주석 참고). 어느 파일을 복사해야 할지 플랫폼별로
+// 하드코딩하는 대신, 이 빌드 스크립트를 실행 중인 바로 이 Node 프로세스가
+// @napi-rs/keyring을 실제로 require했을 때 require.cache에 잡히는 실제 .node 파일
+// 경로를 그대로 쓴다 — 이 스크립트 자체가 매 플랫폼에서 각자 실행되는 구조이므로
+// (파일 상단 주석 참고), 지금 이 머신에 실제로 설치된 optionalDependency가 뭐든
+// 정확히 그것을 찾아내는 가장 안전한 방법이다(하드코딩된 매핑표가 잘못될 위험 없음).
+function resolveNativeKeyringPath() {
+  require('@napi-rs/keyring');
+  const nativeEntry = Object.keys(require.cache).find(
+    (p) => p.endsWith('.node') && p.toLowerCase().includes('keyring')
+  );
+  if (!nativeEntry) {
+    throw new Error(
+      '@napi-rs/keyring 네이티브 바이너리(.node) 경로를 찾지 못했습니다 — require.cache에 없음. ' +
+        'node_modules가 이 플랫폼용으로 정상 설치됐는지 확인하세요.'
+    );
+  }
+  return nativeEntry;
+}
+
 function main() {
   fs.mkdirSync(DIST, { recursive: true });
+
+  step('0) 네이티브 keyring 바이너리 위치 확인');
+  const nativeKeyringSource = resolveNativeKeyringPath();
+  console.log(`OK -> ${nativeKeyringSource}`);
 
   step('1) esbuild 번들 (bin/claudetower.js -> dist/bundle.cjs)');
   esbuild.buildSync({
@@ -72,6 +98,11 @@ function main() {
   const targetExePath = path.join(DIST, artifactName);
   fs.copyFileSync(process.execPath, targetExePath);
   console.log(`OK -> ${targetExePath}`);
+
+  step('4-1) 네이티브 keyring 바이너리를 exe 옆에 복사 (SEA 런타임용)');
+  const nativeKeyringTarget = path.join(DIST, 'keyring-native.node');
+  fs.copyFileSync(nativeKeyringSource, nativeKeyringTarget);
+  console.log(`OK -> ${nativeKeyringTarget}`);
 
   step('5) postject로 blob 주입');
   execFileSync(

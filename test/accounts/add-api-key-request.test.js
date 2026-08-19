@@ -50,6 +50,24 @@ test('buildAddApiKeyRequest: API 키 값이 빈 문자열/공백이면 거부한
   assert.throws(() => buildAddApiKeyRequest({ ...VALID, apiKeyValue: '   ' }), TypeError);
 });
 
+test('buildAddApiKeyRequest: 라벨이 100자를 넘으면 거부한다(2026-08-19 실측 발견)', () => {
+  assert.throws(
+    () => buildAddApiKeyRequest({ ...VALID, label: 'a'.repeat(101) }),
+    /100자를 넘을 수 없습니다/
+  );
+  // 경계값: 정확히 100자는 통과해야 한다
+  const result = buildAddApiKeyRequest({ ...VALID, label: 'a'.repeat(100) });
+  assert.equal(result.account.label.length, 100);
+});
+
+test('buildAddApiKeyRequest: 라벨에 개행 등 제어문자가 있으면 거부한다(2026-08-19 실측 발견)', () => {
+  assert.throws(
+    () => buildAddApiKeyRequest({ ...VALID, label: 'line1\nline2' }),
+    /제어문자/
+  );
+  assert.throws(() => buildAddApiKeyRequest({ ...VALID, label: '탭\t포함' }), /제어문자/);
+});
+
 test('buildAddApiKeyRequest: 이미 등록된 라벨이면 자동 변경 없이 거부한다(슬롯 충돌 방지)', () => {
   assert.throws(
     () => buildAddApiKeyRequest({ ...VALID, existingLabels: ['업무용', '개인용'] }),

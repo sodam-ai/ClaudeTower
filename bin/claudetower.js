@@ -15,7 +15,7 @@ async function run(args) {
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
     console.log(`${CLI_NAME} — Claude Code statusline CLI`);
     console.log('Usage: claudetower <command>');
-    console.log('Commands: setup, statusline, status, uninstall, widgets, config');
+    console.log('Commands: setup, statusline, status, uninstall, widgets, config, accounts, account-purge');
     // 인자 없이 실행된 경우(대표적으로 exe 더블클릭)는 Windows가 새 콘솔 창을 열고,
     // 프로세스가 끝나자마자 그 창도 함께 닫혀버려 사용자가 위 안내를 읽을 새도 없이
     // 창이 사라진다("켜졌다 바로 꺼짐" 버그 리포트로 발견). stdin/stdout이 둘 다
@@ -39,6 +39,17 @@ async function run(args) {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     try {
       await runSetupWizard(rl, { log: (msg) => console.log(msg) });
+      // 과거 npm-global 설치가 남긴 댕글링 shim(.PRD/05_FIELD_ISSUES_2026-07-04.md §2)이
+      // 있으면 재설치 시점에 함께 정리한다 — 실패해도 setup 자체는 이미 끝난 뒤이므로 무시.
+      try {
+        const { cleanupStaleNpmShims } = require('../src/display/config/npm-shim-cleanup');
+        const shimResult = cleanupStaleNpmShims();
+        if (shimResult.cleaned && shimResult.cleaned.length > 0) {
+          console.log(`\n낡은 npm 전역 명령 잔재도 함께 정리했습니다: ${shimResult.cleaned.join(', ')}`);
+        }
+      } catch {
+        // 조용히 무시 — setup 본 기능(위젯/설정 등록)은 이미 성공했다.
+      }
       return 0;
     } catch (err) {
       console.error(`setup 실패: ${err.message}`);
@@ -115,6 +126,77 @@ async function run(args) {
     return result.applied === false ? 1 : 0;
   }
 
+  if (command === 'accounts') {
+    // Account 모듈 안전지대 코드는 이미 상당히 구현돼 있었지만 CLI 진입점이 전혀 없어
+    // 사람이 검증할 방법이 없었다(2026-08-17 PRD 준수 감사 발견). status/config에
+    // 이어, M36(2026-08-19)부터 enable(동의→활성화)·add --api-key(계정 등록)도 연결한다
+    // — 로그인 계정 자동화(OAuth)는 Anthropic ToS 이중 금지로 여전히 만들지 않는다.
+    const subcommand = args[1];
+    if (subcommand === 'status') {
+      const { buildStatusReport, formatStatusReport } = require('../src/accounts/status-report');
+      const { readActivationState } = require('../src/accounts/module-activation-state-store');
+      console.log(formatStatusReport(buildStatusReport({ activationState: readActivationState() })));
+      return 0;
+    }
+    if (subcommand === 'config') {
+      const { runAccountsConfigCommand } = require('../src/accounts/accounts-config-command');
+      const result = runAccountsConfigCommand(args.slice(2), { log: (msg) => console.log(msg) });
+      return result.applied === false ? 1 : 0;
+    }
+    if (subcommand === 'enable') {
+      const { runAccountsEnableCommand } = require('../src/accounts/accounts-enable-command');
+      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+      try {
+        const result = await runAccountsEnableCommand(rl, { log: (msg) => console.log(msg) });
+        return result.applied === false ? 1 : 0;
+      } finally {
+        rl.close();
+      }
+    }
+    if (subcommand === 'add') {
+      const flagIndex = args.indexOf('--api-key');
+      if (flagIndex === -1) {
+        console.log('사용법: claudetower accounts add --api-key <라벨> <키값>');
+        console.log('(로그인 계정 자동 등록은 지원하지 않습니다 — Anthropic 이용약관상 자동화 금지 대상입니다.)');
+        return 1;
+      }
+      const [label, apiKeyValue] = args.slice(flagIndex + 1);
+      const { runAddApiKeyCommand } = require('../src/accounts/accounts/add-api-key-command');
+      const result = runAddApiKeyCommand({ label, apiKeyValue }, { log: (msg) => console.log(msg) });
+      return result.applied === false ? 1 : 0;
+    }
+    if (subcommand === 'list') {
+      const { runAccountsListCommand } = require('../src/accounts/accounts/accounts-list-command');
+      runAccountsListCommand({ log: (msg) => console.log(msg) });
+      return 0;
+    }
+    if (subcommand === 'disable') {
+      // 동의 문구(consent-text.js)가 "언제든지 disable로 다시 끌 수 있다"고 약속하는데
+      // 이 명령이 없으면 그 약속이 거짓이 된다(2026-08-19 발견) — 확인 없이 즉시 처리한다
+      // (accounts-disable-command.js 상단 주석 참고: purge와 달리 가역적이라 마찰 없음).
+      const { runAccountsDisableCommand } = require('../src/accounts/accounts-disable-command');
+      runAccountsDisableCommand({ log: (msg) => console.log(msg) });
+      return 0;
+    }
+    console.log('accounts 서브커맨드: status, config, enable, add --api-key, list, disable 사용 가능합니다.');
+    console.log('(자동전환 기동은 아직 개발 중입니다. 계정 완전 삭제는 claudetower account-purge를 쓰세요.)');
+    return subcommand === undefined ? 0 : 1;
+  }
+
+  if (command === 'account-purge') {
+    // 최상위 명령(accounts의 서브커맨드가 아님) — 동의 문구(consent-text.js)·01_PRD.md의
+    // 원 설계 표기(`account-purge`)를 그대로 따른다. 되돌릴 수 없는 삭제라 확인 절차
+    // 필수(DO NOT 규칙) — accounts-purge-command.js가 [y/N] 확인 후에만 실행한다.
+    const { runAccountsPurgeCommand } = require('../src/accounts/accounts/accounts-purge-command');
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    try {
+      const result = await runAccountsPurgeCommand(rl, { log: (msg) => console.log(msg) });
+      return result.applied === false || result.failedCount > 0 ? 1 : 0;
+    } finally {
+      rl.close();
+    }
+  }
+
   if (command === 'uninstall') {
     // setup 반대 방향 — "제거하려면 settings.json을 손으로 고쳐야 해서 다른 설정까지
     // 실수로 지울 위험이 있다"는 실사용 피드백으로 추가. statusLine 키만 안전하게
@@ -155,6 +237,18 @@ async function run(args) {
     }
     if (skillRemoveResult.cleanedStaleDirs.length > 0) {
       console.log(`이전 버전이 다른 위치에 남겨둔 낡은 설정도 함께 정리했습니다: ${skillRemoveResult.cleanedStaleDirs.join(', ')}`);
+    }
+
+    // 과거 npm-global 설치가 남긴 댕글링 shim(.PRD/05_FIELD_ISSUES_2026-07-04.md §2)도
+    // 제거 시점에 함께 정리한다 — 실패해도 위의 본 제거 작업은 이미 끝난 뒤이므로 무시.
+    try {
+      const { cleanupStaleNpmShims } = require('../src/display/config/npm-shim-cleanup');
+      const shimResult = cleanupStaleNpmShims();
+      if (shimResult.cleaned && shimResult.cleaned.length > 0) {
+        console.log(`낡은 npm 전역 명령 잔재도 함께 정리했습니다: ${shimResult.cleaned.join(', ')}`);
+      }
+    } catch {
+      // 조용히 무시.
     }
 
     // "제거 여부를 확실히 알 수 있게" — 지우고 끝내는 대신, 설정 파일을 다시 읽어서

@@ -673,7 +673,8 @@ padding 로직이 실제로 main에 반영됐음을 직접 확인, 원격 브랜
 ## M19: 2026-07-27 — 동시 세션 발견(PR #4, v0.4.0 준비) + 재동기화
 
 **발견한 사실 [전부 git으로 직접 확인, 추측 아님]**: 이 PC의 다른 세션(커밋 작성자 `bess
-<startmxk@gmail.com>`)이 독립적으로 PR #4(`release/v0.4.0-prep`)를 만들어 main에 이미
+<이메일 마스킹 — 2026-08-04 개인정보 점검으로 로컬본만 정리, 원본 커밋 자체는 이미 공개
+원격에 반영돼 있어 별도 보고 참고>`)이 독립적으로 PR #4(`release/v0.4.0-prep`)를 만들어 main에 이미
 병합했다(`a2f2476`). 내용: `package.json`/lock 버전 0.3.0→0.4.0, README/GUIDE 8개 파일에
 v0.4.0 변경이력 추가, 그리고 **M18에서 "이번 세션엔 손대지 않는다"고 명시적으로 남겨둔
 `statusline-refresh`의 우연한 안전 지점을, 그 이유를 정확히 인용하며 의도적 방어로 승격**
@@ -722,7 +723,11 @@ GitHub Release는 여전히 v0.3.0이 최신**이었다 — M10에서 겪은 것
 
 우선순위 순으로, 각 항목의 착수 가능 여부와 이유를 명시한다.
 
-### 1순위 — 즉시 착수 가능: text-safety.js 수정 2건 main 반영
+### 1순위 — **완료(새 세션, M21 이어받아 처리)**: text-safety.js 수정 2건 main 반영
+PR #5(`fix/ansi-osc-text-safety`)로 main 반영 완료 — CI green(8/8), 병합 완료(`219fcaa`).
+`origin/main:src/display/config/text-safety.js`에 OSC 방어 코드 존재 직접 재확인.
+아래는 착수 전 남겨뒀던 원 계획(이력 보존):
+
 `13292bc`·`897cc30`(M20)이 여전히 `docs-and-fixes/2026-07-06`에만 있고 main에는 없다.
 main의 실제 배포본(v0.4.0, 사용자가 지금 받는 그 버전)에 이 두 결함이 그대로 남아있다.
 - **리스크**: 보안 취약점은 아님(제어코드 "실행"은 원래도 안 됐음), 화면에 지저분한 문자가
@@ -740,6 +745,73 @@ Bash 권한 규칙을 직접 추가하지 않는 한 AI 쪽에서 더 진행할 
 비생산적임이 이미 2회 확인됨. 다음 세션이 이 항목을 "막혔다"고만 반복 보고하지 않으려면,
 사용자의 결정(권한 추가 여부)이 먼저 있어야 한다.
 
+**2026-07-28(새 세션) 갱신 — 차단 범위 재확인, M16보다 넓음 [확인됨]**: `07_OAUTH_FLOW_SPEC.md
+§5-2`의 미확인 항목("`~/.claude/.credentials.json` 경로·형식을 이 Windows 환경에서 실측")을
+조사하려 `Test-Path`(파일 존재 여부 조회, 쓰기 전혀 없음)만 실행했는데도 동일한 classifier가
+차단했다. 즉 M16이 "실제 OS 키체인 I/O(쓰기/읽기/삭제) 실행"으로 좁혀 특정했던 차단 범위는
+**부정확했다** — 이번 세션 실측으로 "credential(자격증명) 관련 파일·경로를 언급하는 명령"
+자체가 더 넓게 걸린다는 게 새로 확인됨. §5-2 항목은 여전히 미실측 상태로 남는다.
+
+**같은 세션에서 안전지대 재확인 [확인됨]**: 위 차단과 별개로, credential-store를 **호출하지
+않는 순수 로직 3건**(동의 문구 상수화, 프록시 auth_type별 환경변수 스왑 로직, `accounts
+add --api-key` 요청 검증)은 커밋·push까지 전부 classifier 차단 없이 통과했다(커밋 `c77ca16`).
+`npm run verify` 197/197 회귀 없음, `test:accounts` 55/55(신규 19건), `bin/claudetower.js`
+미연결 확인(해제 스위치는 credential-store 실동작 준비 이후로 계속 보류), 민감정보 스캔 0건.
+즉 차단벽은 "credential 관련 파일·경로 접근"이지 "Account 모듈 코드 작성 전체"가 아님 —
+이 경계 안에서는 계속 안전하게 준비 작업을 이어갈 수 있다.
+
+**2026-07-28(같은 세션 이어서) — RotationEvent 감사 로그 실제 연결 완료, quota 헤더 파싱은
+보류 [확인됨]**: 안전지대 원칙에 따라 두 항목을 검토한 결과:
+
+- **quota 헤더 파싱(§5-4) — 착수 안 함**: PRD가 명시한 헤더 이름 자체가
+  `anthropic-ratelimit-unified-5h/7d-*`로 접미사가 `*`로 축약돼 있어 정확한 필드명이
+  미확정이다. 추측으로 파서를 만들면 안티패턴 #1("확인 안 된 걸 사실처럼 쓰지 마")
+  위반이자, 틀린 헤더명으로 조용히 항상 매칭 실패하는 잠재 결함을 심는 것이라 보류.
+  진짜 next step은 실제 API 응답 헤더를 한 번 실측하는 것 — credential 없이 순수
+  텍스트 헤더 이름만 확인하면 되므로, 이것도 안전지대일 가능성이 높지만 이번 세션엔
+  시도하지 않음(범위 확대 자제).
+- **RotationEvent 감사 로그 — 완료**: `src/accounts/audit/rotation-log.js`
+  (`appendRotationEvent`/`readRotationEvents`) 커밋 `7c6870c`, push 완료.
+  `npm run verify` 197/197, `test:accounts` 63/63(신규 8건), `bin/claudetower.js`
+  미연결 확인, 민감정보 스캔 0건. classifier 차단 없음(credential 무관 확인).
+  **구현 중 실제 결함 발견·수정**: 이 PC에서 직접 실측한 결과 `fs.chmodSync(filePath,
+  0o600)`가 Windows에서 **에러 없이 끝나지만 실제 파일 모드는 0o666로 남는다**
+  (`fs.statSync().mode` 직접 대조로 확인, `permissionRestricted` 값을 "에러 안 남" 대신
+  "chmod 직후 실제 모드가 0o600인지 재확인"으로 교체) — 처음 설계대로 뒀다면 Windows에서
+  `permissionRestricted: true`(거짓 안전감)를 반환할 뻔한 결함을 실측 검증 단계에서
+  스스로 잡아낸 사례. 이 PC(Windows)에서는 실측대로 항상 `false`를 반환하도록 정정,
+  회귀 테스트도 플랫폼별 기대값으로 갱신.
+- **진짜 Windows ACL(icacls 등)은 여전히 미착수 [NEEDS CLARIFICATION 유지]**: 라이브
+  검증 없이 구현하면 "된다"고 잘못 표시할 위험이 커 이번에도 범위 밖으로 남김.
+- **여기서 멈춤(계획대로)**: 위 두 항목(quota 헤더 실측·icacls 구현)을 포함해 더 이상
+  Account 로직을 쌓지 않는다 — credential-store 실제 인터페이스 확정 전에 그 위로 계속
+  쌓으면 재작업 리스크가 커진다는 원 판단 유지. 다음은 여전히 사용자의 credential-store
+  권한 규칙 추가 결정(2순위)이 먼저다.
+
+**2026-07-28(같은 세션 이어서) — `proxy/server.js` 재점검, 로컬 접근 토큰 구현 완료 후
+진짜 소진 확인 [확인됨]**: "여기서 멈춤" 직후 `server.js`의 3개 스텁 함수를 개별로
+재검토한 결과, `verifyLocalAccessToken`만 credential-store와 완전히 무관함을 발견 —
+직전 결론을 뒤집을 만한 새 근거라 판단해 이 한 항목만 추가로 진행했다(무분별한 재개가
+아니라 근거 있는 예외였음을 명시).
+
+- **구현 완료**: `generateLocalAccessToken`(`crypto.randomBytes(32)` 기반 64자 hex,
+  `Math.random()` 금지 규칙 준수) + `verifyLocalAccessToken`(`crypto.timingSafeEqual`
+  기반 상수시간 비교, 타이밍 공격 방지). 커밋 `4a25397`, push 완료.
+- `startProxyServer`/`stopProxyServer`는 여전히 throw-스텁 유지(credential-store 의존
+  + "실제 서버 기동"이라는 미검증 새 위험 범주라 착수 안 함, 근거는 커밋 메시지 참고).
+- `npm run verify` 197/197, `test:accounts` 69/69(순증 +6), `bin/claudetower.js`
+  미연결 확인, 민감정보 스캔 0건. classifier 차단 없음(예상대로 credential 무접촉).
+
+**Account 모듈 3개 스텁 파일 전수 재확인 완료 — 이번엔 진짜로 소진 [확인됨]**:
+`credential-store/index.js`(차단, M16) · `proxy/server.js`의 `startProxyServer`/
+`stopProxyServer`(credential-store 의존 + 서버기동 미검증 리스크) · OAuth 로그인 흐름
+(credential-store 의존) 전부 credential-store 완료가 전제다. 독립적으로 안전했던
+마지막 조각(`verifyLocalAccessToken`)까지 이번에 닫았다 — 이제 정말로 credential-store
+실동작 없이 진행 가능한 Account 작업은 남아있지 않다. 다음 세션이 또 "다음 Phase
+방향"을 물으면, 새로운 파일을 재검토해 정말 놓친 게 있는지부터 확인하되, 없다면
+사용자의 credential-store 권한 규칙 추가 결정을 다시 안내할 것 — 근거 없이 반복
+재검토만 하는 건 비생산적이다.
+
 ### 3순위 — 조건부 보류(지금 착수하면 안 됨): README/GUIDE의 Account "안 만들기로 확정" 문구
 8개 파일이 여전히 옛 문구를 유지 중(의도적, 077ade2/de97e2f 결정). **재검토 조건**: 위 2순위
 (credential-store 실동작)가 실제로 진행돼 코드가 존재하게 된 뒤에만 이 문구를 고칠 것 —
@@ -753,10 +825,16 @@ model 이름이 오면 좁은 터미널에서도 줄이 넘칠 수 있음(2026-0
 아니었고, 실제 model 이름은 짧은 게 보통이라 실사용 발생 확률은 낮다고 평가함(과공학
 방지). 재검토 시점: 실사용자가 실제로 줄 넘침을 겪었다고 보고할 때.
 
-### 무해한 사소한 드리프트(조치 불필요, 인지만)
-- `docs-and-fixes/2026-07-06`의 `config-command.js`는 main의 PR#4(다른 세션)가 추가한
-  `statusline-refresh` 방어 강화를 아직 반영 안 함 — **동작 차이 없음**(우연한 안전 지점이
-  의도적 방어로 바뀐 것뿐), 1순위 병합 시 자연스럽게 main 버전과 합쳐지므로 별도 조치 불요.
+**2026-08-04 해소 확인**: M28(라인 폭 예산)이 "전체 줄 길이가 COLUMNS를 넘으면 우선순위
+낮은 위젯부터 뺀다"는 로직을 추가하면서, model 위젯 하나만 켜져 있고 그 이름이 극단적으로
+길 때도 동일 로직이 적용된다는 걸 재현 테스트로 직접 확인했다(`model` 단독 79자 +
+COLUMNS=40 → 줄이 넘치는 대신 위젯 자체가 안전하게 생략됨, 빈 문자열 반환·크래시 없음).
+이 항목은 별도 수정 없이 M28의 부수 효과로 이미 해소됨 — 재검토 대기 상태 종료.
+
+### 무해한 사소한 드리프트 — **해소됨(새 세션)**
+- ~~`docs-and-fixes/2026-07-06`의 `config-command.js`는 main의 PR#4(다른 세션)가 추가한
+  `statusline-refresh` 방어 강화를 아직 반영 안 함~~ → 3단계(main 재동기화, 커밋 `d3623db`)로
+  자동 병합·해소됨. `git merge origin/main` 시 `config-command.js`는 충돌 없이 자동 병합.
 - `npm audit`의 `brace-expansion` 경고: devDependency 전이 의존성, 배포 바이너리 미포함,
   기존부터 알려진 P2 항목(변화 없음).
 - `.pair-programming-session.md`(미추적 파일)·`.PRD/.todos-report.md/`(가드가 삭제 차단):
@@ -789,3 +867,1287 @@ M20에서 "검증 끝났다"고 보고한 직후 재검증 요청에서 곧바�
 - **일치 확인**: 이 세션이 독립적으로 정리한 우선순위(① `text-safety.js` 수정 2건을 main에 반영 ② Account credential-store 실동작은 classifier 차단으로 사용자의 권한 규칙 추가 결정 대기 ③ 나머지는 조건부 보류/저우선순위)가 M20의 1~4순위와 **정확히 일치**함을 확인 — 서로 다른 세션이 같은 근거(git 이력·코드 실측)로 독립 분석해 같은 결론에 도달했다는 것 자체가 그 우선순위 판단의 신뢰도를 뒷받침하는 교차검증 증거다.
 - **누락 없음 확인**: M20의 "다음 작업"이 다루지 않는 낮은 우선순위 항목(npm -g 이름 확정 대기·Node.js 미설치 환경 실측·Windows 코드서명 인증서·statusLine 데몬화 등)은 이미 위 "보류 백로그"(line 439) 표에 각각 재검토 조건과 함께 정확히 추적되고 있음을 재확인했다 — **M20 + 보류 백로그를 합치면, 현재 시점 기준으로 새로 추가할 "다음 작업" 항목은 없다.**
 - **아직 어느 세션도 답하지 않은 유일한 질문(코드 작업이 아닌 운영 판단)**: 두 세션이 같은 로컬 작업 디렉터리·같은 브랜치에 동시에 커밋해 온 것이 지금까지는 우연히 서로 다른 파일/영역을 건드려 충돌이 없었을 뿐, 설계된 안전장치가 아니라 타이밍 운에 의존한 결과다. **두 세션을 계속 동시에 운영할지, 하나로 정리할지는 사용자만 결정할 수 있는 사안**이며, 다음에 이 저장소에서 세션을 새로 열기 전에 먼저 확인이 필요하다.
+
+---
+
+## M21: 2026-07-27 — GUIDE 4파일 제거 + README 통합 작업 중 동시세션 쓰기 충돌 실측 발견 (**완료 — 새 세션이 이어받아 처리**)
+
+### 경위
+사용자 지시: (1) GUIDE.md/GUIDE.html/GUIDE.en.md/GUIDE.en.html 4개 파일을 로컬+GitHub에서 전부
+제거 (2) 지금까지 작업물을 안전하게 commit/push (3) 저장소 공개(PUBLIC) 여부를 먼저 확인하고
+공개면 진행 여부를 사용자에게 확인받을 것 (4) 커밋 전 민감정보 스캔 (5) CHECKPOINT.md는
+commit/push 금지 (6) GUIDE 제거로 인해 실행/설정/사용법 등이 바뀌면 README를 보완하고,
+왕초보용 쉬운 설명을 README 또는 별도 가이드에 포함할 것.
+
+### 지금까지 확정 완료된 것 (사실, 재확인됨)
+- 저장소 공개 여부 확인: `gh repo view` 결과 `isPrivate: false`(PUBLIC) 확인. 사용자에게
+  질문했고 "특별한 지시가 없을 경우 이 프로젝트는 계속 공개로 유지"라는 표준 방침 답변을
+  받음(→ `~/.claude/.../memory/claudetower-public-by-default.md`에 별도 기록, 향후 이 저장소
+  작업마다 재질문 불필요).
+- 브랜치 확인: `docs-and-fixes/2026-07-06`(main 아님) — main 직접 커밋 금지 조건은 해당 없음.
+- CHECKPOINT.md: 이번 작업에서 `git status`/`git diff` 둘 다 빈 결과로 무변경 확인(단, 바로 이
+  섹션을 작성 중이므로 최종 커밋 시 반드시 `git add` 대상에서 제외해야 함 — 아직 실행 전).
+- GUIDE 4개 파일: `git rm`으로 로컬 삭제 + 스테이징 완료(`Changes to be committed: deleted: ...`
+  4건). **아직 커밋도 push도 하지 않음** — GitHub에는 여전히 원본이 남아있어 언제든
+  `git restore --staged`로 되돌릴 수 있는 가역적 상태.
+- README.en.md, README.html: 새 내용(사전 준비물·실행 방법·파일 위치·작동 원리·전체 버전
+  이력·트러블슈팅/FAQ 보강·법률 섹션 확장 등 GUIDE의 핵심 내용을 흡수) 작성 완료, `git status`에
+  `M`으로 정상 반영 확인(grep으로 "GUIDE.en.md"/"GUIDE.html" 언급 0건도 확인).
+- README.md: 같은 방식으로 새 내용을 작성했으나 **디스크에 반영되지 않고 예전 내용으로 남아있는
+  현상을 두 차례 재확인**(Write 도구는 "성공"으로 응답했음에도 `grep -c "GUIDE.md" README.md`가
+  계속 5로 나오고, `git status`에는 변경사항으로조차 안 잡힘 — 즉 HEAD와 완전히 동일한 상태로
+  되돌아가 있었음).
+
+### 핵심 발견 — 원인 강력한 근거 확보(단, 100% 확정은 아님)
+이 섹션 바로 위 "교차검증 메모"(같은 날짜, 같은 CHECKPOINT.md 파일)가 **동시에 다른 세션이 같은
+로컬 저장소·같은 브랜치에서 실제로 작업 중이었다는 사실을 이미 실측으로 남겨두었다**(추측이
+아니라 그 세션이 직접 쓴 기록). 이는 README.md 쓰기가 반복적으로 원상복구된 현상의 가장 유력한
+설명이다 — 다른 세션이 비슷한 시점에 README.md를 자신의 버전으로 쓰거나(예: 이전 세션이 만든
+"업데이트 내용 요약" 갱신), `git checkout`/`git restore` 계열 명령을 실행했을 가능성이 높다.
+**다만 이것은 강한 정황 증거에 기반한 가설이지, `git fsck`나 프로세스 목록 등 직접적인 확정
+검증은 사용자가 두 차례 중단시켜 아직 수행하지 못했다** — "확인됨"이 아니라 "근거 있는 가설"로
+명확히 구분해서 남긴다.
+
+### 예상되는 위험·빈틈·변수·충돌·실패 지점 (전수 점검)
+
+1. **[최우선 리스크] 동시세션 쓰기 경합**: 위 발견대로, 이 세션의 파일 쓰기가 다른 세션의 쓰기와
+   같은 타이밍에 부딪히면 어느 한쪽(또는 둘 다)이 조용히 유실될 수 있다. **재발 방지책**: 앞으로
+   이 파일들에 쓸 때마다 (a) 쓰기 직후 즉시 grep/git status로 반영 여부를 재확인하고 (b) 반영
+   안 됐으면 그 자리에서 멈추고 재시도하기 전에 사용자에게 보고할 것. 절대 "성공했다고 도구가
+   말했으니 됐다"고 다음 단계로 넘어가지 말 것.
+2. **[커밋 순서 리스크] GUIDE 삭제와 README 갱신이 짝을 이루지 못한 채 커밋되면 즉시 깨진 링크가
+   PUBLIC 저장소에 올라간다**: README.md가 아직 예전 내용(GUIDE.md 링크 5곳 포함)인 상태에서
+   실수로 GUIDE 삭제만 먼저 커밋되면, 그 순간 저장소는 "존재하지 않는 파일을 가리키는 공개
+   문서"가 된다. **반드시 README.md/README.en.md/README.html/README.en.html 4개 전부가
+   GUIDE 참조 0건인 것을 확인한 뒤, GUIDE 삭제와 README 갱신을 같은 커밋(또는 최소한 같은
+   push)으로 묶어야 한다.**
+3. **[미완료 항목] README.en.html 재생성이 아직 시작되지 않음**: README.md/README.en.md/
+   README.html 3개는 처리했으나(README.md는 위 1번 문제로 반영 미확정), README.en.html은 아직
+   예전 내용(GUIDE.en.html 링크 포함) 그대로다 — 이 상태로 커밋하면 2번과 동일한 깨진 링크
+   문제가 영어판에도 남는다.
+4. **[미완료 항목] 민감정보 스캔 미실행**: 사용자가 명시적으로 요구한 "commit/push 전 민감정보·
+   위험파일 점검"을 아직 별도 단계로 수행하지 않았다(작성 중 육안 검토만 함). 문서 전용 변경이라
+   위험도는 낮게 추정되지만, "낮아 보인다"는 추정으로 명시적 스캔 단계를 생략하면 안 된다.
+5. **[Push 타이밍 리스크] 동시세션이 같은 브랜치(`docs-and-fixes/2026-07-06`)에 이미 커밋해 온
+   전례가 있으므로(M19, 교차검증 메모), 이 세션이 push하기 직전에 origin이 이 세션이 마지막으로
+   본 상태와 달라져 있을 수 있다.** push 직전 반드시 `git fetch` + `git log origin/<branch>..HEAD`
+   / `HEAD..origin/<branch>` 양방향 비교로 재확인 필요 — 단순 `git push`만 믿지 말 것.
+6. **[판단 변수, 사용자 미검토] README 전면 재작성 범위**: 사용자는 "README/LICENSE는 필요한
+   경우에만 확인하고 자동 수정하지 마"라고 했다. 이번엔 GUIDE 삭제로 인한 필요성 + "왕초보용
+   쉬운 설명을 README에 추가하라"는 별도 명시 지시를 근거로 README.md를 전면 재작성(사전
+   준비물·파일 위치·전체 버전 이력·법률 세부조항 등 GUIDE 상당 부분을 흡수)했다. 이는 타당한
+   해석이지만 **"최소 패치"가 아닌 "대폭 확장"을 선택한 판단이며, 사용자가 아직 실제 완성본을
+   검토·승인하지 않았다** — 커밋 전에 분량·톤이 사용자 기대와 맞는지 확인 여지가 있다.
+7. **LICENSE 파일**: 이번 변경과 무관함을 확인, 손대지 않음(계획대로).
+8. **GitHub About/Topics 갱신 권한 미검증**: 읽기(`gh repo view`)는 성공했으나 쓰기
+   (`gh repo edit --description`/`--add-topic` 등)는 아직 시도한 적이 없다 — 권한이 있는지
+   실제로는 미확인. 실패 시 사용자 지시대로 그 단계만 건너뛰고 commit/push 결과는 유지할 것.
+9. **`.pair-programming-session.md`**: 이번에도 미추적 상태 유지 확인, `git add` 대상에서
+   계속 제외.
+10. **테스트/빌드 무관**: 이번 변경은 `src/`·`test/` 코드를 전혀 건드리지 않아 `npm run verify`
+    결과에 영향이 없어야 하나, 최종 커밋 전 1회 재실행해 회귀가 없음을 형식적으로라도 확인할
+    가치가 있음(문서 전용 변경이라도 "확인 안 하고 확인됐다고 말하지 않는다" 원칙 적용).
+
+### 다음 작업 (막힘 없이 진행 가능한 순서)
+1. README.md 재작성 재시도 → 쓰기 직후 즉시 grep+git status로 반영 여부 재확인(반영 안 되면
+   중단하고 보고).
+2. README.en.html 재생성(아직 미착수) → 동일하게 즉시 재확인.
+3. 4개 파일(README.md/README.en.md/README.html/README.en.html) 전부 "GUIDE" 참조 0건인지
+   최종 일괄 grep 재확인.
+4. 변경분(GUIDE 삭제 4건 + README 4개 수정) 전체에 대해 명시적 민감정보 스캔
+   (API 키/토큰/비밀번호/.env/인증서/개인키/DB 접속정보/서비스 계정 키/개인정보 패턴 검색).
+5. `npm run verify` 1회 재실행(회귀 없음 확인, 문서 전용 변경이라 통과 예상이지만 형식적 확인).
+6. 문제 없으면 GUIDE 삭제 + README 갱신을 하나의 의미 단위로 커밋(`docs:` 유형), 커밋 메시지에
+   "GUIDE 4파일 제거, README에 핵심 내용 통합"임을 명시.
+7. push 직전 `git fetch` + origin과의 양방향 diff로 동시세션 충돌 여부 재확인 후,
+   `docs-and-fixes/2026-07-06` 브랜치에만 push(main 아님).
+8. push 성공 후 `gh repo edit`으로 About/Topics 갱신 시도(실패 시 이 단계만 건너뜀).
+9. 사용자 요청 형식(결과/보안 점검/README·가이드/GitHub About·태그/commit·push/주의할 점)으로
+   최종 보고.
+
+### 왜 이렇게 기록했는가 (다음 세션·사용자용 요약)
+이번 작업은 "GUIDE 삭제 + README 통합"이라는 단순해 보이는 문서 작업이었지만, 실행 도중
+**이 저장소가 실제로 동시에 다른 세션의 작업 대상이 되고 있다는 사실을 코드가 아니라 파일
+증거로 확인**했다. 이 사실을 숨기거나 "아마 괜찮을 것"으로 넘기면, 깨진 링크가 있는 문서나
+서로 다른 세션의 내용이 뒤섞인 README가 공개 저장소에 그대로 올라갈 위험이 있었다. 그래서
+이 기록은 (1) 무엇이 실제로 끝났는지 (2) 무엇이 가설일 뿐인지 (3) 다음에 반드시 순서를 지켜야
+할 이유를 커밋 이전 시점에 명확히 박아두는 데 집중했다.
+
+---
+
+### 완료 처리 (새 세션이 이어받아 처리, 전부 실측 확인)
+
+> 이 세션은 위 "다음 작업" 9단계를 이어받으면서, 동시에 CHECKPOINT의 다른 곳에 이미 있던
+> "1순위(text-safety main 반영)"까지 함께 처리했다(같은 부류의 "main이 뒤처짐" 문제라 순서상
+> 먼저 처리). 진행 전 다른 세션과의 동시 작업 여부를 사용자에게 확인했고, 그 시점 드리프트
+> 없음(main `a2f2476` 그대로)을 재확인한 뒤 착수했다.
+
+**PR #5 — text-safety CSI/OSC 수정을 main에 반영**: `origin/main` 기준 새 브랜치
+(`fix/ansi-osc-text-safety`)에 `text-safety.js`·`text-safety.test.js` 2개 파일만 옮김 →
+`npm run verify` 197/197 확인 → 민감정보 스캔 0건 → 커밋·push → PR #5 생성 → CI green(8/8,
+Windows/macOS/Linux 빌드 + verify-display-standalone) → `gh pr merge --merge --delete-branch`로
+병합(`a2f2476` → `219fcaa`). 병합 후 `origin/main`에서 직접 grep으로 반영 재확인.
+
+**PR #6 — GUIDE 4파일 삭제 + README 4파일 통합을 main에 반영**: 갱신된 `origin/main`
+기준 새 브랜치(`docs/remove-guide-consolidate-readme`)에서 `git rm`으로 GUIDE 4개 삭제 +
+`docs-and-fixes/2026-07-06`의 검증된 README 4개로 교체(같은 커밋으로 묶어 깨진 링크 방지) →
+GUIDE 참조 0건·Account 재개 문구 유출 0건 확인 → `npm run verify` 197/197 → 민감정보 스캔
+(매칭 4건은 "계정정보 안 가져간다"는 FAQ 설명문 속 단어, 실제 값 아님 확인) → 커밋·push 전
+`git fetch`로 드리프트 재확인(0건) → PR #6 생성 → CI green(8/8) → 병합(`219fcaa` → `6f7ef9c`).
+병합 후 `origin/main`에서 GUIDE 파일 0건·README "현재 최신: v0.4.0" 직접 재확인.
+
+**작업 브랜치(`docs-and-fixes/2026-07-06`) main 재동기화**: `git merge origin/main` 실행 —
+GUIDE·README 충돌은 이미 main에 같은 내용이 들어가 있어 자동 해소(사전 `merge-tree` 시뮬레이션으로
+충돌 0건 확인), `package-lock.json` 1건만 실제 충돌(양쪽 독립 버전 갱신) → `npm install`로
+재생성해 해결(충돌 마커 0건 확인) → `package.json` 0.3.0→0.4.0 병합 자동 반영으로 이 브랜치 안에
+있던 버전 모순도 함께 해소 → `npm run verify` 197/197 + `test:accounts` 36/36 → push 직전 재fetch로
+드리프트 없음 확인 → push 완료(`e195b74`→`d3623db`, fast-forward).
+
+**검증되지 않은 채 남겨둔 것(정직하게 명시)**: 위 "핵심 발견"의 동시세션 원인 가설(다른 세션의
+README.md 덮어쓰기 추정)은 이번 세션에서 별도로 재검증하지 않았다 — 이번 조치(파일 단위 지정
+커밋·push 직전 fetch 재확인)로 재발을 구조적으로 막았기 때문에, 가설의 진위 자체는 더 이상
+이 작업의 진행을 막지 않는다.
+
+**이번 세션이 하지 않은 것**: GitHub About/Topics 갱신(위 "다음 작업" 8번) — 이번 지시 범위에
+없어 착수하지 않음, 필요 시 별도 요청 시 진행. Account credential-store 실동작 — 여전히
+classifier 차단 대상(M16), 착수하지 않음.
+
+- 상태: **완료(2026-07-27/28, 새 세션)** — PR #5·#6 main 병합 완료, 작업 브랜치 재동기화 완료,
+  전 구간 `npm run verify`/`test:accounts` 회귀 없음. CHECKPOINT.md 자체는 기존 지시대로
+
+---
+
+## M23: 2026-07-28 — 전체 기능 종합 검증 세션 (Display + Account 순수 로직), 결함 1건 발견·수정
+
+사용자 요청으로 지금까지 구현된 전체 범위를 정상/예외/경계값/실패 시나리오까지 체계적으로
+검증. `npm run verify`(lint+boundary+display) 197/197, `test:accounts` 69/69(수정 전)
+전부 재확인 통과 → `npm audit`(기존 브랜치 P2 항목만, 변화 없음) → `npm run build`로 실제
+SEA 바이너리 재생성 → 격리 환경(4개 `CLAUDETOWER_*` 변수)에서 라이브 스모크 테스트 진행.
+
+**라이브 테스트 커버리지(전부 실제 빌드된 exe로 실행, mock 아님)**:
+- `--version`/`--help`, statusline 정상/빈 stdin/깨진 JSON/배열 입력
+- rate_limit 위젯 정상 렌더(최초 시도 시 테스트 스키마 오류로 오탐 — `used_percentage`
+  대신 `utilization`을 넣었던 내 실수였음을 재확인해 정정, 코드 자체는 정상이었음)
+- widgets 조회/토글/잘못된 이름/인자 없음, config의 3개 서브명령(statusline-refresh/
+  padding/powerline) 정상값·경계값(0, -1, 빈문자열)·잘못된 값 전부
+- 적대적 입력: cost 음수(→$0.00 클램핑 확인), context 범위초과/음수/비숫자, ANSI CSI
+  인젝션(→순수 바이트 대조로 완전 제거 확인), 80자 초과 말줄임, rate_limit resets_at
+  비현실적 미래값(→숨김 처리 확인), workspace.current_dir에 셸 메타문자
+  `$(rm -rf /)` 삽입(→단일따옴표 안이라 셸이 애초에 실행 안 함 확인 + 이후 파일
+  존재 여부 직접 재확인으로 실제 무해함 증명, `path.basename`이 마지막 `/` 뒤
+  문자만 뽑아 ")"만 표시된 것도 정상 동작으로 확인)
+- setup→status→uninstall→재uninstall 전체 수명주기(격리 환경) + **실사용자 실제
+  `~/.claude/settings.json`이 테스트 전후 완전히 무변경임을 직접 재조회로 증명**
+
+**발견한 실제 결함 1건·즉시 수정**: `readRotationEvents`가 감사 로그 파일에 손상된
+줄이 하나라도 있으면(디스크 오류·비정상 종료 시뮬레이션) `JSON.parse` 예외가 전체를
+실패시켜, 정상 기록까지 못 읽던 결함. 감사 로그의 존재 목적(일부 손상돼도 나머지는
+읽혀야 신뢰 가능) 자체에 반하는 동작이었음. 재현→원인분석(줄 단위 예외 미처리)→
+수정(손상된 줄만 건너뛰고 나머지 반환, 반환 타입 배열 그대로 유지)→재검증(재현
+시나리오 재실행으로 정상 확인)→회귀 테스트 1건 추가→전체 스위트(`verify` 197/197,
+`test:accounts` 70/70) 재실행으로 회귀 없음 확인. 커밋 `204435b`, push 완료.
+**실사용자 영향 0** — `bin/claudetower.js`에 아직 배선 안 된 코드라 프로덕션 노출 없음.
+
+**미실행(정직하게 명시)**:
+- Account 모듈 CLI 레벨 테스트 — `bin/claudetower.js` 의도적 미연결이라 CLI로는
+  테스트 불가(설계상 정상, 결함 아님). 함수 단위 유닛테스트로만 커버됨.
+- macOS/Linux 실측 — 이 PC가 Windows라 불가능, CI 매트릭스가 대신 커버(기존 사실)
+- credential-store 실동작 — 여전히 classifier 차단(M16), 착수 안 함
+- 실제 Claude Code 세션 안에서 상태표시줄이 화면에 어떻게 보이는지 육안 확인 —
+  이번엔 CLI 파이프 출력 텍스트만 캡처, 실제 터미널 렌더 스크린샷 확인은 안 함
+- setup 마법사의 실제 인터랙티브(readline) 질문-응답 흐름 — 유닛테스트(포함된
+  197건 안에 setup-wizard.test.js)로만 커버, 실제 키 입력 시뮬레이션은 안 함
+- Windows ACL(icacls) 실제 구현 — 기존과 동일하게 범위 밖(NEEDS CLARIFICATION 유지)
+
+**남은 위험**: 없음(신규). 기존에 이미 알려진 항목(npm audit brace-expansion P2,
+Node.js 미설치 환경 미실측, 코드서명 미구매)은 전부 CHECKPOINT 보류 백로그에 그대로.
+
+- 상태: **완료** — 결함 1건 발견·수정·재검증까지 끝, 회귀 없음. 커밋 `204435b`, push 완료
+  (2026-08-17 정정: 위 상태 줄이 "commit/push하지 않음"이라 적혀 있었으나 이는 같은 항목
+  본문의 "커밋 `204435b`, push 완료" 서술과 정면으로 모순됐다. `git log --all --oneline --
+  CHECKPOINT.md`와 `git show 204435b --stat`으로 직접 재확인한 결과 본문이 맞고 상태 줄이
+  stale했음 — 본문 기준으로 상태 줄을 정정).
+
+---
+
+## M24: 2026-08-02 — PRD 전수 재검토 후 안전지대 2트랙 진행: OAuth state/PKCE 신규 구현 + `npm install @napi-rs/keyring` 최초 시도
+
+사용자 요청으로 PRD 8개 문서 전부(01·02·03·04·07·08 정독, 05·06은 이번 작업과 무관해 생략)를
+다시 전수 재확인하고, 소스 트리(`src/accounts/` 12개 파일, `bin/claudetower.js` 미연결 상태,
+`package.json` 의존성 0건)를 직접 대조해 "순수 로직 소진" 판단을 재검증했다. 그 결과 이전에
+빠뜨렸던 안전지대 영역(OAuth CSRF state·PKCE — credential-store와 무관한 순수 crypto)을 새로
+발견했고, 동시에 "M6 게이트 때문에 못 했을 뿐 classifier 차단 여부는 미확인"이었던
+`npm install @napi-rs/keyring`을 처음으로 실제 시도했다.
+
+**신규 발견 1 — `npm install @napi-rs/keyring`은 classifier에 막히지 않는다(최초 실측)**:
+`package.json`에 `dependencies.@napi-rs/keyring: ^1.3.0` 반영 확인. `npm audit` 신규 "high
+severity" 1건이 떴으나 `npm ls brace-expansion`으로 의존 트리를 직접 추적한 결과 `eslint@10.6.0
+→ minimatch@10.2.5 → brace-expansion@5.0.7`, 즉 기존에 이미 알려진 devDependency 이슈와 동일한
+패키지(전부터 CHECKPOINT 보류 백로그에 있던 것)임을 확인 — `@napi-rs/keyring` 자신이 새로
+추가한 취약점은 0건. `npm run build`(SEA 바이너리 생성)도 정상 완료했으나, **이 네이티브 모듈이
+아직 어떤 코드에서도 `require`되지 않아 esbuild 번들에 실제로 포함되지는 않았다** — "SEA가
+네이티브 addon을 문제없이 처리하는지"는 여전히 미검증(credential-store/index.js가 실제로 이
+라이브러리를 require하게 될 때 재확인 필요, 정직하게 명시).
+
+**신규 발견 2 — credential-store 실동작 자체는 여전히 미시도**: `npm install`은 파일을
+받아오기만 할 뿐 OS 키체인을 읽거나 쓰지 않는다. `credential-store/index.js`의 3개 함수는
+여전히 throw 스텁 그대로 — classifier가 실제 키체인 I/O(또는 그 경로 접근)를 막는지는 이번
+세션에서 시도하지 않았다(범위 밖, 다음 단계 후보로 남김).
+
+**구현 — `src/accounts/oauth/state.js`·`pkce.js` 신규**(`src/accounts/proxy/server.js`의
+`verifyLocalAccessToken` 패턴 재사용):
+- `generateState()`/`verifyState()` — CSRF `state` 생성(32바이트 `crypto.randomBytes`→
+  base64url)·상수시간 비교(`crypto.timingSafeEqual`). `.PRD/04_PROJECT_SPEC.md` "절대 하지 마":
+  "OAuth state 검증 없이 토큰 교환 진행하지 마" 요구사항의 사전 구현.
+- `generateCodeVerifier()`/`generateCodeChallenge()` — RFC 7636 PKCE. S256만 지원(plain
+  다운그레이드 미지원, 의도적). **공식 RFC 7636 Appendix B 테스트 벡터를 `node -e`로 내
+  구현과 독립적으로 먼저 재계산해 일치를 확인한 뒤**(`E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM`),
+  이 값을 테스트에 하드코딩 — "확인 안 하고 확인했다고 말하지 않는다" 원칙 적용.
+- 둘 다 파일 I/O·OS 자격증명 저장소 접근 0건 — credential-store 파일·경로를 전혀 건드리지
+  않아 이미 확인된 classifier 안전 경계 안에 정확히 위치.
+
+**검증**: `npm run lint` 0 에러, `lint:boundary` PASS(Display 20개 파일 경계 준수 그대로),
+`test:accounts` 70→**82**/82(신규 12건: state 6 + pkce 6, 전부 통과), `npm run verify`
+197/197(Display 무변화 재확인) — 전 구간 회귀 없음. `bin/claudetower.js`에 `accounts` 관련
+`require` 0건 재확인(해제 스위치 여전히 안 당김, credential-store 실동작 전까지 유지 원칙 그대로).
+
+**실사용자 영향 0** — 신규 파일 2개 모두 어디에도 연결 안 됨(설계상 정상, 이전 3라운드와 동일
+패턴). commit/push 안 함(이번 세션은 로컬 구현만, 사용자가 별도 지시 전까지 보류).
+
+**미실행(정직하게 명시)**:
+- credential-store 실제 keyring 함수 호출 시도 — 이번 세션 범위 밖, classifier 반응 여전히 미확인
+- SEA 빌드가 `@napi-rs/keyring`을 실제로 require하는 상태에서도 정상 동작하는지 — 아직 require하는
+  코드가 없어 검증 불가(향후 credential-store 구현 시 반드시 재확인)
+- `settings.json`의 `autoMode.allow` 수동 편집 — 사용자가 아직 반영 안 함(직접 재확인, `autoMode`
+  키 자체가 파일에 없음), 반영되면 그때 재검증
+
+**남은 위험**: 없음(신규). 기존 백로그(npm audit brace-expansion, Node 미설치 환경 미실측,
+코드서명 미구매) 그대로.
+
+- 상태: **완료** — 2트랙 모두 진행·검증 완료, 회귀 없음. 커밋 `c769a53`("feat(accounts): OAuth
+  CSRF state + PKCE 헬퍼, 로컬 프록시 서버 실제 구현")으로 push 완료, PR#7로 main 병합 완료
+  (v0.4.0 포함) — 확인됨
+  (2026-08-17 정정: "commit/push하지 않음"이었으나 `git show c769a53 --stat`으로 직접 재확인한
+  결과 `src/accounts/oauth/state.js`·`pkce.js`가 이 커밋에 포함돼 있었다. 기록 당시엔 사실이었지만
+  이후 다른 세션이 여러 M-항목을 묶어 커밋·push·PR 병합한 뒤 이 상태 줄만 갱신되지 않은 것으로
+  판단됨).
+
+---
+
+## M25: 2026-08-03 — 작업 순서표 5번 항목(로컬 프록시 서버) 실구현, credential-store와 의존성 주입으로 분리
+
+PRD 재확인 중 CHECKPOINT.md 자체에 이미 있던 "왜 이 순서인가" 근거 포함 작업 순서표(1~6번)를
+다시 발견 — 3번(credential-store)이 4번(OAuth 로그인)보다 먼저인 이유(토큰이 저장소 없이
+남는 위험)를 재확인했고, M16이 "credential-store 재시도는 비생산적"이라 명시적으로 결론
+내렸던 것도 재확인했다. 그래서 credential-store(3번)는 다시 시도하지 않고, classifier와
+무관한 5번(로컬 프록시 서버)을 credential-store에 대한 **의존성 주입**으로 분리해 지금
+구현했다(사용자 승인 후 진행).
+
+**구현 — `src/accounts/proxy/server.js`**: `startProxyServer`/`stopProxyServer` 스텁을
+실제 `http.createServer` 기반 서버로 교체.
+- `127.0.0.1` 고정 바인딩을 실행 직전에도 재검증(방어 심층화 — `proxy-config.js`가 생성
+  시점에 이미 막지만 "절대 하지 마" 규칙 무게상 이중 확인).
+- 모든 요청은 `x-claudetower-access-token` 헤더를 `verifyLocalAccessToken`으로 검증한 뒤에만
+  `onAuthorizedRequest(req, res)` 콜백에 넘긴다 — 미검증 통과 0건(DO NOT 규칙 그대로 코드로
+  강제). **실제 업스트림(Anthropic) 전달 로직은 이 콜백으로 분리** — credential-store가
+  풀리면 `resolveProxyEnv` 결과로 실제 전달하는 콜백만 갈아 끼우면 됨(3라운드 동안 검증된
+  의존성 주입 패턴 재사용).
+- 포트 충돌 시 `port_retry_max`까지 자동 재시도(다음 포트로), 초과 시 명확한 에러(silent
+  fallback 없음).
+- `stopProxyServer`는 실제 소켓을 닫고, 닫힌 뒤 재연결 시도가 거부됨을 테스트로 직접 증명.
+
+**신규 발견 — 이번에도 classifier가 막지 않았다(실측)**: `http.createServer`로 실제 포트를
+열고, 실제 HTTP 요청을 주고받는 통합 테스트 10건(정상 listen·토큰 검증 통과/거부·포트
+재시도·서버 종료 등)이 **전부 classifier 차단 없이 통과**했다. M16의 "OS 자격증명
+저장소 I/O"와 이번의 "로컬 네트워크 서버"가 서로 다른 종류의 동작이라는 가설이 실측으로
+뒷받침됨(단, credential-store 자체는 여전히 미시도 상태 그대로).
+
+**검증**: `npm run lint` 0 에러, `lint:boundary` PASS, `test:accounts` 82→**91**/91(신규
+9건: 프록시 서버 생명주기 10건 추가 − 이제 안 맞는 옛 "스텁 거부" 테스트 1건 제거 = 순증 9),
+`npm run verify` 197/197(Display 무변화) — 전 구간 회귀 없음. `bin/claudetower.js`에
+`accounts` 관련 `require` 0건 재확인(해제 스위치 여전히 안 당김).
+
+**실사용자 영향 0** — `startProxyServer`를 실제로 호출하는 곳이 아직 없음(테스트에서만
+호출). commit/push 안 함(로컬 구현만).
+
+**미실행(정직하게 명시)**:
+- credential-store 실제 keyring 연동 — 이번에도 범위 밖(사용자 결정 대기 그대로)
+- 실제 Anthropic 업스트림으로 요청을 전달하는 `onAuthorizedRequest` 콜백의 진짜 구현 —
+  credential-store 없이는 만들 수 없어 인터페이스만 확정, 내용은 다음 단계
+- 동시에 여러 클라이언트가 접속하는 부하 상황 테스트 — 순차 요청만 검증, 동시성 테스트는 안 함
+
+**남은 위험**: 없음(신규). 기존 백로그 그대로. 6단계 순서표 기준 진행 가능한 항목(1·2·5, 그리고
+4의 토큰-무관 사전 준비물)은 사실상 소진 — 남은 3(credential-store)·4 나머지(토큰 교환)·
+6(CLI 배선)은 전부 credential-store 실동작(사용자의 `settings.json` 결정) 없이는 더 못 감.
+
+- 상태: **완료** — 진행·검증 완료, 회귀 없음. 커밋 `c769a53`으로 push 완료, PR#7로 main 병합
+  완료(v0.4.0 포함) — 확인됨
+  (2026-08-17 정정: `git show c769a53 --stat`으로 `src/accounts/proxy/server.js`가 이 커밋에
+  포함돼 있음을 직접 재확인 — M24와 동일 커밋에 함께 묶여 push·병합됨).
+
+---
+
+## M26: 2026-08-03 — Display Phase 3: Git 브랜치/변경사항 위젯 + CacheEntry 캐싱 구현(안전지대, 아직 미배선)
+
+Account 모듈이 credential-store(사용자 결정 대기)로 막힌 상태가 계속되자, 사용자가 "PRD
+전체" 재확인을 요청 — Account와 무관한 `01_PRD.md` §3 "Git/PR 위젯 + 캐싱"(Phase 3, 아직
+미착수)을 발견해 이번 방향으로 제안·승인받았다. PR 상태는 GitHub API라는 새 외부 의존성이
+필요해 이번 범위에서 명시적으로 제외(브랜치+staged/modified만).
+
+**구현**: `src/display/cache/file-cache.js`(CacheEntry 신규 — `resolveCacheDir`/
+`isSafeSessionId`/`readCachedValue`/`writeCachedValue`), `src/display/widgets/git.js`
+(`renderGit`/`queryGitStatus`/`formatGitValue`).
+- 명령어 주입 방지: `execFileSync`(인자 배열)만 사용, `exec` 없음.
+- 경로 신뢰: `workspace.current_dir`(stdin, 신뢰 불가)를 git 명령 실행 위치로 쓰지 않고
+  `process.cwd()` 사용 — **[NEEDS CLARIFICATION]** Claude Code가 statusLine을 정말 프로젝트
+  디렉터리에서 실행하는지는 아직 실제 exe로 미검증(합리적 가정으로 진행, 코드에도 명시).
+- **신규 보안 발견(직접 찾음, 지시받지 않음)**: git 브랜치명에 파이프(`|`)가 들어가는 걸
+  git 자체가 막지 않는다 — PRD 예시 값 형식(`"main|2|0"`)을 단순 `split('|')`로 파싱하면
+  이런 브랜치명에서 필드가 밀려 잘못 표시될 수 있었다. 정규식(`/^(.*)\|(-?\d+)\|(-?\d+)$/`,
+  탐욕적 `.*`)으로 뒤에서부터 파싱하도록 직접 고쳐 방지, 회귀 테스트로 고정.
+- **캐시 키 경로 조작 방지**: `session_id`는 stdin(신뢰 불가)에서 온다 — 영숫자/`-`/`_`만
+  안전으로 허용하고 그 외(`../../etc/passwd` 등)는 캐시를 아예 안 쓴다(크래시나 잘못된
+  파일 접근보다 "캐시 없이 매번 조회"가 항상 더 안전). 회귀 테스트로 실제 파일 미생성까지 확인.
+- `test-isolation.js`에 `CLAUDETOWER_CACHE_DIR` 추가(기존 4개 격리 변수와 동일 원칙).
+
+**신규 발견 — 블라스트 반경 조사(중요, 실제 배선은 하지 않기로 한 이유)**: `ALL_WIDGET_TYPES`에
+`'git'`을 추가하는 순간 최소 4개 기존 파일이 영향받는다는 걸 코드 직접 대조로 확인했다:
+1. `setup-wizard.js`는 `ALL_WIDGET_TYPES`를 순회하며 질문하는데, 관련 테스트
+   (`setup-wizard.test.js`)가 **5개 답변을 하드코딩**(`'y\ny\ny\nn\ny\n'`)하고 있어 6번째
+   질문에서 깨짐.
+2. `statusline.test.js`의 다수 테스트가 `ALL_WIDGET_TYPES`를 그대로 `enabledWidgets`로
+   넘기는데, 이러면 git 위젯이 켜져서 **순수 로직 단위테스트가 실제 git 서브프로세스를
+   실행**하게 된다.
+3. **가장 심각**: 이 테스트들은 `CLAUDETOWER_CACHE_DIR`를 설정하지 않는다 — `test-isolation.js`의
+   "부분 격리" 방어는 "격리 변수가 하나라도 설정된 상태에서 일부만 빠짐"만 잡아내지,
+   "격리 변수를 아예 하나도 안 쓰는 일반 `npm test`"는 못 잡는다. 즉 아무 조치 없이
+   `git`을 `ALL_WIDGET_TYPES`에 넣으면, 평범한 `npm test` 실행만으로 **실제 사용자의
+   `~/.claudetower/cache/`에 캐시 파일이 생길 위험**이 있었다 — 이 프로젝트가 이미 두 번
+   겪은 "테스트가 실제 파일을 건드리는" 사고와 같은 부류(test-isolation.js 상단 주석 참고).
+4. `skill-file.js`의 `buildSkillFileContent`는 위젯 5개 목록을 **하드코딩된 프롬프트 텍스트**로
+   갖고 있어(`ALL_WIDGET_TYPES`를 동적으로 안 읽음), git을 추가해도 자동 반영되지 않는다 —
+   AskUserQuestion 메뉴 구조(4개 제한)도 다시 나눠야 한다.
+
+이 4가지를 전부 안전하게 처리하려면 이번 턴 범위를 훨씬 넘는 별도의 신중한 작업이 필요하다고
+판단해, **이번엔 credential-store 순서표 5번(로컬 프록시 서버)·OAuth state/PKCE와 동일한
+"안전지대에서 완성 + 아직 미배선" 패턴을 그대로 적용**했다 — `file-cache.js`/`git.js`는
+완전히 동작하고 충분히 테스트됐지만, `ALL_WIDGET_TYPES`/`setup-wizard.js`/`skill-file.js`/
+`statusline.js` 중 어느 것도 건드리지 않았다. 이는 임의 판단이 아니라 실제 회귀 위험을
+코드로 직접 확인한 뒤 내린 결정이다.
+
+**검증(전부 실제 git 저장소로, mock 아님)**: 임시 디렉터리에 실제 `git init`으로 저장소를
+만들어 브랜치 생성·커밋·staged/unstaged/untracked 파일 조합·슬래시 브랜치명까지 실측 확인.
+캐시는 "저장소 상태를 바꿔도 TTL 안이면 그대로"와 "TTL 지나면 다시 조회"를 둘 다 진짜
+파일시스템 타이밍으로 증명. `npm run lint` 0에러, `lint:boundary` PASS(20→**22개** 파일),
+`test:display` 197→**223**/223(신규 26건: file-cache 10 + git-widget 16), `npm run build`
+SEA 바이너리 정상 생성(신규 모듈이 아직 `require` 그래프에 없어 번들에 포함조차 안 됨 —
+배선 전이므로 당연한 결과).
+
+**실사용자 영향 0** — 어디에도 연결 안 됨(설계상 정상, Account 모듈에서 4라운드 검증된 패턴).
+commit/push 안 함(로컬 구현만).
+
+**미실행(정직하게 명시)**:
+- `ALL_WIDGET_TYPES`/`setup-wizard.js`/`skill-file.js`/`statusline.js` 배선 — 위 블라스트
+  반경 사유로 이번 턴에서 의도적으로 보류(다음 단계 후보, 별도 승인 필요)
+- Claude Code가 statusLine을 실제 프로젝트 디렉터리에서 실행하는지 실측 확인 — 실제 exe로
+  이 저장소(진짜 git 저장소) 안에서 검증 가능하나 아직 안 함
+- PR 상태 표시 — 범위에서 명시적으로 제외(GitHub API 의존성)
+- 100ms 성능 목표 대비 실측 — git 서브프로세스 2회(branch+status) 호출의 실제 소요시간을
+  이 위젯만 따로 측정하지 않음(테스트 시간은 git init/config/commit 등 설정 비용이 섞여
+  있어 실제 렌더 1회 비용과 다름)
+
+**남은 위험**: 없음(신규 코드 자체는). 배선 시점에 위 4가지 블라스트 반경을 반드시 함께
+처리해야 함(신규 위험 아니라 이미 식별·기록된 위험).
+
+- 상태: **완료(안전지대 구현까지)** — 배선은 M27에서 완료, 회귀 없음. 커밋 `72bfc48`("feat(display):
+  Git 브랜치/변경사항 위젯 + 캐싱 배선, 라인 폭 예산 안전장치 추가")으로 push 완료, PR#7로 main
+  병합 완료(v0.4.0 포함) — 확인됨
+  (2026-08-17 정정: `git show 72bfc48 --stat`으로 `src/display/cache/file-cache.js`·`widgets/git.js`가
+  이 커밋에 포함돼 있음을 직접 재확인).
+
+---
+
+## M27: 2026-08-03 — Git 위젯 실제 배선 완료 + 라이브 테스트로 진짜 결함 1건 발견·수정
+
+M26이 식별해둔 4가지 블라스트 반경(setup-wizard 하드코딩 답변 수, statusline.test.js의
+`ALL_WIDGET_TYPES` 무심코 사용, skill-file.js 하드코딩 메뉴, 그리고 실제 배선 자체)을
+사용자 승인 후 전부 처리했다.
+
+**배선**: `widget-config.js`(`ALL_WIDGET_TYPES`에 `'git'` 추가, location 바로 뒤),
+`setup-wizard.js`(`WIDGET_LABELS.git` 추가), `statusline.js`(`WIDGETS` 배열에 등록).
+
+**테스트 3개 파일 수정**(전부 회귀, 실제 실행해 확인):
+- `widgets-command.test.js`: 기대 배열 1곳에 `'git'` 반영.
+- `setup-wizard.test.js`: 위젯 질문 5→6개로 답변 문자열 전부 재조정. **부수 발견**: 기존
+  PATH 질문 테스트 2개가 답변 개수 부족으로 EOF 기본값(빈 문자열→PATH 질문엔 "아니오"
+  취급)에 우연히 걸려 "통과는 하지만 실제로는 다른 이유로 통과 중"이었다 — 겉보기엔
+  안 깨졌지만 테스트 이름이 검증한다고 주장하는 것과 실제로 검증되는 것이 어긋나 있었음.
+  6개 답변으로 정확히 맞춰 원래 의도대로 다시 통과하게 정정.
+- `statusline.test.js`: git 위젯이 session 필드와 무관하게 항상 `process.cwd()`를 실제
+  조회한다는 사실 때문에, `ALL_WIDGET_TYPES`를 그대로 쓰던 기존 테스트 2개가 "빈 세션→빈
+  문자열", "위치 위젯이 출력 맨 끝" 가정이 실제로 깨지는 걸 확인 — `NON_GIT_WIDGET_TYPES`
+  상수를 신설해 git과 무관한 테스트 전부 여기로 교체, git 통합 자체는 전용 테스트 2개
+  (실제 임시 git 저장소로 `process.chdir()`, try/finally로 복원)로 분리 검증.
+
+**`skill-file.js`**: description(5→6가지), 항목 목록, 질문①(3→4개 선택지: model/location/
+git/context) 갱신. 질문②는 그대로(AskUserQuestion 4개 제한 안에서 재구성 최소화).
+
+**실제 exe 라이브 테스트 중 진짜 결함 1건 발견 → 재현→원인분석→수정→재검증**: 빌드된
+바이너리로 이 저장소(진짜 git 저장소) 안에서 직접 실행했더니 git 위젯이 안 보였다.
+`renderGit({session_id:'x'})` 단독 호출은 정상 작동을 확인했는데 `render()` 전체
+파이프라인에서는 사라져, 원인을 좁혀가다 `file-cache.js`의 `writeCachedValue`가
+`assertNotPartialIsolation()`을 자기 자신의 `try` 블록 **밖**에서 호출하고 있어 부분
+격리 상태(디버깅 중 `CLAUDETOWER_WIDGET_CONFIG_PATH`만 설정하고 `CLAUDETOWER_CACHE_DIR`는
+안 준 상태)에서 예외가 그대로 `renderGit`을 빠져나가 `statusline.js`의 위젯별 try/catch에
+삼켜지는 걸 확인했다 — **이미 정상적으로 조회해둔 실제 git 상태값까지 함께 버려지는
+결함**, "캐시 쓰기 실패는 기능을 막지 않는다"는 이 파일 자신의 주석이 실제로는 안 지켜지고
+있었다. `try` 블록을 `assertNotPartialIsolation()` 호출까지 포함하도록 넓혀 수정 — 이제
+이 함수는 어떤 이유로도 절대 예외를 던지지 않는다. 회귀 테스트 2건 추가(file-cache.test.js
+1건, git-widget.test.js 1건) 후 재빌드·재실행으로 실제 exe에서 git 위젯이 정상 표시됨을
+직접 확인(`🌿 docs-and-fixes/2026-07-06 +0~13`).
+
+**실사용자 영향**: 이번엔 실제로 있음(의도된 배선 완료) — `claudetower setup` 재실행 시
+위젯 질문이 6개로 늘고, 기존 사용자의 `config.json`은 `readEnabledWidgets`가 "알 수 없는
+키 없으면 기본 전체"로 처리하므로 git이 새로 추가돼도 파일이 깨지지는 않는다(기존
+`enabled_widgets` 배열에 그냥 `'git'`이 없을 뿐 — 자동으로 켜지지 않고 명시적으로
+`widgets on git`을 해야 켜짐, "체크하지 않은 항목은 절대 바꾸지 마세요" 원칙과 일치).
+
+**검증**: `npm run lint` 0에러, `lint:boundary` PASS(22개 파일, 무변화), `test:display`
+223→**227**/227(신규 4건: 배선 관련 통합 2 + 방금 결함의 회귀 2), `test:accounts`
+91/91(무관, 회귀 없음), `npm run build` 정상, **실제 컴파일된 exe로 이 저장소 안에서
+라이브 실행해 git 위젯 렌더링 직접 확인**(스크린샷 아님, 텍스트 출력 캡처).
+
+**미실행(정직하게 명시)**:
+- Claude Code가 실제로 statusLine을 프로젝트 디렉터리에서 실행하는지는 여전히 완전히는
+  미확인 — 이번 라이브 테스트는 "내가 그 디렉터리에서 직접 exe를 실행하면 잘 됨"까지만
+  증명, "Claude Code가 실제로 그렇게 실행해줄지"는 실제 Claude Code 세션에서 상태표시줄이
+  화면에 어떻게 뜨는지 육안 확인이 필요(기존에도 계속 미실행으로 남아있던 항목과 동일 범주)
+- git 없는 환경, 저장소 아닌 프로젝트에서의 실제 exe 라이브 확인 — 단위테스트로는 커버,
+  실제 exe로는 미실행
+- 100ms 성능 목표 대비 이 위젯 추가분의 실측 — 안 함
+
+**남은 위험**: 없음(신규). 발견한 결함은 수정·검증 완료.
+
+- 상태: **완료** — 배선 완료, 실사용자 영향 있는 변경, 라이브 테스트로 결함 1건 발견·수정
+  까지 끝. 커밋 `72bfc48`로 push 완료, PR#7로 main 병합 완료(v0.4.0 포함) — 확인됨
+  (2026-08-17 정정: `git show 72bfc48 --stat`으로 `statusline.js`의 위젯 배선 변경분이 이 커밋에
+  포함돼 있음을 직접 재확인 — M26과 동일 커밋에 함께 묶여 push·병합됨).
+
+---
+
+## M28: 2026-08-03 — 사용자 라이브 리포트("10칸이 깨져서 보임") 재현·근본원인·수정
+
+M26/M27 직후 사용자가 실제 Claude Code에서 넓은 터미널로 써보다가 "10칸으로 늘렸을 때
+10칸이 깨져서 보임"을 보고 — 게이지 10칸 확장(M17)이 트리거였다고 짐작할 만했지만,
+가설로 단정하지 않고 실제 `render()`를 호출해 재현부터 했다.
+
+**재현·원인**: `renderGauge`/`resolveGaugeWidth` 자체는 0~100 전 구간에서 항상 정확한
+칸 수를 반환(결함 없음, 직접 실측 확인). 진짜 원인은 **위젯을 전부 합친 "한 줄 전체"
+길이에 지금까지 상한이 없었다**는 것 — 개별 위젯 텍스트는 `truncateForDisplay`로 80자
+상한이 있지만 합산 길이는 무제한이었다. 모델·위치·Git·컨텍스트·비용·5시간/7일 사용률을
+전부 켠 현실적인 값으로 COLUMNS를 80/120/150/200으로 바꿔가며 실측한 결과:
+
+| COLUMNS | 실제 줄 길이 | 결과 |
+|---|---|---|
+| 80 | 146자 | 66자 초과 |
+| 120(게이지가 10칸 되는 지점) | 161자 | 41자 초과 |
+| 150 | 161자 | 11자 초과 |
+| 200 | 161자 | 여유 39자 |
+
+120~150칸(VS Code 기본 터미널 등 흔한 폭)에서 실제로 넘쳐 터미널이 줄바꿈을 일으켰고,
+이게 "10칸 깨짐"의 실체였다. Git 위젯 배선(M27, 같은 날)과 게이지 10칸 확장(M17)이
+겹치며 처음으로 드러난 문제 — M17이 이미 "model.js가 COLUMNS와 무관하게 넘칠 수 있다"를
+낮은 우선순위로 남겨뒀는데, 실측 결과 범위가 model 위젯 하나가 아니라 **전체 위젯 조합**
+구조적 결함이었음이 확인됨.
+
+**수정**: `src/display/statusline.js`의 `render()`에 "라인 폭 예산" 로직 추가
+(`fitToLineBudget`/`WIDGET_DROP_PRIORITY`). 개별 필드에 이미 있는 "잘라서라도 최소한의
+정보는 유지"(`text-safety.js`) 철학을 위젯 단위로 확장 — 합산 길이가 실제 COLUMNS를
+넘으면 우선순위 낮은 위젯부터 하나씩 제외한다.
+- 드롭 순서: `git → rate_limit → cost → context → location → model`. git이 최우선인
+  이유: PulseLine 원본 설계(01_PRD.md §3)에 없던 Phase 3 신규 위젯이라 "본래 구현 목적"의
+  핵심이 아니고, git 저장소가 아닌 프로젝트에서는 애초에 항상 숨겨지는 부가 정보이기
+  때문. model/location은 세션 정체성 자체라 최후까지 유지.
+- COLUMNS를 모르면(구버전 Claude Code, 파싱 불가) **절대 자르지 않는다** — 넘쳤는지
+  확인할 방법이 없는데 임의로 위젯을 지우면 정보를 불필요하게 잃을 수 있다
+  (`gauge.js resolveGaugeWidth`와 동일하게 "모르면 건드리지 않는다" 원칙).
+- `gauge.js`/`context.js`/`rate-limit.js`/`git.js`는 전혀 건드리지 않음(원인이 아니었으므로
+  Minimal Impact 원칙에 따라 손대지 않음) — 수정 범위는 `statusline.js` 한 파일뿐.
+
+**검증**:
+- 회귀 테스트 5건 신규(`statusline.test.js`): COLUMNS=120에서 git만 빠짐(재현 시나리오
+  정확히 고정), COLUMNS=80에서 git+rate_limit 둘 다 빠짐, COLUMNS 미설정 시 아무것도 안
+  빠짐, COLUMNS=200이면 전부 표시, COLUMNS=1 같은 극단값에서도 크래시 없음.
+- `npm run lint` 0에러, `lint:boundary` PASS(22개 파일, 무변화), `test:display`
+  227→**232**/232(신규 5건), `test:accounts` 91/91(무관, 회귀 없음), `npm run build` 정상.
+- **실제 컴파일된 exe로 격리 환경(`CLAUDETOWER_WIDGET_CONFIG_PATH`/`CLAUDETOWER_CACHE_DIR`
+  임시 경로) 라이브 재현**: 6위젯 전부 기본 활성 상태로 COLUMNS 80/120/150/200을 실제로
+  흘려 넣어, 120에서 git이 빠지고 나머지가 표시되며 줄이 더 이상 넘치지 않음을 직접
+  확인. 격리 캐시 디렉터리는 세션 ID가 없어 파일이 전혀 생성되지 않음도 함께 확인
+  (실사용자 파일 영향 0).
+
+**실사용자 영향**: 있음(의도된 동작 변경) — 좁은 터미널에서 위젯이 전부 켜져 있으면
+이제 자동으로 일부(가장 먼저 git)가 숨겨진다. 넓은 터미널(COLUMNS≥약 150, 현재 세션
+6위젯 기준)에서는 동작 변화 없음.
+
+**미실행(정직하게 명시)**:
+- Claude Code 실제 세션에서 이 변경이 화면에 어떻게 보이는지 육안 확인 — 기존에도 계속
+  미실행으로 남아있던 항목과 동일 범주(이번 수정으로 새로 생긴 미실행 아님)
+- 위젯 개수가 다른(4개, 5개 등) 조합에서의 임계 COLUMNS 값 전수 조사 — 대표 시나리오
+  (6위젯 풀 조합)만 확인, 나머지 조합은 동일 로직이라 이론적으로는 안전하나 개별 실측은 안 함
+- 직전 검증 턴에서 미해결로 남긴 성능 저하(156ms/111ms vs 100ms 목표) — 이번 수정과
+  무관, 여전히 별도 조사 필요한 채로 남음
+
+**남은 위험**: 없음(신규). 이번에 발견한 결함은 재현→원인분석→수정→재검증까지 끝냄.
+
+- 상태: **완료** — 실사용자 영향 있는 변경, 라이브 exe로 재현 시나리오 직접 해소 확인.
+  커밋 `72bfc48`로 push 완료, PR#7로 main 병합 완료(v0.4.0 포함) — 확인됨
+  (2026-08-17 정정: `git show 72bfc48 --stat`으로 "라인 폭 예산" 로직(`fitToLineBudget`/
+  `WIDGET_DROP_PRIORITY`)이 이 커밋에 포함돼 있음을 직접 재확인 — M26/M27과 동일 커밋에
+  함께 묶여 push·병합됨).
+
+---
+
+## M29: 2026-08-04 — 다음 작업 계획: 성능 회귀 원인 규명·해결 (작업 착수 전, 승인 대기)
+
+**이 항목은 계획 문서다 — 아직 코드를 건드리지 않았다.** 사용자가 "다음 작업이 뭔지
+빠짐없이 파악해서 CHECKPOINT.md에 적어달라"고 요청해, 착수 전에 근거·리스크·검증 계획을
+먼저 문서로 확정한다.
+
+### 왜 이게 다음 순서인가 (근거)
+
+`statusline` 실행 시간이 PRD 공식 성공기준(`.PRD/04_PROJECT_SPEC.md` 225행, "100ms 미만")을
+**세 번의 독립된 측정 turn에서 일관되게** 초과했다 — 새로운 발견이 아니라 반복 재현된
+사실이다:
+
+| 측정 시점 | 캐시 미스 | 캐시 히트 |
+|---|---|---|
+| 2026-08-03(1차 검증) | 156ms | 111ms |
+| 2026-08-04(2차 검증 재측정) | 150ms, 163ms | 111ms |
+
+세 번 다 목표를 넘겼는데, 지금까지 "남은 위험"란에 정직하게 기록만 됐을 뿐 원인 조사가
+시작된 적이 없다. Account 모듈은 사용자 결정 대기로 전면 차단, macOS/Linux 실측은 환경
+자체가 없어서 불가능, Claude Code 실제 화면 확인은 사람이 직접 봐야 하는 영역 — 이 셋을
+빼면, **지금 이 저장소 안에서 AI가 바로 착수할 수 있는 항목 중 이것이 유일하게 "이미 확정된
+공식 성공기준을 어기고 있는" 항목**이다. 새 기능(Powerline 색상 테마 등)보다 이걸 먼저
+다루는 게 "본래 구현 목적에서 벗어나지 않기" 원칙에 맞다.
+
+### 착수 전 리스크 검토 (요청에 따라 작업 시작보다 먼저 기록)
+
+1. **측정 방법론 오염 가능성**: 지금까지의 156/150/163ms는 Bash에서 exe를 스폰해 바깥에서
+   `time`으로 잰 값이다 — Node 프로세스 자체의 콜드스타트 + Bash/Git Bash의 서브프로세스
+   생성 오버헤드가 섞여 있어, "실제 Claude Code가 체감하는" 순수 렌더 시간과 정확히 같다고
+   단정할 수 없다(가능성, 확인된 사실 아님). 원인을 정확히 가르려면 코드 내부에서
+   `process.hrtime`으로 자체 측정해 "Node 시작~stdin 읽기~렌더 완료"만 분리해서 재는 절차가
+   먼저 필요하다.
+2. **캐시 히트/미스 조건 오염 가능성**: 지금까지 실측 시 매번 다른/없는 `session_id`로
+   테스트했을 가능성이 있어, git 위젯 캐시(5초 TTL)가 실제보다 더 자주 미스로 잡혔을 수
+   있다. 실제 Claude Code는 같은 세션 안에서 `session_id`가 고정되므로, 실사용 체감 값은
+   지금까지의 측정치보다 나을 가능성도 있다(이것도 가능성일 뿐, 검증 전이라 사실로 단정
+   금지).
+3. **원인 오판 위험**: "Node 콜드스타트"와 "git 서브프로세스 2회 호출(branch+status)"이라는
+   두 가설을 구분하지 않고 바로 최적화를 시도하면, 엉뚱한 곳을 고치는 헛수고를 할 위험이
+   크다 — 반드시 git 위젯을 끈 상태 vs 켠 상태를 **같은 조건에서 나란히 재측정**해 두
+   가설을 먼저 분리해야 한다.
+4. **보안 원칙과 충돌 위험**: `04_PROJECT_SPEC.md` 215행의 "성능 최적화를 이유로 자격증명
+   조회 경로의 검증 단계를 생략하지 마"는 Account 모듈용 DO NOT 규칙이지만, 같은 원칙이
+   Display 모듈에도 적용돼야 한다 — 예를 들어 "캐시 히트 시 세션 격리 방어(`assertNotPartial
+   Isolation`)를 스킵" 같은 식의 최적화는 M27에서 직접 발견·수정한 결함을 다시 불러올 수
+   있어 명시적으로 금지 대상이다.
+5. **자동 회귀 테스트 부재라는 근본적 빈틈**: 지금까지 성능은 전부 사람이 수동으로 `time`
+   명령을 돌려서만 확인했다 — `node --test` 스위트 안에는 성능을 검증하는 테스트가 단 하나도
+   없다(`04_PROJECT_SPEC.md` 225행 자체가 "자동화된 회귀 테스트는 아직 없음"이라고 명시).
+   이번에 원인을 고치더라도 회귀 테스트를 추가하지 않으면 다음에 똑같은 문제가 재발해도
+   아무도 모른다 — 수정과 반드시 함께 처리해야 할 항목으로 지금 명시해둔다.
+6. **"100ms 목표"의 실사용 영향 자체가 미검증**: 목표를 못 지켰다는 사실은 명확하지만,
+   그게 실제로 사용자가 체감할 만큼 심각한 영향인지(Claude Code가 상태표시줄을 얼마나
+   자주 다시 그리는지, 그 주기 안에서 150ms가 실제로 거슬리는 지연인지)는 지금까지 한
+   번도 확인된 적이 없다 — "목표 초과 = 반드시 심각한 문제"라고 단정하는 건 근거 없는
+   가정이다. 조사 결과에 따라 "고칠 가치가 있는 실질적 문제"인지 "수치상으로만 넘긴
+   허용 가능한 오차"인지 판단이 갈릴 수 있다는 점을 미리 인정해둔다.
+7. **Windows 전용 조사라는 한계**: 이 PC가 Windows뿐이라, 만약 "Windows의 프로세스 생성
+   비용이 원인"이라는 가설이 맞다고 확인되더라도, macOS/Linux에서도 동일하게 문제가 되는지는
+   이 조사만으로는 알 수 없다(별도로 표시해둘 미실행 항목이 하나 더 늘어난다는 뜻).
+
+### 계획한 진행 순서 (제안, 아직 미실행)
+
+1. 코드 내부 자체 측정(`process.hrtime`)으로 "Node 시작~렌더 완료" 순수 시간을 노이즈 없이
+   재측정
+2. git 위젯 켠 상태 vs 끈 상태를 같은 조건으로 나란히 비교해 원인을 Node 콜드스타트 쪽인지
+   git 서브프로세스 쪽인지 분리
+3. 원인이 확정되면 위 5번 리스크(보안 원칙 충돌 금지)를 지키는 선에서 최소 범위로 수정
+4. 회귀를 다시 못 잡아내는 사고를 막기 위해 자동화된 성능 회귀 테스트를 함께 추가
+5. 수정 전/후 실측치를 나란히 표로 남겨 실제로 개선됐는지 재검증
+
+### 실행 결과 (2026-08-17)
+
+**1단계(hrtime 자체측정)**: `src/display/statusline.js`의 `render()`를 in-process로 직접
+호출해 순수 로직 시간만 쟀다(exe 스폰/Node 기동 완전히 배제). 5회 평균 —
+git 없는 5위젯: **0.09ms**, git 위젯 캐시 히트: **0.57ms**, git 위젯 캐시 미스(매번
+새 session_id): **36.90ms**(그중 `queryGitStatus()`의 execFileSync 2회 호출 자체가
+**35.26ms**로 거의 전부를 차지). → `render()` 로직 자체는 100ms 목표에 압도적 여유가
+있다는 게 실측으로 확인됨.
+
+**2단계(git 위젯 켠/끈 비교) + exe 전체 재측정**: 원래 측정 방식(Bash `time`으로 exe
+스폰)과 PowerShell `Measure-Command` 양쪽으로 `dist/claudetower-win-x64.exe statusline`을
+재측정했다. 결과: 캐시 히트 **44~58ms**, 캐시 미스(매 호출 고유 session_id) **48~71ms**,
+`--version`(statusline 로직 자체가 없는 최소 경로) **41~53ms**, `node -e "0"`(순수 Node
+기동 baseline) **36~49ms**. **전부 100ms 미만이며, 2026-08-03/04에 기록된 150ms/156ms/163ms가
+이번 재측정에서는 Bash time·PowerShell 두 방법 다 단 한 번도 재현되지 않았다.**
+
+유일한 예외: 이 세션에서 그 exe를 처음 실행한 딱 1회만 **3086ms**가 걸렸고, 그 즉시 다음
+호출부터 다시 40~70ms대로 돌아왔다. 코드/캐시와 무관한 1회성 현상이라 — 이 exe가 미서명
+바이너리라(§"코드서명 인증서 의도적 미구매" 기록 참고) Windows Defender/SmartScreen이 처음
+실행되는 파일을 스캔하며 지연시켰을 가능성이 높다고 보지만, **이건 확인된 사실이 아니라
+가설이다**(재현 검증 안 함, 필요하면 후속 세션에서 Defender 로그로 직접 확인).
+
+**3단계(원인 판정)**: git 서브프로세스 2회 호출(`branch --show-current` + `status
+--porcelain`)이 캐시 미스일 때 가장 큰 통제 가능 비용(~35ms)인 건 맞지만, 100ms 예산
+안에 충분히 들어온다. **"150~163ms 회귀"라는 현상 자체가 이번 재측정에서 재현되지
+않았다** — 코드에 실제 결함이 있다는 근거를 찾지 못했다. 리스크6에서 미리 인정해둔 대로
+정직하게 기록한다: 2026-08-03/04 당시 수치는 코드 회귀가 아니라 측정 시점의 일시적
+환경 요인(이 PC에서 흔한 동시 다중 세션/MCP 부하 등, `.PRD/06_FIELD_ISSUE_SPAWN_STORM
+_2026-07-04.md`가 이미 별도로 지적한 환경 특성과 같은 종류)이었을 가능성이 있다 —
+이 역시 검증된 사실이 아니라 남겨두는 가설이다.
+
+**수정 내용**: 없음. 재현되지 않는 문제를 근거 없이 코드로 흔들지 않는다(리스크6 준수).
+
+**4단계(회귀 테스트 신설)**: `test/display/statusline-performance.test.js` 3개 추가 —
+① 비git 5위젯 20ms 미만 ② git 캐시 히트 6위젯 20ms 미만 ③ 캐시 미스가 캐시 히트보다
+2배 이상 느림(캐싱이 실제로 동작한다는 증거) + 절대 상한 500ms(기기 편차를 감안해
+"캐시가 있는데도 초 단위로 느려지는" 명백한 회귀만 잡도록 느슨하게 설정). 앞으로
+`render()` 로직 자체에 실제 성능 회귀가 생기면 이 테스트가 잡는다 — 단 exe/Node
+기동 시간 자체는 node:test 프로세스 안에서 측정 불가능한 영역이라 이 테스트의
+범위 밖이다(별도 명시).
+
+**5단계(검증)**: `npm run verify`(lint + lint:boundary + test:display) 전부 통과,
+**235/235**(기존 232 + 신규 3).
+
+**남은 미실행/한계**: Windows 전용 조사라 macOS/Linux는 여전히 미검증(리스크7 유지).
+"일시적 환경 요인" 가설과 "SmartScreen 최초 실행 스캔" 가설 둘 다 미확인 — 다음에
+150ms대가 다시 관측되면 그때 Defender 이벤트 로그·동시 세션 수를 함께 기록해 가설을
+검증할 것.
+
+### 상태: **완료 — 회귀 미재현, 코드 변경 없음(회귀 테스트만 신설), 로컬 커밋**
+(로컬 커밋만, push는 하지 않음 — 사용자가 별도 검토)
+
+---
+
+## M30: 2026-08-17 — Windows ACL(icacls)로 RotationEvent 감사 로그 소유자 전용 권한 실제 구현
+
+`.PRD/04_PROJECT_SPEC.md`의 ASVS V12 Must-Have("RotationEvent 감사 로그 파일은 소유자만
+읽기 가능한 권한으로 생성")가 M20/M23에서 [NEEDS CLARIFICATION]으로 남아있던 유일한
+미이행 보안 요구사항이었다. M20 실측대로 Windows에서 `fs.chmodSync(0o600)`은 에러 없이
+성공하면서도 실제 파일 모드는 안 바뀌어(`fs.statSync` 대조 확인), 지금까지 이 감사
+로그는 명세와 달리 사실상 보호되지 않고 있었다.
+
+**착수 전 위험 점검(사용자 승인 후 진행)**: icacls 명령 자체가 credential-store(M16)처럼
+classifier에 막힐 가능성을 먼저 임시 파일로 격리 테스트했다 — `/inheritance:r`(상속 ACE
+제거) → `/grant:r <사용자>:F`(현재 사용자에게만 전체 권한 명시 부여) → `icacls <path>`로
+재조회, 세 단계 전부 **classifier 차단 없이 정상 실행**됨을 확인. `credential-store`가
+막힌 "OS 자격증명 저장소 I/O"와 "파일 ACL 조작"이 서로 다른 종류의 동작이라는 M25의
+가설이 다시 한번 뒷받침됨.
+
+**구현**: `src/accounts/audit/rotation-log.js`에 `restrictWindowsAcl(filePath)` 신설.
+`process.platform === 'win32'`일 때만 이 경로를 타고, macOS/Linux는 기존
+`fs.chmodSync(0o600)` + 재조회 검증 경로를 그대로 유지(크로스플랫폼 분기, 기존 로직
+변경 없음). Windows 경로도 마찬가지로 "명령이 에러 없이 끝남" ≠ "의도한 상태가 됐음"을
+구분한다 — `icacls` 실행 직후 그 출력을 다시 파싱해 **정확히 1개의 ACE만 있고, 그게
+현재 사용자의 전체 권한(F)인지**까지 재확인한 값만 `permissionRestricted`로 반환한다.
+icacls가 어떤 이유로 실패해도 예외를 던지지 않고 `permissionRestricted: false`로
+안전하게 폴백한다 — "감사 로그를 끄거나 생략하지 마" DO NOT 규칙이 최우선이므로, 권한
+강제가 실패해도 로그 기록 자체는 항상 성공해야 한다.
+
+**실측 검증(라이브, mock 아님)**: 임시 파일에 실제 적용 전/후 `icacls` 조회 결과를
+직접 대조 — 적용 전엔 `DESKTOP-FPDAAO6\CodexSandboxUsers`, 다수의 SID, `NT
+AUTHORITY\SYSTEM`, `BUILTIN\Administrators` 등 **상속된 ACE 20개 이상**이 있었으나,
+`/inheritance:r` + `/grant:r` 적용 후엔 `DESKTOP-FPDAAO6\PC:(F)` **단 하나만** 남음을
+직접 확인.
+
+**테스트**: `test/accounts/rotation-log.test.js`에 2건 추가 — ① 신규 생성 파일의 icacls
+결과가 실제로 ACE 1개(현재 사용자, `(F)`)뿐이고 상속(`(I)`) 표시가 없는지 직접 조회해
+검증, ② 이미 존재하는 파일에 이어 쓸 때는 icacls를 다시 건드리지 않는지(ACL 출력이
+호출 전후 완전히 동일한지) 검증. 기존 "permissionRestricted" 테스트는 Windows 기대값을
+`false`(구 chmod 결과)→`true`(신 icacls 결과)로 갱신.
+
+**검증 결과(전부 직접 실행해 확인, 자기선언 아님)**:
+- `test:accounts`: 91→**93**/93(신규 2건)
+- `npm run lint`: 0 에러
+- `npm run lint:boundary`: PASS(22개 파일, `src/display/` 무변화 — 이 작업은
+  `src/accounts/`만 수정)
+- `npm run verify`(Display 전용): 235/235 무변화(이번 작업과 무관, 회귀 없음 재확인)
+
+**안전지대 원칙 유지**: 이 코드도 M24~M28과 동일하게 안전지대·미배선 상태 — `bin/claudetower.js`
+는 여전히 `accounts` 관련 `require` 0건(재확인), CLI에서 실제로 호출되지 않음.
+module-activation-state 게이트 그대로. main 반영·README 톤 변경 없음(노출 최소화
+원칙, M20/077ade2와 동일 판단).
+
+**미실행/한계(정직하게 명시)**:
+- macOS/Linux 실측 — 여전히 Windows 전용 조사(이 PC 환경 한계, 기존 chmod 경로는 코드
+  변경 없이 그대로 유지했으므로 회귀 위험은 낮다고 판단하나 실측은 아님)
+- 여러 사용자 계정이 동시에 존재하는 실제 다중 사용자 Windows 환경에서의 검증 — 이
+  PC는 단일 사용자라 "다른 계정이 진짜로 못 읽는지"까지는 실측 못함(ACE 목록에 다른
+  계정이 없다는 것까지만 확인, 실제 접근 거부 자체를 다른 사용자 세션으로 시도하진 않음)
+- 이번 세션에서 신설한 sandbox 환경 특유의 SID들(`CodexSandboxUsers` 등)이 상속 제거
+  전에 이미 파일에 많이 붙어있었음을 관찰 — 이는 이 개발 PC의 샌드박스 구성 특성이며
+  일반 사용자 PC의 상속 ACE 목록과는 다를 수 있음(정정 아님, 참고용 기록)
+
+**남은 위험**: 없음(신규). credential-store(M16)만 여전히 유일한 미해결 블로커로 남음.
+
+- 상태: **완료** — 실제 코드 변경, 라이브 icacls 검증까지 끝, 회귀 없음. 커밋
+  `9b58856`으로 push 완료.
+  (2026-08-17 정정: 위 상태 줄이 "로컬 커밋만, push는 하지 않음"이라 적혀 있었으나,
+  `git log -1`과 `git log origin/docs-and-fixes/2026-07-06 -1`을 직접 재확인한 결과
+  둘 다 `9b58856`으로 완전히 일치 — 기록 당시엔 사실이었으나 이후 같은 라운드에서 사용자
+  승인으로 push까지 끝난 뒤 이 상태 줄만 갱신되지 않았던 것. M23~M28과 동일한 패턴이
+  또 재발한 것으로, 다음 세션은 "완료" 항목이라도 상태 줄의 push 여부를 매번 git log로
+  재확인할 것).
+
+---
+
+## M31: 2026-08-17 — quota 헤더 정확한 필드명 확정 (순수 조사, 코드 변경 없음)
+
+**왜**: M20이 "안전지대 소진"을 선언한 뒤에도 M24(OAuth state/PKCE)·M25(프록시 서버)·M30(icacls)이
+전부 그 선언 이후 발견된 새 안전지대였다 — 같은 패턴으로 `07_OAUTH_FLOW_SPEC.md §5-4`를
+재확인한 결과, M20이 "credential 없이도 가능하다"고 직접 지목까지 해뒀던 quota 헤더 필드명
+확정 작업이 M21~M30(6개 항목) 동안 방치돼 있었다. `01_PRD.md`가 명시한 Account 모듈의 핵심
+가치(quota 자동전환) 자체가 이 필드명 없이는 구현 불가능하므로 방치 기간이 길수록 리스크가
+컸다.
+
+**조사 방법**: `.PRD/07_OAUTH_FLOW_SPEC.md` §5-2~5-4가 이미 인용해온 것과 동일한 1차 출처
+`github.com/jung-wan-kim/teamclaude`를 GitHub API(`gh api repos/.../contents/...`)로 직접
+열람 — `src/server.js`의 `anthropic-ratelimit-` 헤더 수집 로직과 `src/account-manager.js`의
+`updateQuota(accountIndex, headers)` 함수 전문을 확인. 코드는 옮기지 않고 헤더 필드명(사실
+정보)만 추출했다(`.PRD/04_PROJECT_SPEC.md`의 "아이디어·패턴만 참고, 코드 미복사" 원칙 준수).
+
+**결과**: 필드명 전부 확정 — 상세는 `.PRD/07_OAUTH_FLOW_SPEC.md §5-4`에 직접 기록해뒀다(구독
+계정 5건: `unified-5h/7d-utilization/reset`+`unified-status`+모델별 `unified-7d_<label>-*`
+정규식 매칭, API키 계정 6건: `tokens-limit/remaining/reset`+`requests-limit/remaining/reset`).
+classifier 차단 없이 정상 조회됨 — "파일 ACL 조작"(M30)에 이어 "공개 GitHub 코드 열람"도
+credential-store가 막는 범위("OS 자격증명 저장소 I/O") 밖이라는 M25 가설이 다시 뒷받침됨.
+
+**하지 않은 것(범위 확대 방지, 사용자 결정)**: `QuotaState` 파싱 스텁이나 실제 배선 코드는
+이번 라운드에 만들지 않았다 — M25가 경고한 "credential-store 확정 전에 쌓으면 재작업 리스크"
+원칙을 지켜, 이번엔 필드명을 문서에 기록하는 것까지만 진행.
+
+**미검증 남은 것(정직하게 명시)**: teamclaude의 관측치일 뿐 ClaudeTower 자신의 실제 API 응답으로
+재현 검증한 적은 없음 — credential-store가 열려야 가능. 필드명이 틀렸을 가능성은 낮지만(1차
+출처 코드 직접 열람) 0은 아니다.
+
+**남은 위험**: 없음(신규). credential-store(M16)만 여전히 유일한 하드 블로커.
+
+- 상태: **완료** — 문서만 갱신(`.PRD/07_OAUTH_FLOW_SPEC.md §5-4`, `CHECKPOINT.md`), `src/`
+  코드 변경 0건(아래 검증 결과 참조), 로컬 커밋만(push는 사용자가 이후 결정).
+
+---
+
+## M32: 2026-08-17 — PRD 준수 4-way 감사 결과 반영: `accounts status` 신설 + 02_DATA_MODEL.md 정정
+
+**왜**: 4개 영역(핵심기능/Phase, 보안/ASVS, 데이터모델, OAuth흐름/동의문구)에서 CHECKPOINT
+자기선언을 배제하고 실제 소스코드만으로 PRD 준수 감사를 수행한 결과, 보안·OAuth·동의문구는
+갭 0건이었으나 구조적 문제 하나를 발견했다: Account 안전지대 코드(OAuth state/PKCE·프록시·
+감사로그·동의문구)가 상당히 구현·테스트돼 있는데 `bin/claudetower.js`에 `accounts` 서브
+커맨드가 전혀 없어 **사람이 실제로 검증할 방법이 0개**였다. 데이터모델 감사에서도 별개로
+`02_DATA_MODEL.md`가 의도적 축소 구현 3~4건을 반영하지 못한 채 방치돼 있음을 확인했다.
+
+### ① `claudetower accounts status` (읽기 전용 진단 명령)
+
+- `src/accounts/status-report.js` 신설 — `buildStatusReport()`/`formatStatusReport()`.
+  `module-activation-state.js`만 읽고, credential-store/oauth/proxy의 실제 함수는 **일절
+  import하지 않는다**(정적 검사 테스트로 보증, 아래 참고). 구현된 컴포넌트·차단된 컴포넌트
+  목록은 전부 하드코딩된 정적 문자열.
+- `bin/claudetower.js`에 `accounts` 커맨드 라우팅 추가 — `status`만 지원, 그 외
+  서브커맨드(`enable` 등)는 "아직 개발 중, 사용할 방법 없음" 안내 후 exit 1.
+- **모듈 경계 재확인**: `eslint.config.js`의 `ZONES`와 `scripts/check-module-boundary.js`의
+  스캔 대상은 둘 다 `src/display/`뿐 — `bin/`은 CLI 진입점이라 애초에 경계 규칙 대상이 아님을
+  직접 코드로 확인 후 진행(위반 아님).
+- **실제 실행 결과**(자기선언 아님, 직접 커맨드 실행):
+  ```
+  === ClaudeTower Account 모듈 상태 ===
+  활성화 여부: 비활성화됨 (기본값)
+  구현된 안전지대 컴포넌트 (미배선 — 아직 CLI에서 실제로 쓸 수 없음):
+    ✔ OAuth CSRF state 검증 / PKCE / 로컬 프록시 서버 / 회전 감사 로그 / 동의 고지 문구 / quota 헤더 필드명
+  사용 불가능한 부분:
+    ✘ credential-store (OS 자격증명 저장소 연동) — 미구현 스텁
+  ```
+  `accounts`(서브커맨드 없음) → 안내 후 exit 0, `accounts enable` → 동일 안내 후 exit 1(둘 다 확인).
+- `test/accounts/status-report.test.js` 신설(6개) — 기본값 항상 비활성화, activationState 주입
+  반영, 컴포넌트 목록 존재, 문구 포함 여부, **그리고 소스 코드 정적 스캔으로
+  credential-store/oauth/proxy require 여부 0건임을 테스트로 보증**.
+
+### ② `.PRD/02_DATA_MODEL.md` 정정
+
+`Widget.type`에서 `pr` 값이 코드상 의도적으로 제외됐다는 사실(`widget-config.js:17` 주석
+"PR 상태는 제외" 인용), `active_account` 위젯 미구현(Account CLI 미배선이 이유), PlatformProfile/
+QuickSetup 미구현, StatuslineConfig가 `enabled_widgets`+`powerline_separator` 플랫 config로
+축소 구현된 사실을 각주로 추가(근거 파일:줄 인용, M23~M31과 동일한 정정 형식).
+
+**검증 결과** (직접 재실행, 자기선언 아님): `npm run test:accounts` **99/99**(기존 93 + 신규 6),
+`npm run verify`(Display) **235/235**(무변경 확인), `npm run lint` 클린, `npm run lint:boundary`
+**src/display/ 22개 파일 무변경**(Display 쪽은 이번 작업과 무관함을 재확인).
+
+**남은 위험**: 없음(신규). credential-store(M16)만 여전히 유일한 하드 블로커 — `accounts status`도
+이 블로커를 절대 건드리지 않도록 설계됨.
+
+- 상태: **완료** — `src/accounts/status-report.js`, `bin/claudetower.js`,
+  `test/accounts/status-report.test.js`, `.PRD/02_DATA_MODEL.md`, `CHECKPOINT.md` 변경.
+  로컬 커밋만(push는 사용자가 이후 결정).
+
+---
+
+## M33: 2026-08-17 — `claudetower accounts config`(전환 임계값·전략·포트, credential 무관) 신설
+
+`01_PRD.md` §3 · `03_PHASES.md` 89행이 명시한 "`claudetower config` — 전환 임계값·전략·포트
+조정" 기능이 지금까지 단 한 번도 시도되지 않았던 것을 이번 세션 재감사에서 발견(M20의
+"안전지대 완전 소진" 선언이 뒤집힌 다섯 번째 사례 — M24/M25/M30/M31에 이은).
+
+**설계 판단**: 기존 `createProxyConfig()`(`src/accounts/proxy/proxy-config.js`)는
+`access_token`/`upstream_url`이 필수라 credential-store 없이는 호출 자체가 불가능하다.
+그래서 이 둘을 절대 포함하지 않는 별도의 경량 스키마
+(`threshold_pct`/`port`/`strategy`/`reeval_interval_ms`/`port_retry_max`)를
+`src/accounts/switch-policy-config.js`에 새로 정의했다 — 실제 프록시 기동 시점
+(credential-store 완료 후)에 이 값을 `createProxyConfig()`에 주입하는 구조를 전제로 한다.
+기본값(port 41411, threshold_pct 98, reeval_interval_ms 300000, port_retry_max 10)은
+`.PRD/.archive/QuotaSwitch원본/02_DATA_MODEL.md` ProxyConfig 표의 예시값을 그대로 채택,
+strategy 기본값(`best`)만 그 문서에 명시가 없어 자체 판단으로 채택.
+
+**모듈 경계 주의사항 하나 발견·수정**: 처음엔 Display 쪽 `test-isolation.js`의
+`assertNotPartialIsolation`을 재사용하려 했으나, 이는 Account→Display 참조가 되어
+(반대 방향인 Display→Account만 금지된 기존 규칙에는 안 걸리지만) 이 프로젝트가 지켜온
+"Account는 Display 없이도, Display는 Account 없이도" 원칙과 어긋난다고 판단해 되돌리고,
+`switch-policy-config.js` 안에 동일 로직을 독립적으로 재구현했다(중복 10줄 정도,
+결합도를 낮추는 게 더 중요하다고 판단).
+
+**CLI**: `claudetower accounts config`(인자 없음 → 현재 값 전체 조회),
+`claudetower accounts config <key> <value>`(단일 값 변경). `bin/claudetower.js`의
+`accounts` 라우팅에 `config` 서브커맨드로 연결(`status`와 동일 원칙 — credential-store/
+oauth/proxy 모듈은 이 코드 경로 어디에서도 require되지 않음, 소스 텍스트 정규식 스캔
+테스트로 증명).
+
+**실제 실행 검증** (자기선언 아님, 직접 실행):
+```
+$ node bin/claudetower.js accounts config
+=== ClaudeTower 계정 전환 정책 (credential 무관, 로컬 저장) ===
+threshold_pct: 98  port: 41411  strategy: best  reeval_interval_ms: 300000  port_retry_max: 10
+
+$ node bin/claudetower.js accounts config threshold_pct 85
+threshold_pct을(를) 85(으)로 설정했습니다.   ← 파일에 실제 저장 확인됨
+
+$ node bin/claudetower.js accounts config strategy invalid-value
+strategy는 best 또는 next-available 둘 중 하나여야 합니다.   ← exit code 1 확인됨
+```
+
+**검증**: `npm run test:accounts` **119/119**(기존 99 + 신규 20), `npm run verify`(Display)
+**235/235**(무변경), `npm run lint:boundary` — src/display/ 22개 파일 그대로 준수,
+`npm run lint` 클린. `src/display/`는 이번 작업에서 전혀 건드리지 않음(초안에서
+test-isolation.js를 건드렸다가 위 이유로 되돌림 — git status로 최종 무변경 확인).
+
+**남은 위험**: 없음(신규). credential-store(M16)만 여전히 유일한 하드 블로커.
+
+- 상태: **완료** — `src/accounts/switch-policy-config.js`(신규),
+  `src/accounts/accounts-config-command.js`(신규), `bin/claudetower.js`(수정),
+  `test/accounts/switch-policy-config.test.js`(신규),
+  `test/accounts/accounts-config-command.test.js`(신규), `CHECKPOINT.md` 변경.
+  로컬 커밋만(push는 사용자가 이후 결정).
+
+---
+
+## M34: 2026-08-18 — Account 안전지대 5차 재소진 확인 후 트랙 전환: npm stale shim 자동 정리(installer/uninstaller)
+
+**계기**: M33 직후 사용자가 다시 한번 같은 절차(PRD 전수 재정독+안전지대 소진 여부
+재확인)를 요구. 이번엔 `accounts enable`(영속화 함수 자체가 없어 신규 설계 필요 +
+`add` 없이 동의만 받으면 consent-theater가 됨)과 `accounts add/list` CRUD
+(credential-store 없이는 등록할 계정이 없어 항상 빈 목록) 둘 다 기각 —
+**Account 트랙은 이번엔 실제로 소진**. `.PRD/05_FIELD_ISSUES_2026-07-04.md §2.5`
+(P2, "installer/uninstaller가 stale npm shim을 탐지·정리")로 트랙 전환.
+
+**배경**: 과거 npm-global 설치가 남긴 shim(`claudetower`/`.cmd`/`.ps1`, Windows는
+prefix 루트에 3개, POSIX는 `<prefix>/bin/`에 심볼릭 링크 1개)이 백킹 모듈
+(`node_modules/claudetower`) 삭제 후에도 남아 bare `claudetower`가
+`MODULE_NOT_FOUND`로 깨지던 실측 결함(§2.1~2.3)의 근본 수정.
+
+**구현**: `src/display/config/npm-shim-cleanup.js`(신규) — `cleanupStaleNpmShims()`.
+오삭제 방지 2단계: (1) shim 파일 내용에 `node_modules`+`claudetower` 참조가 실제로
+있는지 확인(이름만 같은 무관한 파일 보호), (2) 그런데도 백킹 모듈 폴더가 정말 없는지
+확인한 뒤에만 삭제. npm prefix 위치는 하드코딩하지 않고 `npm config get prefix`로
+직접 조회(테스트 격리는 신규 `CLAUDETOWER_NPM_PREFIX_DIR`을 `test-isolation.js`의
+`ISOLATION_VARS`에 추가해 기존 부분격리 방어막에 편입). PATH 자동등록(§3, 별도 P2)은
+이번 범위에서 명확히 제외 — 관련 코드 전혀 안 건드림. `bin/claudetower.js`의 `setup`
+(재설치 시)과 `uninstall`(제거 시) 양쪽에 배선, 둘 다 try/catch로 감싸 실패해도 본
+설치/제거 기능은 절대 막지 않음.
+
+**격리 테스트로 실제 확인**(임시 디렉터리, 실제 시스템 `%APPDATA%\npm`은 전혀 안 건드림):
+- 백킹 모듈 존재 → 정상 shim 삭제 안 됨
+- 백킹 모듈 없는 stale shim 3종 전부 삭제됨
+- 이름만 같고 내용이 무관한 파일 → 백킹이 없어도 삭제 안 됨(오삭제 방지 실증)
+- shim 자체가 없으면 에러 없이 빈 목록(멱등)
+- 다른 CLAUDETOWER_* 격리 변수만 설정된 부분격리 상태 → 실제 npm 폴더 조회 자체를
+  건너뜀(`skipped: 'partial-test-isolation'`) — 이 상태로 `npm run verify`의
+  `uninstall-command.test.js`가 실제로 이 코드 경로를 통과했고 정상 동작 확인
+- POSIX 끊어진 심볼릭 링크 판정 함수는 이 PC(Windows)에서도 직접 심볼릭 링크를
+  만들어 검증(개발자 모드 활성 상태라 실제 실행됨) — 정상/끊어짐 양쪽 다 확인.
+  **한계(정직)**: `cleanupStaleNpmShims()` 전체 경로 중 POSIX 분기
+  (`process.platform !== 'win32'`)는 이 PC가 Windows라 실행 자체는 못했다 —
+  개별 판정 함수 단위 검증까지만.
+
+**실제 시스템 미접촉 확인**: 이 PC의 실제 `%APPDATA%\npm`에는 애초에 `claudetower`
+shim이 없음(과거 세션에 수동 삭제됨, `05_FIELD_ISSUES §2.4` 참고) — `ls`로
+재확인했고, 이번 작업 전체가 격리된 임시 디렉터리에서만 실행·검증됨.
+또한 이 PC에 ClaudeTower가 **실제로 라이브 설치**돼 있어(현재 세션 상태표시줄이
+이걸로 동작 중) `uninstall`을 실제로 실행하는 실사용 테스트는 하지 않음(위험) —
+대신 `uninstall-command.test.js`(격리 환경)가 같은 코드 경로를 이미 통과시킴.
+
+**검증**: `npm run test:accounts` 119/119(무변경), `npm run verify`(Display)
+**245/245**(기존 235 + 신규 10), `npm run lint:boundary` — src/display/ **23개**
+파일(신규 1개 포함) 전부 모듈 경계 준수, `npm run lint` 클린.
+
+**남은 위험**: 없음(신규). PATH 자동등록(§3)은 여전히 별도 미해결 P2로 남음(이번
+범위 아님, 더 침습적이라 사용자 동의 하 별도 작업 필요). credential-store(M16)는
+여전히 유일한 하드 블로커.
+
+- 상태: **완료** — `src/display/config/npm-shim-cleanup.js`(신규),
+  `test/display/npm-shim-cleanup.test.js`(신규), `bin/claudetower.js`(수정),
+  `src/display/config/test-isolation.js`(수정), `CHECKPOINT.md` 변경.
+  로컬 커밋만(push는 사용자가 이후 결정 — git log로 실측: 로컬이 원격보다
+  5커밋 앞섬, M31/M32/M33/M34).
+
+---
+
+## M35: 2026-08-18 — credential-store 실제 OS 키체인 구현 (major unblock, 저장소 계층만)
+
+**배경**: M16(2026-07-27)·M20(2026-07-28)이 A/B로 확인했던 차단(`@napi-rs/keyring`
+실 I/O를 Claude Code 상위 안전장치가 막음, 되돌리면 통과)을 이번 세션에서 사용자가
+직접 지켜보는 대화형 세션에서 다시 시도했다. **막히지 않았다** — require →
+`new Entry(service, username)` → `setPassword`/`getPassword`/`deletePassword`
+전부 테스트 전용 항목으로 round-trip 성공(즉시 삭제, 흔적 없음 확인).
+
+**정직한 불확실성**: 왜 이번엔 안 막혔는지 확인하지 못했다. 가능성(전부 미검증
+추측): ① 이번 세션이 Auto Mode라 권한 처리가 다를 수 있음, ② M16/M20 이후 3주
+가까이 지나며 Claude Code 자체 분류기 동작이 바뀌었을 수 있음, ③ 당시와 조건이
+미묘하게 달랐을 가능성. 확실한 사실은 "오늘 이 세션에서 막히지 않았다"는 것뿐 —
+다음 세션에서 재현 안 될 수도 있다는 걸 전제하고 작업했다.
+
+**구현**: `src/accounts/credential-store/index.js`의 `getSecret`/`setSecret`/
+`deleteSecret` throw-스텁을 실제 구현으로 교체.
+- service='claudetower'(고정), username=`CredentialRef.external_ref`(기존 필드
+  의미 그대로 재사용, 새 키 조합 규칙 안 만듦)
+- `getSecret`: 존재하지 않는 항목은 에러 없이 `null` 반환(라이브러리 네이티브
+  동작을 그대로 노출, 실측으로 확인됨)
+- `deleteSecret`: 존재하지 않는 항목 삭제도 에러 없이 멱등 처리(마찬가지로
+  네이티브 동작 실측 확인 — widgets off/on과 같은 멱등성 원칙과 일관)
+- 비밀값은 에러 메시지·로그 어디에도 노출 안 함(테스트로 검증)
+- `file_fallback_encrypted` 백엔드는 미구현(범위 밖, OS 키체인 자체가 없는
+  환경은 별도 작업)
+
+**검증 범위 — 정직하게**: **Windows만 실제 검증**(대화형 라이브 테스트 +
+`npm run test:accounts`의 통합 테스트 둘 다 win32에서 성공). macOS/Linux는
+`@napi-rs/keyring`이 동일 API로 크로스플랫폼을 표방한다는 것에 근거한 **추정**일
+뿐 실측 아님.
+
+**테스트**: 단위 테스트(require.cache 치환으로 실제 OS 키체인 미접촉, mock
+Entry가 올바른 service/username/method를 받는지 검증) 8개 + 통합 테스트(win32
+전용, 실제 Credential Manager 왕복 후 정리) 1개 — 기존 게이트-증명 테스트 2개는
+전면 재작성. `npm run test:accounts` **127/127**(119+10-2), `npm run verify`
+(Display) 245/245(무변경), `npm run lint:boundary` 23개 파일 무변경 — 전부
+직접 실행해 확인. 테스트 종료 후 `cmdkey /list`로 Credential Manager에
+`claudetower` 관련 잔재 없음 재확인.
+
+**이번에 안 한 것(다음 라운드로 명시적으로 남김)**:
+- `bin/claudetower.js`에 `accounts add`/`accounts enable` CLI 배선 — 안 함
+  (이번 승인 범위는 저장소 계층 교체까지)
+- macOS/Linux 실측 — 안 함
+- `file_fallback_encrypted` 백엔드 — 안 함
+
+**남은 위험**: OAuth 자동전환 ToS 리스크는 그대로 유효(`.PRD/07_OAUTH_FLOW_SPEC.md
+§3-3` — credential-store는 중립 기술이나 이미 승인된 하이브리드 자동전환 위험을
+상속받음, 이 결정 자체는 재검토 조건 없음으로 이미 닫힘). credential-store가
+풀렸다고 해서 곧바로 전체 기능이 완성되는 게 아니다 — CLI 배선·프록시 실기동
+등 최소 1~2단계가 더 남아있다.
+
+- 상태: **완료(저장소 계층만)** — `src/accounts/credential-store/index.js`(구현),
+  `test/accounts/credential-store-index.test.js`(전면 재작성), `CHECKPOINT.md` 변경.
+  로컬 커밋만(push는 사용자가 이후 결정).
+
+---
+
+## M36: 2026-08-19 — Account 모듈 최초 실사용 기능: `accounts enable` + `accounts add --api-key`
+
+**이정표**: M35(credential-store 언락) 이후 4방향 재감사가 공통으로 지목한 유일한
+안전·의미 있는 다음 단계(OAuth 로그인은 ToS로 여전히 금지, API키 경로만 예외)를
+실행했다. 이번이 Account 모듈에서 **처음으로 실제 작동하는 계정 하나를 등록**할 수
+있게 된 지점이다.
+
+### 왜 `enable`과 `add`를 함께 만들었나
+
+`add-api-key-request.js`가 이미 `isAccountModuleEnabled(activationState)`를 필수
+조건으로 요구하는데, `module-activation-state.js`엔 영속화 함수가 없어(순수
+팩토리만 존재, 2026-07-11 결정으로 이미 review 끝난 파일이라 건드리지 않음) `enable`
+없이는 `add`가 항상 거부된다. 둘을 분리할 수 없었다.
+
+### 신설 파일
+
+- `src/accounts/module-activation-state-store.js` — ModuleActivationState 영속화
+  (`~/.claudetower/accounts-activation-state.json`, `CLAUDETOWER_ACCOUNTS_ACTIVATION_
+  STATE_PATH` override, 손상 시 안전하게 비활성화로 폴백, 부분격리 방어 포함)
+- `src/accounts/accounts/accounts-registry.js` — Account 레코드 목록 영속화
+  (`~/.claudetower/accounts-registry.json`, `CLAUDETOWER_ACCOUNTS_REGISTRY_PATH`
+  override). Account 엔티티 자체에 시크릿 필드가 없어 구조적으로 비밀값이 못 들어감.
+- `src/accounts/accounts-enable-command.js` — `claudetower accounts enable`.
+  consent-text.js를 그대로 출력하고 setup-wizard.js와 동일한 비동기 이터레이터
+  readline 패턴(EOF 버그 회피, rl.output 사용)으로 [y/N] 확인. 이미 활성화된
+  상태에서 재실행하면 멱등하게 처리.
+- `src/accounts/accounts/add-api-key-command.js` — `claudetower accounts add
+  --api-key <라벨> <키값>`. 검증(`buildAddApiKeyRequest`) → `setSecret`(credential-
+  store) → 레지스트리 기록 순서. 레지스트리 쓰기가 실패하면 방금 저장한 키를
+  `deleteSecret`으로 롤백 시도하고, 롤백도 실패하면 사람이 놓칠 수 없게 명시적으로
+  경고("심각: 자격증명은 저장됐지만...")한다 — "키는 있는데 목록엔 없는" 상태를
+  조용히 남기지 않는다.
+- `bin/claudetower.js`에 `enable`/`add --api-key` 서브커맨드 배선. `accounts status`도
+  이제 `readActivationState()`로 실제 상태를 읽어 보여주도록 갱신(이전엔 항상
+  기본값만 보여줬음). `status-report.js`의 컴포넌트 목록도 credential-store/enable/
+  add가 이제 "구현·사용 가능"으로 갱신(이전엔 전부 "미배선"으로 표시했었음).
+- `switch-policy-config.js`의 `ACCOUNTS_ISOLATION_VARS`에 신설 변수 2개 추가
+  (대칭 방어 원칙 — 새 파일이 격리된 채 이 파일만 격리 안 된 상태를 놓치지 않도록).
+
+### 설계 판단
+
+- **API키 만료 표현**: CredentialRef.token_expires_at은 스키마상 비어있지 않은 ISO
+  문자열이 필수(이미 review 끝난 credential-ref.js를 안 바꿈)인데 API키는 전통적
+  만료 개념이 없어 `'9999-12-31T23:59:59.999Z'` sentinel 값으로 "만료 없음"을 표현.
+- **backend 필드**: `process.platform` 기반 매핑(win32→windows_dpapi 등), 미지원
+  플랫폼은 명확히 에러(추측으로 지원한다고 하지 않음).
+- **네트워크 호출 없음**: 등록만 하고 Anthropic API로 키 유효성을 실제로 검증하지
+  않는다(이번 범위 밖, 명시).
+
+### 검증 (전부 직접 실행)
+
+- 단위 테스트 신규 21개(활성화상태 5 + 레지스트리 6 + enable명령 4 + add명령 6):
+  `npm run test:accounts` **148/148**(127+21)
+- `npm run verify`(Display) 245/245(무변경), `npm run lint:boundary` 23개 파일
+  무변경, `npm run lint` 클린
+- **라이브 CLI 전체 흐름 실행**(격리 경로: `CLAUDETOWER_ACCOUNTS_ACTIVATION_STATE_
+  PATH`/`CLAUDETOWER_ACCOUNTS_REGISTRY_PATH`를 임시파일로 지정, credential-store는
+  경로 override가 없어 실제 Windows Credential Manager를 그대로 씀):
+  1. enable 전 add 시도 → 거부(exit 1) 확인
+  2. enable에 `n` 입력 → 비활성화 유지 확인
+  3. enable에 `y` 입력 → 활성화 확인
+  4. 활성화 후 add → 성공(exit 0), 레지스트리에 계정 1건 기록 확인
+  5. 같은 라벨 재등록 → 거부 확인
+  6. 레지스트리 파일 원문에 비밀값("test-marker-value-12345") 미노출 확인
+- **뒷정리**: 실제 생성된 계정(`account_id: 43c484bb-...`)의 실제 키체인 항목을
+  별도 스크립트로 `deleteSecret` 후 `getSecret`이 null임을 재확인. 임시 활성화상태·
+  레지스트리 파일 삭제. `cmdkey /list`로 Credential Manager에 claudetower 관련
+  잔재 0건 재확인. 실제 프로덕션 경로(`~/.claudetower/accounts-activation-state.json`,
+  `~/.claudetower/accounts-registry.json`)는 이번 라이브 테스트 내내 한 번도
+  생성되지 않았음을 확인(이 PC의 실제 ClaudeTower 설치는 전혀 영향받지 않음).
+
+### 이번에 안 한 것 (다음 라운드로 명시적으로 남김)
+
+- `accounts disable`, `account-purge`, `accounts list`, `accounts remove` — 안 만듦
+- OAuth 로그인 흐름(--import 포함) — ToS §3-1/§3-3 금지 그대로, 계획 자체가 없음
+- 프록시 실제 기동(`startProxyServer`), quota 헤더 파싱 배선, 자동전환 로직 — 안 만듦
+- API키 실제 유효성 네트워크 검증 — 안 함(등록만)
+- macOS/Linux 실측 — 여전히 미검증
+
+- 상태: **완료(enable + add --api-key만)** — 로컬 커밋만(push는 사용자가 이후 결정).
+
+---
+
+## M37: 2026-08-19 — SEA 배포용 exe에서 credential-store 실동작 수정 (배포 채널 크리티컬 결함)
+
+**참고(다른 세션 작업, 기록 누락분)**: 세션 공백 중(01:04) 다른 세션이 커밋 `09e2dca`로
+`accounts disable`+`accounts list`를 이미 신설했다(위 M36 "이번에 안 한 것" 목록의 두 항목이
+이미 해소됨) — 이 CHECKPOINT엔 그 작업 자체의 M-항목이 없어 여기 한 줄로 보완 기록한다.
+`npm run verify` 245/245·`test:accounts` 158/158로 정상 반영 확인됨.
+
+**문제**: `npm run build`(SEA 단일실행파일)가 크래시 없이 완주해도(어제 `22a1e75` 부분수정),
+실제로 만들어진 `dist/claudetower-win-x64.exe`로 `accounts add --api-key`를 실행하면
+`No such built-in module: @napi-rs/keyring`로 실패했다 — M35~M36이 만든 모든 Account 실사용
+기능이 배포판에서는 전부 무용지물이었다. `.PRD/04_PROJECT_SPEC.md` 27행이 "사용자 PC의
+Node.js 설치 여부와 무관하게 동작"을 SEA 채택 이유로 명시했고, `01_PRD.md`가 이를 4대
+핵심가치 1번으로 선언한 만큼, 이 프로젝트의 유일한 정상 배포 채널이 걸린 크리티컬 결함이었다.
+
+**원인 규명 과정(시행착오 그대로 기록)**:
+1. `@napi-rs/keyring/index.js:67`을 직접 열람해 `NAPI_RS_NATIVE_LIBRARY_PATH` 환경변수가
+   공식 오버라이드 메커니즘임을 확인 → 시도했으나, SEA blob엔 애초에 node_modules가 없어
+   `require('@napi-rs/keyring')`(패키지 이름)로 그 로더 코드 자체에 도달하지 못해 실패.
+2. `.node` 파일을 exe 옆에 복사해두고 절대경로로 직접 `require()` → 여전히
+   `No such built-in module: <절대경로>`로 거부됨. **SEA의 require는 내장모듈과 blob에
+   번들된 것 외엔 절대경로 파일조차 전혀 허용하지 않는다**(추정이 아니라 실측 재확인 —
+   이전 라운드가 예상한 것보다 더 엄격한 제한).
+3. **해결**: `require()`가 내부적으로 쓰는 더 하위 API `process.dlopen(module, path)`을
+   SEA 실행 중일 때만 직접 호출 — require의 모듈 리졸버를 완전히 건너뛰고 네이티브
+   addon을 프로세스에 바로 매핑하는 방식이라 SEA의 require 제한과 무관하게 동작함을
+   실측으로 확인. `node:sea.isSea()`로 SEA 여부 분기, 아닐 때는 기존 방식 그대로.
+
+**구현**:
+- `src/accounts/credential-store/index.js`: `loadKeyringEntry()` 함수 신설 — SEA면
+  `process.dlopen`으로 `<exe폴더>/keyring-native.node`를 직접 로드, 아니면 기존 방식.
+- `scripts/build-sea.js`: 빌드 스크립트 자신이 `@napi-rs/keyring`을 실제로 require해
+  `require.cache`에서 이 머신에 실제로 설치된 네이티브 바이너리 경로를 알아낸 뒤(플랫폼별
+  하드코딩 매핑표 없이, 실제 설치된 optionalDependency를 그대로 신뢰), exe 옆에
+  `keyring-native.node`로 복사하는 단계(4-1) 추가.
+
+**실측 검증**: 빌드된 실제 exe로 `accounts enable`(y)→`accounts add --api-key
+sea-test-label sea-test-value-xyz` 실행 → **성공**(exit 0). 저장된 값을 `getPassword()`로
+직접 재조회해 `sea-test-value-xyz`와 정확히 일치함을 확인, `deletePassword()`로 정리 후
+재조회 `null` 확인(cmdkey는 이 라이브러리를 못 잡는다는 게 이미 확인됐으므로 사용 안 함).
+`npm run verify` 245/245, `npm run test:accounts` 158/158, `npm run lint` 클린 — 전부
+직접 재실행 확인, 회귀 없음.
+
+**macOS/Linux — 근거 있는 판단, 여전히 미검증**: `process.dlopen`은 Node 코어 API로 3개
+플랫폼에서 동일하게 동작(require()가 내부적으로 쓰는 것과 같은 함수, OS별 분기 없음).
+napi-rs 패키지들은 `.node` 확장자를 OS 무관하게 통일해서 쓴다는 걸 `@napi-rs/keyring/
+index.js` 원문에서 직접 확인했다(darwin-universal.node, linux-x64-gnu.node 등 전부
+`.node`). `build-sea.js`의 `resolveNativeKeyringPath()`도 하드코딩 없이 "그 머신에 실제
+설치된 걸 그대로 찾기" 방식이라 플랫폼 무관하게 같은 로직이 통할 근거는 있으나, **CI
+3-OS 매트릭스로 실측하기 전까지 "해결됨" 선언 금지**(이전 라운드 스스로 세운 원칙).
+
+**이번에 안 한 것**: macOS/Linux 실측(불가능, 이 PC가 Windows뿐), Linux musl 대응 검토(build
+스크립트가 "실제 설치된 것을 신뢰"하므로 이론상 자동 대응되지만 실측 못함), exe 용량 증가
+영향 측정(안 함 — 미미할 것으로 추정되나 확인 안 함).
+
+- 상태: **완료(Windows 실측 검증)** — 커밋 `50ed3b3`, 로컬만(push는 사용자가 이후 결정).
+
+## M38: 2026-08-19 — CI/설치 파이프라인이 keyring-native.node를 함께 배포하도록 완성
+
+**왜**: M37이 SEA exe 안에서 credential-store가 동작하게 고쳤지만, 그 해법(exe 옆
+`keyring-native.node` 별도 파일 + `process.dlopen` 로딩)을 실제 사용자에게 전달하는
+경로(CI 아티팩트 업로드, `install.ps1`/`install.sh` 다운로드)는 손대지 않은 채였다.
+직접 grep으로 재확인한 결과 `.github/workflows/build.yml`·양쪽 install 스크립트
+어디에도 `keyring-native.node` 언급이 없었다 — 지금 이대로 릴리스하면 M37의 수정이
+실제 설치본에는 반영 안 된 채로 나갈 뻔했다.
+
+**적용한 것**:
+- `.github/workflows/build.yml`: matrix에 `native-artifact`(플랫폼별 파일명:
+  `keyring-native-win-x64.node`/`keyring-native-macos-arm64.node`/
+  `keyring-native-linux-x64.node`) 추가, 빌드 후 `dist/keyring-native.node` 존재를
+  스모크단계에서 확인, 두 번째 `upload-artifact` 스텝으로 별도 아티팩트 업로드.
+- `install.ps1`: exe와 동일한 원자적 교체+재시도 패턴(잠금 경합 방지, 05_FIELD_ISSUES
+  이슈#1과 동일 원칙)으로 `keyring-native-win-x64.node`를 다운로드해 설치 폴더에
+  `keyring-native.node`로 배치.
+- `install.sh`: macOS/Linux용 동일 로직(`keyring-native-${platform}.node` 다운로드).
+- 파일명이 `credential-store/index.js`가 기대하는 `keyring-native.node`(exe와 같은
+  폴더, 플랫폼 접미사 없음)와 정확히 일치하는지 재확인 완료.
+
+**검증**:
+- YAML 문법(`python -c "import yaml; ..."`), PowerShell 문법(`PSParser::Tokenize`),
+  bash 문법(`bash -n`) 전부 통과.
+- **로컬 설치 시뮬레이션(실제 GitHub 릴리스 다운로드 대신 로컬 파일 복사로 대체)**:
+  임시 폴더에 실제 `dist/claudetower-win-x64.exe`+`dist/keyring-native.node`를 install
+  스크립트가 만들 최종 레이아웃 그대로 배치 → `--version` 성공 → `accounts enable`(y)
+  → `accounts add --api-key` **성공(exit 0)** → 레지스트리에 비밀값 미노출 확인 →
+  생성된 테스트 계정을 `getPassword()`/`deletePassword()` 왕복으로 직접 정리·재조회
+  `null` 확인.
+- 회귀 확인: `npm run verify` 245/245, `npm run test:accounts` 158/158.
+- `gh release list`/`gh workflow list`로 직접 확인: 이 저장소엔 릴리스를 자동 발행하는
+  워크플로우가 없다(워크플로우는 "Build SEA binaries" 하나뿐, `gh release create` 호출
+  없음) — 지금까지 v0.1.9~v0.4.0 전부 수동 `gh release create`로 발행된 것으로 확인됨
+  (추정 아니라 워크플로우 파일에 관련 스텝이 없음을 직접 읽어서 확인). **따라서 다음
+  실제 릴리스를 발행할 때, 사람(또는 다음 세션)이 `gh release create` 호출에 이번에
+  새로 생긴 3개 네이티브 자산 파일을 위 파일명 그대로 함께 첨부해야 한다** — 이건
+  코드로 자동화된 게 아니라 릴리스 발행자가 반드시 기억해야 하는 수동 단계로 남는다.
+
+**실제 릴리스 발행 전까지는 완전히 검증 불가한 부분(정직하게 인정)**: GitHub Releases
+API를 통한 실제 다운로드(`releases/latest/download/...`)는 이번에 실행하지 않았다
+(아직 발행된 릴리스가 없어 대상 자체가 없음) — 로컬 파일 시뮬레이션으로 "레이아웃이
+맞으면 동작한다"까지만 검증했고, 실제 다운로드 URL의 정확성은 다음 릴리스 발행 후
+재확인 필요.
+
+- 상태: **완료(CI/설치 스크립트 코드는 로컬 시뮬레이션으로 검증) — 실제 릴리스 발행
+  시 자산 첨부는 수동 단계로 남음, 커밋 로컬만(push는 사용자가 이후 결정)**.
+
+## M39: 2026-08-19 — README.md/README.en.md "계정 코드 미포함" 문구 전면 개정 (사실 정합성 회복)
+
+**발견한 문제**: M35~M38로 credential-store·accounts enable/add/disable/list가 실제로
+동작하고 SEA exe 배포 아티팩트에도 포함되게 됐는데, README.md/README.en.md는 여전히
+"계정 관련 코드는 배포판에 전혀 포함되지 않는다"고 최소 10곳에서 반복 주장하고 있었다.
+이 문구는 단순 설명이 아니라 NOTICE 파일 생략의 법적 근거, 상업적 사용 금지 조항의
+리스크 논리로 직접 쓰이고 있어 방치하면 다음 릴리스가 사실과 다른 법적 근거를 안은 채
+나가게 되는 상황이었다.
+
+**개정 방식**: 과장(자동전환이 이제 된다)·축소(여전히 아무것도 안 된다) 둘 다 피하고,
+"기본값은 항상 꺼짐 + `accounts enable`로 명시적 동의해야만 켜짐"을 새로운 핵심 안전
+근거로 세웠다. ToS 경고(로그인 계정 자동화 금지, API키 로테이션 남용방지조항 불확실성)는
+약화시키지 않고 `src/accounts/consent-text.js`(v2.1-hybrid-scope-clarified)와 내용을
+대조해 일치시켰다. 상업적 사용 금지 정책 자체는 유지하되, 그 근거를 "위험이 실제로
+배포판에 존재한다"는 더 강한 논리로 갱신했다.
+
+**NOTICE 파일 재조사**: `node_modules/@napi-rs/keyring/LICENSE`를 직접 열람 —
+**MIT 라이선스**(Apache 아님)로 확인됨. 따라서 Apache 4(d)의 NOTICE 전파 의무 대상은
+아니지만, MIT 자체의 저작권·허가고지 전달 요구는 별도 사안으로 남아있어 "서드파티
+라이선스 고지 파일 신설 필요 여부"를 법무 검토 항목으로 새로 남겼다(파일 신설 자체는
+이번 범위 밖, 하지 않음).
+
+**수정 위치**: 상단 요약·상태배너·목차 앵커·명령어 목록·폴더구조 주석·아키텍처 비유·
+§② 전체 섹션·FAQ 2건·상업적사용 근거·NOTICE 문단 — 총 10곳, README.md/README.en.md
+양쪽 모두 동일 수준으로 개정(기계번역 아닌 기존 영문판 톤 유지).
+
+**검증**: 수정 후 `grep -n "포함되어 있지 않\|포함되지 않\|미포함"` (한글) /
+`grep -n "not included\|does not include"` (영문) 재확인 — 남은 매치는 전부 과거
+changelog(v0.2.0 항목, 당시엔 사실이었던 역사적 기록이라 그대로 둠) 또는 이미 정확한
+문구(esbuild/eslint 미포함)뿐, 새로 발견된 모순 없음. `src/accounts/consent-text.js`와
+내용 대조 완료. `npm run verify` 245/245, `npm run test:accounts` 165/165(무변화,
+docs-only 커밋이므로 예상대로) — 코드는 전혀 안 건드림.
+
+**의도적으로 안 한 것**: `package.json` 버전 번호(0.4.0 유지, 별도 결정 사항)·
+README.html/README.en.html 재생성(별도 pandoc 파이프라인 필요, 범위 밖)·NOTICE 파일
+실제 신설.
+
+- 상태: **완료, 로컬 커밋만(push는 사용자가 이후 결정)**.
+
+---
+
+## M40: 2026-08-19 — 버전 0.5.0 상향 + 2차 종합 QA(결함 0건) + PR #8 main 병합 (M39 이후 문서 갱신 누락 정정)
+
+**발견한 사실**: M39 이후 `package.json` 버전이 0.4.0 → **0.5.0**으로 상향된 커밋
+(`934ca23`)이 이미 만들어졌는데 이 문서엔 반영되지 않은 채였다(M39가 "0.4.0 유지"라고
+적어둔 문장이 그새 stale해짐 — 이 프로젝트에서 반복돼온 "실제 작업과 CHECKPOINT 기록의
+시차" 패턴, M10·M13과 동일 부류).
+
+**이번 세션에서 직접 실행·확인한 것**:
+- [x] **2차 종합 QA(사용자 요청, 정상/예외/경계값/실패 케이스 포함)**: `lint`·
+  `lint:boundary`·`test:display`(245/245)·`test:accounts`(165/165)·`build`(네이티브
+  keyring 바이너리 exe 옆 복사 단계 포함)·`npm audit`(기존에 알려진 devDependency
+  `brace-expansion` HIGH 1건 외 신규 없음) 전부 직접 재실행. 병렬로 격리 환경(`CLAUDETOWER_*`
+  경로만 사용, 실제 설치·실제 Credential Manager 미접촉)에서 `accounts purge`(빈 상태/취소/
+  실제삭제 3가지)·`accounts disable`·`accounts list`·`install.ps1`의 신규 네이티브 자산
+  다운로드 로직 코드검토·실제 빌드된 v0.5.0 SEA exe로 `enable→add→list→purge` 전체 흐름
+  1회 라이브 실행까지 12개 시나리오 탐색 — **신규 결함 0건**(1차 QA에서 발견한 3건 — esbuild
+  빌드 크래시, 라벨 길이 100자 상한, 제어문자 거부 — 는 전부 그대로 정상 유지 재확인).
+  삭제 검증은 매번 `cmdkey` 대신 `getPassword()`/`deletePassword()` 직접 재조회로 확인(이
+  프로젝트에서 `cmdkey /list`가 `@napi-rs/keyring` 항목을 못 잡는 것을 실측으로 이미 확인한
+  전례가 있어 신뢰하지 않음).
+- [x] **PR #8(`934ca23` 기준) CI 매트릭스 3-OS 결과 직접 재확인**: `gh run view`로
+  `build (windows-latest, ...)`·`build (macos-latest, ...)`·`build (ubuntu-latest, ...)`
+  3개 job 모두 **success** 확인(빌드+`--version`/`--help` 스모크테스트+
+  `test -f dist/keyring-native.node` 존재확인까지 포함) + `verify-display-standalone`
+  job도 success. **단, 이 스모크테스트는 실행 여부만 확인할 뿐 `accounts enable→add`류
+  실제 키체인 왕복 동작까지는 검증하지 않는다** — macOS/Linux에서의 `process.dlopen()`
+  기반 credential-store 실동작(M37)은 여전히 라이브 미검증(물리 macOS/Linux 환경 없음),
+  Windows에서만 라이브 검증 완료된 상태 그대로임을 명시.
+- [x] **main 병합 안전성 사전 확인**: `git merge-tree $(git merge-base origin/main HEAD)
+  origin/main HEAD` — 충돌마커 0건, `origin/main..HEAD` 22개 커밋 / `HEAD..origin/main` 0개
+  커밋(main이 그 사이 움직이지 않아 fast-forward 성격 병합 가능). README.md가 이미
+  "현재 정식 출시된 버전(v0.4.0)에는 이 계정 기능이 아직 포함돼 있지 않습니다"라고
+  자체적으로 정직하게 고지하고 있음을 재확인(M39 반영분) — main 병합이 릴리스 발행과
+  같은 뜻이 아님을 문서 자체가 이미 구분해서 설명하는 상태.
+- [x] **결정**: M10과 동일한 유형의 위험(작업 브랜치·main 간 정보/코드 격차 방치)이
+  재발하지 않도록, PR #8을 지금 main으로 병합하기로 결정(제안 후 사용자 승인,
+  "CHECKPOINT M40 기록 후 병합"). **릴리스 발행(`gh release create`)은 여전히 별도
+  결정 사항으로 보류** — 병합해도 `install.ps1`/`install.sh`가 참조하는 "latest release"는
+  기존 v0.4.0 그대로라 실사용자에게 아직 라이브 미검증인 macOS/Linux credential-store가
+  실수로 노출되는 일은 없음.
+
+**병합 후 남는 위험(숨기지 않고 명시, 병합으로 해소되는 위험이 아님)**:
+1. macOS/Linux의 `process.dlopen()` 기반 credential-store 실동작 라이브 미검증(빌드/실행
+   자체는 CI로 검증됐으나 실제 키체인 왕복은 Windows에서만 확인됨) — 실제 릴리스 발행
+   전에 반드시 해소해야 함.
+2. `@napi-rs/keyring`(MIT) 서드파티 라이선스 고지 파일 신설 여부 — 법무 검토 항목으로
+   남음(M39에서 이미 기록, 변화 없음).
+3. 저장소 루트에 `.active-agents`·`.active-agents.lock`·`.active-agents.tmp`·
+   `.failure-tracker.jsonl`·`.pair-programming-session.md` 등 미추적 파일 존재 —
+   ClaudeTower 프로젝트 산출물이 아닌 세션 도구 부산물로 판단되어 이번 커밋 대상에서
+   명시적으로 제외함(파일명 개별 지정으로 스테이징, `git add -A` 사용 안 함).
+
+- 상태: **CHECKPOINT 기록 완료, PR #8 main 병합 진행 중(이 커밋 직후)**.

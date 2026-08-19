@@ -218,3 +218,24 @@ teamclaude 문서와 동일한지 미실측 — 구현 세션에서 반드시 �
 호환된다 — 값을 어디서 채우는지(폴링 API 호출 vs 응답 헤더 파싱)만 다르다. 구현 세션에는
 헤더 파싱 방식 채택을 권장(불필요한 API 호출 제거, 항상 최신 상태 반영). `reeval_interval_ms`는
 헤더가 없는 폴백/헬스체크 용도로 유지할지 구현 세션에서 재검토.
+
+**정확한 헤더 필드명 확정 (2026-08-17, CHECKPOINT M31 조사)**: 출처는 이 문서가 이미 §5-1~5-3에서
+인용한 것과 동일한 1차 소스 `github.com/jung-wan-kim/teamclaude`(`src/account-manager.js`의
+`updateQuota()`, `src/server.js`의 `anthropic-ratelimit-` 헤더 수집부) — GitHub API로 원문을
+직접 확인, 코드는 복사하지 않고 필드명(사실 정보)만 기록:
+
+구독(Unified/Claude Max) 계정:
+- `anthropic-ratelimit-unified-5h-utilization` (0~1 실수), `anthropic-ratelimit-unified-5h-reset` (Unix epoch 초)
+- `anthropic-ratelimit-unified-7d-utilization`, `anthropic-ratelimit-unified-7d-reset`
+- `anthropic-ratelimit-unified-status` (예: `rejected` — quota 소진으로 거부된 429인지 판별하는 용도)
+- 모델별 주간 윈도우(최상위 모델 티어에만 존재): `anthropic-ratelimit-unified-7d_<label>-utilization` /
+  `-reset` — `<label>`은 고정 목록이 아니라 정규식(`/^anthropic-ratelimit-unified-(7d_[a-z0-9_]+)-(utilization|reset)$/`)으로
+  매칭해 이름이 바뀌거나 새로 추가돼도 그대로 수용하는 방식(teamclaude 원문 방식 그대로 채택 권장)
+
+API 키 계정(표준 rate limit):
+- `anthropic-ratelimit-tokens-limit`, `anthropic-ratelimit-tokens-remaining`, `anthropic-ratelimit-tokens-reset`
+- `anthropic-ratelimit-requests-limit`, `anthropic-ratelimit-requests-remaining`, `anthropic-ratelimit-requests-reset`
+
+**미검증 남은 부분**: 이 필드명들은 teamclaude의 실제 라이브 관측 결과이지만, ClaudeTower 자신의
+실제 API 응답으로 직접 재현 검증한 적은 없다(credential-store가 열려 인증된 요청을 보낼 수 있어야
+가능) — 구현 세션은 실제 응답 헤더로 필드명이 여전히 일치하는지 먼저 1회 확인할 것(추측 금지 원칙).
