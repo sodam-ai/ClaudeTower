@@ -12,8 +12,11 @@
 // 않는 것도 같은 정신)에 따라, 지금 실제로 되는 것과 목표(아직 안 되는 것)를 명확히
 // 구분하도록 정정했다.
 //
-// bin/claudetower.js에 enable/add/list/disable 서브커맨드로 연결됨(M36 + 2026-08-19).
-// purge는 여전히 미구현 — 4번 항목의 그 부분만 아직 목표 서술이다.
+// bin/claudetower.js에 enable/add/list/disable 서브커맨드 + account-purge 최상위 명령으로
+// 전부 연결됨(M36 + 2026-08-19 fc4cefe에서 account-purge 신설·배선까지 완료, 라이브
+// enable→add→list→purge 전체 흐름 실측 검증됨). 4번 항목이 약속하는 내용은 이제 전부
+// 실제로 동작한다 — 이 주석이 한동안 "purge는 여전히 미구현"이라고 반대로 적혀 있었던
+// 것은 이 파일을 고친 바로 그 커밋 안에서 이미 stale해진 주석이었다(2026-08-20 발견·정정).
 
 const CONSENT_TEXT_VERSION = 'v2.1-hybrid-scope-clarified';
 
