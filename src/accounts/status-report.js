@@ -18,7 +18,14 @@ const IMPLEMENTED_COMPONENTS = [
   { name: '로컬 프록시 서버', detail: '127.0.0.1 고정 바인딩 + 로컬 접근 토큰 검증 — 단, 실제 기동(startProxyServer)은 미배선' },
   { name: '회전 감사 로그', detail: 'Windows: icacls / macOS·Linux: chmod 소유자 전용 권한' },
   { name: '동의 고지 문구', detail: '.PRD/08_ACCOUNTS_ENABLE_CONSENT_DRAFT.md v2.1-hybrid-scope-clarified' },
-  { name: 'quota 헤더 필드명', detail: '문서로만 확정(anthropic-ratelimit-unified-*), 파싱 코드 없음' },
+  {
+    name: 'API 키 계정 quota 파싱 + 전환 결정 로직',
+    detail:
+      'anthropic-ratelimit-tokens/requests-* 헤더 파싱 + best/next-available 전환 판단 순수 함수 구현·테스트 완료' +
+      '(src/accounts/quota/) — 단, ClaudeTower 자신의 실제 API 응답으로 필드명 재검증은 아직 안 했고, 실제' +
+      ' 프록시 요청 경로(server.js)에도 아직 연결하지 않음. OAuth/구독 계정(anthropic-ratelimit-unified-*)은' +
+      ' 범위 밖 — 다루지 않음.',
+  },
 ];
 
 const BLOCKED_COMPONENTS = [
@@ -28,7 +35,9 @@ const BLOCKED_COMPONENTS = [
   },
   {
     name: '프록시 실제 기동·자동전환·quota 실사용',
-    detail: '미배선 — accounts add로 등록만 가능, 자동전환은 다음 단계',
+    detail:
+      '전환 판단 로직 자체는 준비됐지만(위 항목), 실제 트래픽에 연결(startProxyServer 배선)하지 않음 —' +
+      ' 실제 API 응답으로 헤더 필드명 검증(실사용 비용 발생, 사용자 승인 필요)이 먼저 필요',
   },
 ];
 

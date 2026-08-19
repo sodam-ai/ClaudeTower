@@ -2150,6 +2150,53 @@ README.html/README.en.html 재생성(별도 pandoc 파이프라인 필요, 범�
    ClaudeTower 프로젝트 산출물이 아닌 세션 도구 부산물로 판단되어 이번 커밋 대상에서
    명시적으로 제외함(파일명 개별 지정으로 스테이징, `git add -A` 사용 안 함).
 
+## M41: 2026-08-20 — API 키 계정 quota 파싱 + 전환 결정 로직 신설(프록시 미배선, 순수 로직만)
+
+**배경**: 07_OAUTH_FLOW_SPEC.md §5-4가 2026-08-17(M31)에 `github.com/jung-wan-kim/teamclaude`
+실측으로 quota 헤더 정확한 필드명을 기록했지만, 그 문서 자신이 "ClaudeTower 자신의 실제 API
+응답으로 아직 재현 검증되지 않았다"고 명시했고, 2026-07-28 CHECKPOINT 결정은 그래서 파싱 코드
+자체를 보류했었다. 이번 세션은 "본래 목적(자동 전환)에서 벗어나지 않으면서 위험을 최소화"하는
+방향을 사용자와 함께 검토한 뒤, **실거래 트래픽에 배선하지 않는 순수 로직만** 먼저 만들기로
+범위를 좁혀 진행했다.
+
+**만든 것**:
+- [x] `src/accounts/quota/api-key-quota-reading.js` — `anthropic-ratelimit-tokens/requests-*`
+  헤더(API 키 계정 전용, OAuth/구독 계정의 `unified-*` 헤더는 의도적으로 다루지 않음 — 자동
+  전환 범위를 API 키로만 한정한다는 이번 세션 결정에 따름)를 파싱해 사용률(%)로 정규화하는
+  순수 함수. 기대한 헤더가 없거나 형식이 다르면 예외 대신 `null` 반환(안티패턴#1 위반 방지 —
+  "틀린 헤더명으로 조용히 매칭 실패"는 허용하되 "크래시"는 허용 안 함).
+- [x] `src/accounts/quota/switch-decision.js` — `threshold_pct`/`strategy`(전략 정의 출처:
+  `.PRD/.archive/QuotaSwitch원본/04_PROJECT_SPEC.md` 67행, claude-swap 실측 확인된 패턴 —
+  `best`=여유 가장 많은 계정, `next-available`=임계값 미만 첫 후보)를 받아 전환 여부·대상을
+  결정하는 순수 함수. `auth_type !== 'api_key'`·`status !== 'active'`·현재 계정 자신은 후보에서
+  구조적으로 제외. `shouldSwitch=true`의 `reason`은 항상 `rotation-event.js`의 `REASONS`
+  화이트리스트와 일치(회귀 테스트로 고정) — 나중에 실제 배선 시 그대로 `createRotationEvent()`에
+  넘길 수 있게.
+- [x] 신규 테스트 22건(`test:accounts` 165→187), `npm run verify`(lint+boundary+display 245)
+  회귀 없음, end-to-end 스모크(`node -e`로 두 모듈을 실제로 이어붙여 실행) 통과.
+- [x] `status-report.js` 갱신 — "quota 헤더 필드명: 문서로만 확정, 파싱 코드 없음" 항목을
+  "파싱+결정 로직 구현·테스트 완료, 단 실제 응답 재검증 안 됨 + 프록시 미배선"으로 정정(과대
+  고지 재발 방지 — M39 동의문구 사건과 같은 원칙).
+
+**의도적으로 하지 않은 것(범위 밖, 이유 명시)**:
+- `proxy/server.js`의 `startProxyServer` 실제 호출 배선 — 실거래 트래픽을 가로채는 코드라
+  버그 시 실제 설치된 사용자 환경(Claude Code 정상 사용)에 영향을 줄 수 있는 최고위험
+  구간이라 이번 세션엔 손대지 않음.
+- 실제 API 응답으로 teamclaude발 헤더 필드명 재검증 — credential-store가 열려 인증된 요청을
+  보낼 수 있어야 가능하지만, 이는 사용자의 실제 계정으로 실비용·실쿼터가 발생하는 행동이라
+  AI가 임의로 실행하지 않음(사용자 승인 필요, 다음 결정 지점).
+- OAuth/구독 계정 자동 전환 — ToS 이중 금지 결정(2순위 항목) 재검토 아님, 계속 범위 밖.
+
+**남은 위험(숨기지 않고 명시)**:
+1. 파싱 로직이 의존하는 필드명은 3자(teamclaude) 실측이지 ClaudeTower 자신의 실측이 아님 —
+   위 "재검증" 전까지는 "이론상 맞을 가능성이 높은 값"일 뿐, 실제로 다를 가능성을 배제 못 함.
+2. `best`/`next-available` 전략 로직 자체는 테스트로 검증됐지만, 여러 계정을 빠르게 오가는
+   실제 자동 전환이 "API 키 로테이션 자체가 남용방지 조항에 걸리는지 확인 안 됨"이라는
+   기존에 이미 고지된 법적 불확실성(consent-text.js)을 줄여주지 않는다 — 순수 로직 존재
+   자체가 그 리스크를 승인하는 것은 아님, 실제 배선 시점에 다시 검토 필요.
+3. 이번 커밋은 로컬 전용(push 안 함, 사용자 결정 대기) — `docs-and-fixes/2026-07-06` 브랜치
+   기준 origin 대비 ahead 1.
+
 - 상태: **CHECKPOINT 기록 완료, PR #8 main 병합 진행 중(이 커밋 직후)**.
 
 **2026-08-20 정정(M40 자체 오류 + 별도 발견 1건)**: PRD 전수 재검독 중 `bin/claudetower.js`
