@@ -2008,3 +2008,51 @@ index.js` 원문에서 직접 확인했다(darwin-universal.node, linux-x64-gnu.
 영향 측정(안 함 — 미미할 것으로 추정되나 확인 안 함).
 
 - 상태: **완료(Windows 실측 검증)** — 커밋 `50ed3b3`, 로컬만(push는 사용자가 이후 결정).
+
+## M38: 2026-08-19 — CI/설치 파이프라인이 keyring-native.node를 함께 배포하도록 완성
+
+**왜**: M37이 SEA exe 안에서 credential-store가 동작하게 고쳤지만, 그 해법(exe 옆
+`keyring-native.node` 별도 파일 + `process.dlopen` 로딩)을 실제 사용자에게 전달하는
+경로(CI 아티팩트 업로드, `install.ps1`/`install.sh` 다운로드)는 손대지 않은 채였다.
+직접 grep으로 재확인한 결과 `.github/workflows/build.yml`·양쪽 install 스크립트
+어디에도 `keyring-native.node` 언급이 없었다 — 지금 이대로 릴리스하면 M37의 수정이
+실제 설치본에는 반영 안 된 채로 나갈 뻔했다.
+
+**적용한 것**:
+- `.github/workflows/build.yml`: matrix에 `native-artifact`(플랫폼별 파일명:
+  `keyring-native-win-x64.node`/`keyring-native-macos-arm64.node`/
+  `keyring-native-linux-x64.node`) 추가, 빌드 후 `dist/keyring-native.node` 존재를
+  스모크단계에서 확인, 두 번째 `upload-artifact` 스텝으로 별도 아티팩트 업로드.
+- `install.ps1`: exe와 동일한 원자적 교체+재시도 패턴(잠금 경합 방지, 05_FIELD_ISSUES
+  이슈#1과 동일 원칙)으로 `keyring-native-win-x64.node`를 다운로드해 설치 폴더에
+  `keyring-native.node`로 배치.
+- `install.sh`: macOS/Linux용 동일 로직(`keyring-native-${platform}.node` 다운로드).
+- 파일명이 `credential-store/index.js`가 기대하는 `keyring-native.node`(exe와 같은
+  폴더, 플랫폼 접미사 없음)와 정확히 일치하는지 재확인 완료.
+
+**검증**:
+- YAML 문법(`python -c "import yaml; ..."`), PowerShell 문법(`PSParser::Tokenize`),
+  bash 문법(`bash -n`) 전부 통과.
+- **로컬 설치 시뮬레이션(실제 GitHub 릴리스 다운로드 대신 로컬 파일 복사로 대체)**:
+  임시 폴더에 실제 `dist/claudetower-win-x64.exe`+`dist/keyring-native.node`를 install
+  스크립트가 만들 최종 레이아웃 그대로 배치 → `--version` 성공 → `accounts enable`(y)
+  → `accounts add --api-key` **성공(exit 0)** → 레지스트리에 비밀값 미노출 확인 →
+  생성된 테스트 계정을 `getPassword()`/`deletePassword()` 왕복으로 직접 정리·재조회
+  `null` 확인.
+- 회귀 확인: `npm run verify` 245/245, `npm run test:accounts` 158/158.
+- `gh release list`/`gh workflow list`로 직접 확인: 이 저장소엔 릴리스를 자동 발행하는
+  워크플로우가 없다(워크플로우는 "Build SEA binaries" 하나뿐, `gh release create` 호출
+  없음) — 지금까지 v0.1.9~v0.4.0 전부 수동 `gh release create`로 발행된 것으로 확인됨
+  (추정 아니라 워크플로우 파일에 관련 스텝이 없음을 직접 읽어서 확인). **따라서 다음
+  실제 릴리스를 발행할 때, 사람(또는 다음 세션)이 `gh release create` 호출에 이번에
+  새로 생긴 3개 네이티브 자산 파일을 위 파일명 그대로 함께 첨부해야 한다** — 이건
+  코드로 자동화된 게 아니라 릴리스 발행자가 반드시 기억해야 하는 수동 단계로 남는다.
+
+**실제 릴리스 발행 전까지는 완전히 검증 불가한 부분(정직하게 인정)**: GitHub Releases
+API를 통한 실제 다운로드(`releases/latest/download/...`)는 이번에 실행하지 않았다
+(아직 발행된 릴리스가 없어 대상 자체가 없음) — 로컬 파일 시뮬레이션으로 "레이아웃이
+맞으면 동작한다"까지만 검증했고, 실제 다운로드 URL의 정확성은 다음 릴리스 발행 후
+재확인 필요.
+
+- 상태: **완료(CI/설치 스크립트 코드는 로컬 시뮬레이션으로 검증) — 실제 릴리스 발행
+  시 자산 첨부는 수동 단계로 남음, 커밋 로컬만(push는 사용자가 이후 결정)**.

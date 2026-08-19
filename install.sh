@@ -40,10 +40,15 @@ detect_platform() {
 }
 
 main() {
-  local platform artifact url
+  local platform artifact url native_artifact native_url
   platform="$(detect_platform)"
   artifact="claudetower-${platform}"
   url="https://github.com/${REPO}/releases/latest/download/${artifact}"
+  # M38: credential-store(계정 등록 등)가 실제로 동작하려면 exe와 같은 폴더에 네이티브
+  # addon(keyring-native.node)이 반드시 함께 있어야 한다(process.dlopen 우회 로딩,
+  # src/accounts/credential-store/index.js 참고).
+  native_artifact="keyring-native-${platform}.node"
+  native_url="https://github.com/${REPO}/releases/latest/download/${native_artifact}"
 
   mkdir -p "$INSTALL_DIR"
   echo "다운로드: $url"
@@ -57,6 +62,11 @@ main() {
   curl -fsSL "$url" -o "$tmp_path"
   chmod +x "$tmp_path"
   mv -f "$tmp_path" "$INSTALL_DIR/claudetower"
+
+  echo "다운로드: $native_url"
+  local native_tmp_path="$INSTALL_DIR/keyring-native.node.download.$$"
+  curl -fsSL "$native_url" -o "$native_tmp_path"
+  mv -f "$native_tmp_path" "$INSTALL_DIR/keyring-native.node"
 
   echo ""
   echo "설치 완료: $INSTALL_DIR/claudetower"
