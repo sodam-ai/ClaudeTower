@@ -2346,3 +2346,87 @@ consent-text.js` 상단 주석이 "purge는 여전히 미구현"이라고 적혀
 단계를 승인한 뒤 테스트를 의도적으로 수정).
 
 - 상태: **완료, 로컬 커밋만(push는 사용자가 이후 결정)**.
+
+## M46: 2026-08-20 — 활성 계정 상태 관리(active-account-state) 신설 + 전환 진동 방지 스로틀
+
+**배경**: M41(판단)·M44(중계)까지 있었지만, 판단 결과("전환해야 한다")를 실제로 적용하는
+곳이 없었다 — 이번 세션이 그 마지막 빈틈을 채웠다. M45의 실거래 배선 게이트는 이 파일이
+완성되는 걸 계기로 신설된 것이라, 같은 세션 안에서 "완성"과 "그러니 배선은 별도 승인 필요"가
+동시에 확인된 셈이다.
+
+**만든 것**:
+- [x] `src/accounts/accounts/active-account-state.js` — "지금 프록시가 어느 계정을 쓰는지"
+  포인터를 파일로 영속화(여러 프로세스 공유 목적). `applySwitch(decision, ...)`가
+  `evaluateSwitchDecision`의 결과를 실제로 적용: registry 재검증(레이스 컨디션 방어) →
+  상태 파일 갱신 → `active-account-handle` 갱신(Display 노출용) → RotationEvent 감사로그
+  기록. credential-store는 절대 모른다(정적 검사로 강제).
+- [x] `src/accounts/proxy/active-account-provider.js` — registry+credential-store+
+  active-account-state+quota 판단 로직을 전부 조합해, `request-forwarder.js`(M44)가
+  바로 주입받을 수 있는 `getApiKey`/`onUpstreamHeaders` 두 함수를 만든다. 활성 계정이
+  한 번도 선택 안 됐으면 registry의 첫 사용 가능 계정을 자동 채택(단, 이 자동 채택은
+  상태 파일에 기록되지 않는다 — 의도적, 코드 주석에 명시).
+- [x] **실측으로 발견한 결함을 그 자리에서 수정**: 두 계정으로 실제 로컬 네트워크
+  end-to-end 스모크(가짜 업스트림이 계정과 무관하게 항상 quota 초과 헤더로 응답)를
+  돌려보니, 요청마다 계정이 A→B→A→B로 계속 튕기는 진동이 실제로 재현됐다 —
+  `evaluateSwitchDecision`이 "현재 계정"만 후보에서 제외하기 때문에, 매 응답마다
+  전환이 반복될 수 있다는 뜻. `switch-policy-config.js`의 `reeval_interval_ms`(애초에
+  "0=주기적 재평가 비활성화"로 이 문제를 막으려고 만들어졌던 필드, 지금까지 아무도 실제로
+  안 씀)를 `applySwitch`에 배선해 스로틀로 사용 — 직전 전환 이후 그 시간이 안 지났으면
+  판단이 "전환"이어도 적용을 보류한다. 재현 스크립트로 수정 전(진동 재현) → 수정 후
+  (3번째 요청까지 전부 같은 계정 유지, 감사로그 이벤트 정확히 1건) 둘 다 직접 확인.
+  잦은 전환은 UX 문제를 넘어 동의 문구가 이미 고지한 법적 불확실성(API 키 로테이션 남용
+  방지 조항)과도 직결되므로 가볍게 볼 결함이 아니었다.
+- [x] **부수적으로 발견·수정**: `src/shared/active-account-handle/{read,write}.js`가
+  다른 모든 Account 상태 파일과 달리 `CLAUDETOWER_*` 격리 변수를 전혀 지원하지 않아,
+  이 파일을 테스트하려면 실제 사용자 홈 디렉터리의 진짜 파일을 건드려야 하는 구조였다
+  (2026-07-06 통제 재현으로 확정한 결함 부류와 같은 종류). `CLAUDETOWER_ACTIVE_ACCOUNT_HANDLE_PATH`
+  override를 추가하고, 기존 3개 파일(`accounts-registry.js`·`switch-policy-config.js`·
+  `module-activation-state-store.js`)의 `ACCOUNTS_ISOLATION_VARS` 목록에 새 변수 2개
+  (`CLAUDETOWER_ACCOUNTS_ACTIVE_ACCOUNT_PATH`·`CLAUDETOWER_ACTIVE_ACCOUNT_HANDLE_PATH`)를
+  대칭으로 추가(기존 관례 그대로 따름).
+- [x] 신규 테스트 20건(active-account-state 11 + active-account-provider 10, 이 중 하나는
+  기존 파일에 추가) 전부 실제 파일 I/O로 검증(require.cache mock은 credential-store에만
+  한정). `npm run verify`(display 245) 회귀 없음, `test:accounts` 회귀 없음. 별도 스크립트로
+  `request-forwarder`+`active-account-provider`+진짜 `startProxyServer`를 실제 로컬
+  TCP로 전부 이어붙인 end-to-end 스모크 실행(위 진동 재현·수정 확인 포함) — 실제
+  api.anthropic.com에는 이번에도 전혀 접촉하지 않음.
+- [x] **여전히 `bin/claudetower.js`를 전혀 건드리지 않았다** — M45의 게이트 테스트가
+  그대로 통과함을 직접 실행으로 재확인.
+
+**동시 작업 중 겪은 실제 사고(경고 목적으로 기록)**: 이 커밋을 만드는 도중, 동시 세션이
+자신의 게이트 커밋을 `git commit --amend`한 순간과 정확히 겹쳐 내가 `git add`로 스테이징해둔
+파일들이 공유 `.git/index`에서 통째로 사라지는 것을 실측으로 확인했다(작업 디렉터리의 실제
+파일 내용은 전혀 영향 없었음 — `git add`는 인덱스만 건드리므로). `git commit`이 "nothing to
+commit"을 반환해 발견, 디스크 파일 존재·크기 재확인 후 다시 `git add`+`git commit`으로
+안전하게 재시도해 해결했다. **교훈**: 여러 세션이 같은 저장소에서 동시에 `git add`/
+`git commit`(특히 `--amend`)을 실행하면 인덱스 레벨 경합이 실제로 발생할 수 있다 — 커밋 직후
+반드시 `git log`/`git status`로 실제로 반영됐는지 재확인해야 한다(이번처럼 조용히 사라질 수
+있음, 에러 없이).
+
+**남은 위험**:
+1. M45 게이트가 여전히 유효 — 이 커밋도 `startProxyServer`/`bin/claudetower.js`를 연결하지
+   않는다.
+2. `onUpstreamHeaders`는 매 응답마다 registry·상태·정책 파일을 동기(sync) I/O로 읽는다 —
+   실제 트래픽량을 아직 모르므로 캐싱 등 최적화는 하지 않음(조기 최적화 자제, 배선 후
+   필요하면 다룸).
+3. 이번 커밋도 로컬 전용(push 안 함).
+
+**2026-08-20 독립 재확인(별도 세션)**: M46의 진동 방지 스로틀 주장을 그대로 믿지 않고
+직접 코드로 재검증했다 — "고쳤다고 보고했지만 실제 호출부는 안 고쳐져 있었다"는 이
+프로젝트의 반복된 실패 패턴(M9)이 재발했는지 의심하고 확인한 것. 결과: `active-account-
+provider.js`의 `onUpstreamHeaders`가 실제로 `reevalIntervalMs: policy.reeval_interval_ms`를
+`applySwitch`에 전달하고 있음을 직접 코드로 확인(배선 누락 아님). `switch-policy-config.js`
+`DEFAULTS.reeval_interval_ms`도 `300000`(5분)으로, 사용자가 별도 설정을 안 해도 스로틀이
+기본으로 작동함까지 확인. **결함 없음 — M46 주장이 사실과 일치함을 독립 검증으로 확인.**
+같은 확인 과정에서 `test/accounts/live-wiring-gate.test.js`가 M46 이후에도 여전히 통과함을
+재실행으로 재확인(게이트 유효 지속).
+
+**참고(별도 이슈, 이번 라운드에서 새로 고치지 않음)**: 지난 라운드에 발견한
+`accounts-purge-command.test.js`의 통합 테스트가 전체 스위트를 한꺼번에 돌릴 때 간헐적으로
+false-fail을 내는 현상(이 PC의 프로세스 폭주 환경에서 여러 통합 테스트가 동일한 실제
+Windows Credential Manager 서비스명을 동시에 왕복하며 생기는 것으로 추정, 격리 실행 시
+항상 통과)은 여전히 미해결이다. 코드 로직 결함이 아니라 이 PC 환경 특유의 타이밍 이슈로
+보이며, 원인이 100% 확정되지 않은 채로 테스트 동시성 구조를 바꾸는 것은 새 위험을 만들
+수 있어 이번 라운드에서는 손대지 않았다 — 다음에 이 결과를 보는 세션은 "purge가 실제로
+깨졌다"고 성급히 결론 내리기 전에 반드시 해당 테스트 파일만 격리 실행해 재현되는지 먼저
+확인할 것.
