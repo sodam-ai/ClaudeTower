@@ -45,8 +45,40 @@
 // 파일에서 번들링이 깨진다(실측 확인, 2026-08-19). 네이티브 addon은 애초에 번들링 대상이
 // 아니므로, 변수를 거쳐 esbuild의 정적 분석을 피하고 실행 시점에만 진짜 require한다
 // (표준적인 esbuild 우회 기법 — 파일시스템 동작 자체는 바뀌지 않음).
-const NATIVE_KEYRING_MODULE = '@napi-rs/keyring';
-const { Entry } = require(NATIVE_KEYRING_MODULE);
+//
+// 2026-08-19 후속 발견 1: 위 우회로 esbuild 번들링 자체는 통과했지만, SEA(단일실행파일)로
+// 실행하면 여전히 'No such built-in module: @napi-rs/keyring'로 실패했다 — SEA blob
+// 안에는 node_modules가 없어 패키지를 "이름"으로 찾는 require가 원천적으로 안 된다.
+//
+// 2026-08-19 후속 발견 2: build-sea.js가 exe 옆에 복사해둔 .node 파일을 절대경로로
+// require()해도 여전히 'No such built-in module: <절대경로>'로 거부됐다 — SEA의 require는
+// 내장모듈과 blob에 번들된 것 외엔 절대경로 파일조차 전혀 허용하지 않는, 실측보다 더
+// 엄격한 제한이었다(추정 아니라 실측 재확인).
+//
+// 최종 해법: require()가 아니라 그 밑단에서 실제로 네이티브 addon을 로드하는 더 저수준
+// API인 process.dlopen()을 SEA 실행 중일 때만 직접 쓴다 — require의 모듈 리졸버를 완전히
+// 건너뛰고 addon을 프로세스에 바로 매핑하는 방식이라, SEA의 require 제한과 무관하게
+// 동작함을 실측으로 확인했다. 일반 개발/테스트 경로(`node bin/claudetower.js`, `npm test`)는
+// 이 분기를 안 타므로 전혀 영향 없음.
+function loadKeyringEntry() {
+  let sea = null;
+  try {
+    sea = require('node:sea');
+  } catch {
+    // node:sea 자체가 없는 아주 오래된 Node — 아래 isSea() 체크에서 자연히 false로 처리
+  }
+  if (sea && sea.isSea()) {
+    const path = require('node:path');
+    const nativePath = path.join(path.dirname(process.execPath), 'keyring-native.node');
+    const nativeModule = { exports: {} };
+    process.dlopen(nativeModule, nativePath);
+    return nativeModule.exports.Entry;
+  }
+  const NATIVE_KEYRING_MODULE = '@napi-rs/keyring';
+  return require(NATIVE_KEYRING_MODULE).Entry;
+}
+
+const Entry = loadKeyringEntry();
 
 const SERVICE_NAME = 'claudetower';
 

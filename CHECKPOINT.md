@@ -1950,3 +1950,62 @@ Entry가 올바른 service/username/method를 받는지 검증) 8개 + 통합 �
 - macOS/Linux 실측 — 여전히 미검증
 
 - 상태: **완료(enable + add --api-key만)** — 로컬 커밋만(push는 사용자가 이후 결정).
+
+---
+
+## M37: 2026-08-19 — SEA 배포용 exe에서 credential-store 실동작 수정 (배포 채널 크리티컬 결함)
+
+**참고(다른 세션 작업, 기록 누락분)**: 세션 공백 중(01:04) 다른 세션이 커밋 `09e2dca`로
+`accounts disable`+`accounts list`를 이미 신설했다(위 M36 "이번에 안 한 것" 목록의 두 항목이
+이미 해소됨) — 이 CHECKPOINT엔 그 작업 자체의 M-항목이 없어 여기 한 줄로 보완 기록한다.
+`npm run verify` 245/245·`test:accounts` 158/158로 정상 반영 확인됨.
+
+**문제**: `npm run build`(SEA 단일실행파일)가 크래시 없이 완주해도(어제 `22a1e75` 부분수정),
+실제로 만들어진 `dist/claudetower-win-x64.exe`로 `accounts add --api-key`를 실행하면
+`No such built-in module: @napi-rs/keyring`로 실패했다 — M35~M36이 만든 모든 Account 실사용
+기능이 배포판에서는 전부 무용지물이었다. `.PRD/04_PROJECT_SPEC.md` 27행이 "사용자 PC의
+Node.js 설치 여부와 무관하게 동작"을 SEA 채택 이유로 명시했고, `01_PRD.md`가 이를 4대
+핵심가치 1번으로 선언한 만큼, 이 프로젝트의 유일한 정상 배포 채널이 걸린 크리티컬 결함이었다.
+
+**원인 규명 과정(시행착오 그대로 기록)**:
+1. `@napi-rs/keyring/index.js:67`을 직접 열람해 `NAPI_RS_NATIVE_LIBRARY_PATH` 환경변수가
+   공식 오버라이드 메커니즘임을 확인 → 시도했으나, SEA blob엔 애초에 node_modules가 없어
+   `require('@napi-rs/keyring')`(패키지 이름)로 그 로더 코드 자체에 도달하지 못해 실패.
+2. `.node` 파일을 exe 옆에 복사해두고 절대경로로 직접 `require()` → 여전히
+   `No such built-in module: <절대경로>`로 거부됨. **SEA의 require는 내장모듈과 blob에
+   번들된 것 외엔 절대경로 파일조차 전혀 허용하지 않는다**(추정이 아니라 실측 재확인 —
+   이전 라운드가 예상한 것보다 더 엄격한 제한).
+3. **해결**: `require()`가 내부적으로 쓰는 더 하위 API `process.dlopen(module, path)`을
+   SEA 실행 중일 때만 직접 호출 — require의 모듈 리졸버를 완전히 건너뛰고 네이티브
+   addon을 프로세스에 바로 매핑하는 방식이라 SEA의 require 제한과 무관하게 동작함을
+   실측으로 확인. `node:sea.isSea()`로 SEA 여부 분기, 아닐 때는 기존 방식 그대로.
+
+**구현**:
+- `src/accounts/credential-store/index.js`: `loadKeyringEntry()` 함수 신설 — SEA면
+  `process.dlopen`으로 `<exe폴더>/keyring-native.node`를 직접 로드, 아니면 기존 방식.
+- `scripts/build-sea.js`: 빌드 스크립트 자신이 `@napi-rs/keyring`을 실제로 require해
+  `require.cache`에서 이 머신에 실제로 설치된 네이티브 바이너리 경로를 알아낸 뒤(플랫폼별
+  하드코딩 매핑표 없이, 실제 설치된 optionalDependency를 그대로 신뢰), exe 옆에
+  `keyring-native.node`로 복사하는 단계(4-1) 추가.
+
+**실측 검증**: 빌드된 실제 exe로 `accounts enable`(y)→`accounts add --api-key
+sea-test-label sea-test-value-xyz` 실행 → **성공**(exit 0). 저장된 값을 `getPassword()`로
+직접 재조회해 `sea-test-value-xyz`와 정확히 일치함을 확인, `deletePassword()`로 정리 후
+재조회 `null` 확인(cmdkey는 이 라이브러리를 못 잡는다는 게 이미 확인됐으므로 사용 안 함).
+`npm run verify` 245/245, `npm run test:accounts` 158/158, `npm run lint` 클린 — 전부
+직접 재실행 확인, 회귀 없음.
+
+**macOS/Linux — 근거 있는 판단, 여전히 미검증**: `process.dlopen`은 Node 코어 API로 3개
+플랫폼에서 동일하게 동작(require()가 내부적으로 쓰는 것과 같은 함수, OS별 분기 없음).
+napi-rs 패키지들은 `.node` 확장자를 OS 무관하게 통일해서 쓴다는 걸 `@napi-rs/keyring/
+index.js` 원문에서 직접 확인했다(darwin-universal.node, linux-x64-gnu.node 등 전부
+`.node`). `build-sea.js`의 `resolveNativeKeyringPath()`도 하드코딩 없이 "그 머신에 실제
+설치된 걸 그대로 찾기" 방식이라 플랫폼 무관하게 같은 로직이 통할 근거는 있으나, **CI
+3-OS 매트릭스로 실측하기 전까지 "해결됨" 선언 금지**(이전 라운드 스스로 세운 원칙).
+
+**이번에 안 한 것**: macOS/Linux 실측(불가능, 이 PC가 Windows뿐), Linux musl 대응 검토(build
+스크립트가 "실제 설치된 것을 신뢰"하므로 이론상 자동 대응되지만 실측 못함), exe 용량 증가
+영향 측정(안 함 — 미미할 것으로 추정되나 확인 안 함).
+
+- 상태: **완료(Windows 실측 검증)** — 커밋 `<커밋 시점에 채움>`, 로컬만(push는 사용자가
+  이후 결정).
