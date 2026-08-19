@@ -42,7 +42,7 @@ test('y 입력 시 활성화 상태를 저장하고 동의 문구를 출력한�
   const state = readActivationState(filePath);
   assert.equal(state.enabled, true);
   assert.ok(state.consent_given_at);
-  assert.equal(state.consent_text_version, 'v2-hybrid');
+  assert.equal(state.consent_text_version, 'v2.1-hybrid-scope-clarified');
   assert.ok(logs.some((l) => l.includes('활성화')));
   fs.unlinkSync(filePath);
 });

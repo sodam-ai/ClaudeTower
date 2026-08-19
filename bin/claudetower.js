@@ -15,7 +15,7 @@ async function run(args) {
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
     console.log(`${CLI_NAME} — Claude Code statusline CLI`);
     console.log('Usage: claudetower <command>');
-    console.log('Commands: setup, statusline, status, uninstall, widgets, config, accounts');
+    console.log('Commands: setup, statusline, status, uninstall, widgets, config, accounts, account-purge');
     // 인자 없이 실행된 경우(대표적으로 exe 더블클릭)는 Windows가 새 콘솔 창을 열고,
     // 프로세스가 끝나자마자 그 창도 함께 닫혀버려 사용자가 위 안내를 읽을 새도 없이
     // 창이 사라진다("켜졌다 바로 꺼짐" 버그 리포트로 발견). stdin/stdout이 둘 다
@@ -179,8 +179,22 @@ async function run(args) {
       return 0;
     }
     console.log('accounts 서브커맨드: status, config, enable, add --api-key, list, disable 사용 가능합니다.');
-    console.log('(계정 완전 삭제(purge)·자동전환 기동은 아직 개발 중입니다.)');
+    console.log('(자동전환 기동은 아직 개발 중입니다. 계정 완전 삭제는 claudetower account-purge를 쓰세요.)');
     return subcommand === undefined ? 0 : 1;
+  }
+
+  if (command === 'account-purge') {
+    // 최상위 명령(accounts의 서브커맨드가 아님) — 동의 문구(consent-text.js)·01_PRD.md의
+    // 원 설계 표기(`account-purge`)를 그대로 따른다. 되돌릴 수 없는 삭제라 확인 절차
+    // 필수(DO NOT 규칙) — accounts-purge-command.js가 [y/N] 확인 후에만 실행한다.
+    const { runAccountsPurgeCommand } = require('../src/accounts/accounts/accounts-purge-command');
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    try {
+      const result = await runAccountsPurgeCommand(rl, { log: (msg) => console.log(msg) });
+      return result.applied === false || result.failedCount > 0 ? 1 : 0;
+    } finally {
+      rl.close();
+    }
   }
 
   if (command === 'uninstall') {

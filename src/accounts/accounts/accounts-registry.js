@@ -77,4 +77,17 @@ function appendAccount(account, filePath) {
   fs.writeFileSync(filePath, JSON.stringify(list, null, 2), 'utf8');
 }
 
-module.exports = { resolveRegistryPath, readRegistry, existingLabels, appendAccount };
+// `claudetower account-purge`용 — 목록 전체를 통째로 교체한다. 자격증명(credential-store)
+// 삭제가 계정별로 부분 실패할 수 있으므로(accounts-purge-command.js 참고), 호출부가
+// "삭제 성공한 것만 뺀 나머지"를 여기 넘겨 실패분은 목록에 그대로 남긴다 — 자격증명은
+// 지워졌는데 목록에서도 사라져 추적 불가능해지는 상태를 만들지 않기 위함.
+function writeRegistry(accounts, filePath) {
+  if (filePath === undefined) {
+    assertNotPartialIsolation('CLAUDETOWER_ACCOUNTS_REGISTRY_PATH', '계정 목록 파일');
+    filePath = resolveRegistryPath();
+  }
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, JSON.stringify(accounts, null, 2), 'utf8');
+}
+
+module.exports = { resolveRegistryPath, readRegistry, existingLabels, appendAccount, writeRegistry };
