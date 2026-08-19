@@ -13,7 +13,7 @@ const { createModuleActivationState } = require('./module-activation-state');
 const IMPLEMENTED_COMPONENTS = [
   { name: 'OAuth CSRF state 검증', detail: 'crypto.randomBytes(32) + timingSafeEqual 상수시간 비교' },
   { name: 'PKCE', detail: 'RFC7636 S256만 지원(plain 방식 의도적 미구현) — 단, OAuth 실 로그인 흐름은 ToS로 여전히 미구현' },
-  { name: 'credential-store (OS 자격증명 저장소)', detail: 'Windows에서 실측 완료(M35), macOS/Linux는 추정' },
+  { name: 'credential-store (OS 자격증명 저장소)', detail: 'Windows에서 실측 완료(M35), macOS는 추정. Linux는 2026-08-20부터 의도적으로 미지원(안전 검증 불가로 명확히 거부)' },
   { name: 'accounts enable / add --api-key / list / disable / account-purge', detail: 'API키 계정 등록·조회·비활성화·완전삭제 가능(로그인 계정 등록·--import는 여전히 미구현)' },
   { name: '로컬 프록시 서버', detail: '127.0.0.1 고정 바인딩 + 로컬 접근 토큰 검증 — 단, 실제 기동(startProxyServer)은 미배선' },
   { name: '회전 감사 로그', detail: 'Windows: icacls / macOS·Linux: chmod 소유자 전용 권한' },

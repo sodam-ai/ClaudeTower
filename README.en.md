@@ -262,11 +262,13 @@ Originally, this project planned to add a feature that would let you automatical
 
 After an internal re-review (background and reasoning recorded in the repository's `.PRD/07_OAUTH_FLOW_SPEC.md`), we decided to **keep login-account automation out entirely, and proceed only with the hybrid API-key path that the Terms of Service carve out as an exception**. As a result, starting with the next release, here's exactly what's actually included and working, and what still isn't.
 
-**What actually works today** (disabled by default — see "How to turn it on" below first):
+> **Supported platforms (important, 2026-08-20)**: This "② Account switching" feature is **Windows and macOS only**. Linux is not supported for this feature (we don't have a physical Linux environment to live-verify the real credential store, and chose not to ship it unverified — see `CHECKPOINT.md` for details). On Linux, the **statusline (①) feature keeps working normally**, unaffected by this restriction.
+
+**What actually works today** (disabled by default — see "How to turn it on" below first, **Windows/macOS only**):
 - `claudetower accounts status` — check whether the account module is on, and which parts are implemented vs. not (read-only)
 - `claudetower accounts config` — pre-set switch threshold, port, etc. locally without registering any account
 - `claudetower accounts enable` — shows the consent notice below and requires you to type `y` yourself before it turns on
-- `claudetower accounts add --api-key <label> <key>` — registers an API-key account. The key value is stored only in this computer's OS credential vault (Windows: Credential Manager / macOS: Keychain / Linux: Secret Service) and is never transmitted anywhere
+- `claudetower accounts add --api-key <label> <key>` — registers an API-key account. The key value is stored only in this computer's OS credential vault (Windows: Credential Manager / macOS: Keychain) and is never transmitted anywhere
 - `claudetower accounts list` — view registered accounts (key values themselves are never shown)
 - `claudetower accounts disable` — turn it back off (registered account info is kept)
 

@@ -52,12 +52,24 @@ function resolveNativeKeyringPath() {
   return nativeEntry;
 }
 
+// 2026-08-20 결정: Account 기능(계정 등록·자동전환)은 Windows/macOS 전용으로 범위를
+// 좁혔다(credential-store/index.js의 assertSupportedPlatform() 참고, Display 모듈은
+// 계속 Linux 지원). Linux 빌드에서는 애초에 쓰이지 않을 네이티브 keyring 바이너리를
+// 굳이 컴파일·번들링하지 않는다 — "동작 안 하는 기능을 위한 바이너리를 조용히 얹어
+// 배포 용량만 늘리는" 상태를 피한다.
+const SUPPORTS_ACCOUNT_KEYRING = process.platform !== 'linux';
+
 function main() {
   fs.mkdirSync(DIST, { recursive: true });
 
   step('0) 네이티브 keyring 바이너리 위치 확인');
-  const nativeKeyringSource = resolveNativeKeyringPath();
-  console.log(`OK -> ${nativeKeyringSource}`);
+  let nativeKeyringSource = null;
+  if (SUPPORTS_ACCOUNT_KEYRING) {
+    nativeKeyringSource = resolveNativeKeyringPath();
+    console.log(`OK -> ${nativeKeyringSource}`);
+  } else {
+    console.log('SKIP (Linux는 Account 기능 미지원 — 네이티브 keyring 바이너리를 빌드하지 않습니다)');
+  }
 
   step('1) esbuild 번들 (bin/claudetower.js -> dist/bundle.cjs)');
   esbuild.buildSync({
@@ -100,9 +112,13 @@ function main() {
   console.log(`OK -> ${targetExePath}`);
 
   step('4-1) 네이티브 keyring 바이너리를 exe 옆에 복사 (SEA 런타임용)');
-  const nativeKeyringTarget = path.join(DIST, 'keyring-native.node');
-  fs.copyFileSync(nativeKeyringSource, nativeKeyringTarget);
-  console.log(`OK -> ${nativeKeyringTarget}`);
+  if (SUPPORTS_ACCOUNT_KEYRING) {
+    const nativeKeyringTarget = path.join(DIST, 'keyring-native.node');
+    fs.copyFileSync(nativeKeyringSource, nativeKeyringTarget);
+    console.log(`OK -> ${nativeKeyringTarget}`);
+  } else {
+    console.log('SKIP (Linux)');
+  }
 
   step('5) postject로 blob 주입');
   execFileSync(
