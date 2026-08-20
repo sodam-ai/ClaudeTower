@@ -29,18 +29,37 @@ function formatLastUsedLine(account) {
   return `      마지막 사용: ${account.last_used_at}${project}`;
 }
 
+// .PRD/03_PHASES.md Phase 2 체크리스트 "리셋 시각"(2026-08-20 감사로 발견한 잔여 갭 —
+// api-key-quota-reading.js가 이미 파싱하고 quota-cache-store.js가 이미 저장하고
+// 있었지만 표시가 빠져 있었다). tokens_reset_at/requests_reset_at은 Anthropic 응답
+// 헤더 원문을 그대로 저장한 값이라 정확한 형식(ISO 문자열인지 Unix epoch 초인지)이
+// 아직 실측 검증되지 않았다(diagnose-quota를 사용자가 아직 실행 전 — 07_OAUTH_FLOW_SPEC.md
+// 가 이미 명시한 미확인 항목, CHECKPOINT.md 2026-07-28 "안티패턴#1: 추측 금지" 결정).
+// 그래서 날짜로 파싱·재포맷하지 않고 원문 문자열 그대로 보여준다 — 형식을 잘못 짐작해
+// 변환하면 실제와 다른 값을 보여주거나 깨질 위험이 있다.
+function formatResetLine(quotaEntry) {
+  const val = (v) => v || '알 수 없음';
+  return (
+    `      리셋 예정(응답 헤더 원문 그대로, 형식 가공 안 함): ` +
+    `토큰 ${val(quotaEntry.tokens_reset_at)} / 요청수 ${val(quotaEntry.requests_reset_at)}`
+  );
+}
+
 function formatAccountLine(account, quotaEntry = null) {
   const base = `  - ${account.label} (${account.auth_type}, ${account.status}, 등록: ${account.created_at})`;
-  const quotaLine = !quotaEntry
-    ? `      사용률: 확인 안 됨(claudetower accounts diagnose-quota ${account.label}로 확인 가능)`
-    : (() => {
-        const pct = (v) => (typeof v === 'number' ? `${v.toFixed(1)}%` : '알 수 없음');
-        return (
-          `      사용률(마지막 확인: ${quotaEntry.checked_at}): ` +
-          `토큰 ${pct(quotaEntry.tokens_used_pct)} / 요청수 ${pct(quotaEntry.requests_used_pct)}`
-        );
-      })();
-  return `${base}\n${quotaLine}\n${formatLastUsedLine(account)}`;
+  const quotaLines = !quotaEntry
+    ? [`      사용률: 확인 안 됨(claudetower accounts diagnose-quota ${account.label}로 확인 가능)`]
+    : [
+        (() => {
+          const pct = (v) => (typeof v === 'number' ? `${v.toFixed(1)}%` : '알 수 없음');
+          return (
+            `      사용률(마지막 확인: ${quotaEntry.checked_at}): ` +
+            `토큰 ${pct(quotaEntry.tokens_used_pct)} / 요청수 ${pct(quotaEntry.requests_used_pct)}`
+          );
+        })(),
+        formatResetLine(quotaEntry),
+      ];
+  return [base, ...quotaLines, formatLastUsedLine(account)].join('\n');
 }
 
 function runAccountsListCommand({ registryPath, quotaCachePath, log = () => {} } = {}) {
