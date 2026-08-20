@@ -14,9 +14,15 @@ const IMPLEMENTED_COMPONENTS = [
   { name: 'OAuth CSRF state 검증', detail: 'crypto.randomBytes(32) + timingSafeEqual 상수시간 비교' },
   { name: 'PKCE', detail: 'RFC7636 S256만 지원(plain 방식 의도적 미구현) — 단, OAuth 실 로그인 흐름은 ToS로 여전히 미구현' },
   { name: 'credential-store (OS 자격증명 저장소)', detail: 'Windows에서 실측 완료(M35), macOS는 추정. Linux는 2026-08-20부터 의도적으로 미지원(안전 검증 불가로 명확히 거부)' },
-  { name: 'accounts enable / add --api-key / list / remove / rename / disable / account-purge', detail: 'API키 계정 등록·조회·개별삭제·이름변경·비활성화·전체삭제 가능(로그인 계정 등록·--import는 여전히 미구현)' },
+  { name: 'accounts enable / add --api-key / list / remove / rename / switch / disable / account-purge', detail: 'API키 계정 등록·조회·개별삭제·이름변경·수동전환·비활성화·전체삭제 가능(로그인 계정 등록·--import는 여전히 미구현)' },
   { name: 'accounts list 사용률 표시', detail: 'diagnose-quota로 마지막 확인한 사용률을 캐시에서 보여줌(실시간 API 호출 없음) — 한 번도 diagnose-quota를 안 돌린 계정은 "확인 안 됨"' },
-  { name: 'accounts list 마지막 사용 정보 표시', detail: '전환(applySwitch) 시점에 레지스트리에 기록된 last_project_path/last_used_at을 보여줌 — 실거래 배선 전까지는 실사용에서 값이 채워지지 않음(테스트로만 검증됨)' },
+  { name: 'accounts list 마지막 사용 정보 표시', detail: '전환(applySwitch) 시점에 레지스트리에 기록된 last_project_path/last_used_at을 보여줌 — `accounts switch`로 이제 실사용에서도 값이 채워짐(2026-08-21부터, 이전엔 실거래 배선 전까지 테스트로만 검증됐음)' },
+  {
+    name: 'accounts switch <라벨> (수동 강제 전환)',
+    detail:
+      'API키 계정 사이를 사용자가 직접 명령으로 전환. applySwitch()를 실제로 호출하는 첫 CLI 경로 — active-account-state/handle·RotationEvent(reason: manual)가' +
+      ' 이제 실사용에서 갱신됨. 자동 감지·자동 순환이 아니라 매번 사용자가 직접 실행하는 1회성 전환이라 OAuth 계정은 거부(자동 전환과 동일한 API키 전용 제약).',
+  },
   { name: '로컬 프록시 서버', detail: '127.0.0.1 고정 바인딩 + 로컬 접근 토큰 검증 + Origin/Referer 헤더 검사(브라우저발 요청 차단, CORS 응답 미노출) — 단, 실제 기동(startProxyServer)은 미배선' },
   { name: '회전 감사 로그', detail: 'Windows: icacls / macOS·Linux: chmod 소유자 전용 권한' },
   { name: '동의 고지 문구', detail: '.PRD/08_ACCOUNTS_ENABLE_CONSENT_DRAFT.md v2.1-hybrid-scope-clarified' },

@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
-const { appendRotationEvent, readRotationEvents } = require('../../src/accounts/audit/rotation-log');
+const { appendRotationEvent, readRotationEvents, resolveRotationLogPath } = require('../../src/accounts/audit/rotation-log');
 
 // 절대 실제 사용자 감사 로그 경로를 쓰지 않는다 — 매 테스트마다 임시 디렉터리를 새로 만든다
 // (settings-writer.test.js의 tempSettingsPath 패턴과 동일).
@@ -124,4 +124,46 @@ test('readRotationEvents: 빈 줄(파일 끝 개행 등)이 섞여도 무시하�
   fs.appendFileSync(filePath, '\n\n');
   const events = readRotationEvents(filePath);
   assert.equal(events.length, 1);
+});
+
+// 2026-08-21: applySwitch()의 유일한 실사용 호출부(claudetower accounts switch)를 실제로
+// 실행하자 filePath를 안 넘긴 상태에서 `path.dirname(undefined)` 크래시가 재현됐다 — 이
+// 파일이 다른 Account 상태 파일들과 달리 기본 경로 해석 함수가 없었기 때문. 아래 3개는
+// 그 결함에 대한 회귀 테스트다.
+test('resolveRotationLogPath: CLAUDETOWER_ACCOUNTS_ROTATION_LOG_PATH가 있으면 그 값을 쓴다', () => {
+  const prev = process.env.CLAUDETOWER_ACCOUNTS_ROTATION_LOG_PATH;
+  process.env.CLAUDETOWER_ACCOUNTS_ROTATION_LOG_PATH = '/tmp/custom-rotation.jsonl';
+  try {
+    assert.equal(resolveRotationLogPath(), '/tmp/custom-rotation.jsonl');
+  } finally {
+    if (prev === undefined) delete process.env.CLAUDETOWER_ACCOUNTS_ROTATION_LOG_PATH;
+    else process.env.CLAUDETOWER_ACCOUNTS_ROTATION_LOG_PATH = prev;
+  }
+});
+
+test('appendRotationEvent/readRotationEvents: filePath를 안 주면 CLAUDETOWER_ACCOUNTS_ROTATION_LOG_PATH로 격리된 경로에 실제로 쓰고 읽는다(크래시 없음)', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'claudetower-audit-default-test-'));
+  const isolatedPath = path.join(dir, 'rotation-log.jsonl');
+  const prev = process.env.CLAUDETOWER_ACCOUNTS_ROTATION_LOG_PATH;
+  process.env.CLAUDETOWER_ACCOUNTS_ROTATION_LOG_PATH = isolatedPath;
+  try {
+    appendRotationEvent(VALID, undefined);
+    const events = readRotationEvents(undefined);
+    assert.equal(events.length, 1);
+    assert.equal(events[0].event_id, 'evt-001');
+  } finally {
+    if (prev === undefined) delete process.env.CLAUDETOWER_ACCOUNTS_ROTATION_LOG_PATH;
+    else process.env.CLAUDETOWER_ACCOUNTS_ROTATION_LOG_PATH = prev;
+  }
+});
+
+test('appendRotationEvent: 인자 없이(filePath undefined) 호출 시 다른 CLAUDETOWER_* 변수만 설정돼 있으면 부분격리로 거부한다', () => {
+  const prevWidget = process.env.CLAUDETOWER_WIDGET_CONFIG_PATH;
+  process.env.CLAUDETOWER_WIDGET_CONFIG_PATH = '/tmp/irrelevant.json';
+  try {
+    assert.throws(() => appendRotationEvent(VALID, undefined), /테스트 격리 변수/);
+  } finally {
+    if (prevWidget === undefined) delete process.env.CLAUDETOWER_WIDGET_CONFIG_PATH;
+    else process.env.CLAUDETOWER_WIDGET_CONFIG_PATH = prevWidget;
+  }
 });
