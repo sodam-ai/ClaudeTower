@@ -26,7 +26,7 @@ const os = require('node:os');
 const crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
 const { CONFIG_DIR_NAME } = require('../../shared/constants');
-const { readRegistry, writeRegistry } = require('./accounts-registry');
+const { readRegistry, updateRegistry } = require('./accounts-registry');
 const { appendRotationEvent } = require('../audit/rotation-log');
 const { writeActiveAccountHandle } = require('../../shared/active-account-handle/write');
 
@@ -251,12 +251,20 @@ function applySwitch(
   // (호출부가 cwd를 모르는 경우) 기존에 알고 있던 값을 덮어쓰지 않는다 — "몰랐다"는 정보로
   // "알고 있던 값"을 지우는 건 사용자에게 손해이기 때문. last_used_at은 projectPath 유무와
   // 무관하게 항상 이 전환 시각으로 갱신한다(전환이 실제로 일어났다는 사실 자체는 확실하므로).
-  const updatedAccounts = accounts.map((a) =>
-    a.account_id === target.account_id
-      ? { ...a, last_project_path: projectPath !== null ? projectPath : a.last_project_path, last_used_at: occurredAt }
-      : a
+  // 2026-08-20 정정: 위 accounts(전환 대상 유효성만 확인하려고 읽은 스냅샷)를 그대로
+  // map해서 쓰지 않는다 — 전환마다 자동 호출되는 이 경로는 여러 터미널이 동시에 계정을
+  // 전환할 수 있는 실제 위험 시나리오라, updateRegistry가 락을 쥔 시점의 최신 목록
+  // 기준으로 다시 반영해야 그 사이 다른 프로세스가 만든 변경(다른 계정의 전환, rename
+  // 등)을 잃어버리지 않는다.
+  updateRegistry(
+    (current) =>
+      current.map((a) =>
+        a.account_id === target.account_id
+          ? { ...a, last_project_path: projectPath !== null ? projectPath : a.last_project_path, last_used_at: occurredAt }
+          : a
+      ),
+    registryPath
   );
-  writeRegistry(updatedAccounts, registryPath);
 
   const { event } = appendRotationEvent(
     {
