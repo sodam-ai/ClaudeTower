@@ -107,6 +107,59 @@ test('startProxyServer: 접근 토큰이 틀리면 401을 반환하고 onAuthori
   assert.equal(res.statusCode, 401);
 });
 
+test('startProxyServer: Origin 헤더가 있으면(브라우저발) 유효한 접근 토큰이어도 403으로 거부한다(DNS 리바인딩 방어)', async (t) => {
+  const config = testProxyConfig(18419);
+  let called = false;
+  const handle = await startProxyServer(config, {
+    onAuthorizedRequest: () => {
+      called = true;
+    },
+  });
+  t.after(() => stopProxyServer(handle));
+
+  const res = await request(18419, {
+    headers: { [ACCESS_TOKEN_HEADER]: 'test-access-token-not-real', origin: 'https://evil.example.com' },
+  });
+  assert.equal(called, false);
+  assert.equal(res.statusCode, 403);
+});
+
+test('startProxyServer: Referer 헤더가 있으면(브라우저발) 유효한 접근 토큰이어도 403으로 거부한다', async (t) => {
+  const config = testProxyConfig(18421);
+  let called = false;
+  const handle = await startProxyServer(config, {
+    onAuthorizedRequest: () => {
+      called = true;
+    },
+  });
+  t.after(() => stopProxyServer(handle));
+
+  const res = await request(18421, {
+    headers: { [ACCESS_TOKEN_HEADER]: 'test-access-token-not-real', referer: 'https://evil.example.com/attack.html' },
+  });
+  assert.equal(called, false);
+  assert.equal(res.statusCode, 403);
+});
+
+test('startProxyServer: 응답에 Access-Control-Allow-* 헤더를 절대 보내지 않는다(CORS 응답 미노출)', async (t) => {
+  const config = testProxyConfig(18423);
+  const handle = await startProxyServer(config, { onAuthorizedRequest: (req, res) => res.end('ok') });
+  t.after(() => stopProxyServer(handle));
+
+  const res = await new Promise((resolve, reject) => {
+    const req = http.request(
+      { host: '127.0.0.1', port: 18423, path: '/v1/messages', method: 'GET', headers: { [ACCESS_TOKEN_HEADER]: 'test-access-token-not-real' }, agent: false },
+      (r) => {
+        r.on('data', () => {});
+        r.on('end', () => resolve(r));
+      }
+    );
+    req.on('error', reject);
+    req.end();
+  });
+  assert.equal(Object.keys(res.headers).some((h) => h.toLowerCase().startsWith('access-control-')), false);
+});
+
 test('startProxyServer: onAuthorizedRequest 콜백 없이 호출하면 TypeError를 던지고 서버를 열지 않는다', async () => {
   const config = testProxyConfig(18409);
   await assert.rejects(() => startProxyServer(config, {}), TypeError);

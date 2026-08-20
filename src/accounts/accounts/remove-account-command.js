@@ -15,7 +15,7 @@
 // 하나를 지운다고 Account 기능 자체를 꺼버리면 나머지 계정까지 못 쓰게 되는 부작용이라
 // disable과 동일하게 "그건 이 명령의 책임이 아니다"라는 원칙을 따른다.
 
-const { readRegistry, writeRegistry } = require('./accounts-registry');
+const { readRegistry, updateRegistry } = require('./accounts-registry');
 const { backendForPlatform } = require('./add-api-key-command');
 const { getSecret, deleteSecret } = require('../credential-store');
 
@@ -54,8 +54,11 @@ async function runRemoveAccountCommand(rl, label, { registryPath, log = () => {}
     return { applied: false, reason: 'credential_delete_failed', error: err.message };
   }
 
-  const remaining = accounts.filter((a) => a.account_id !== account.account_id);
-  writeRegistry(remaining, registryPath);
+  // 2026-08-20 정정: 위에서 읽은 accounts(확인 프롬프트를 띄우기 전 스냅샷)를 그대로
+  // 필터링해서 쓰지 않는다 — 사용자가 [y/N]에 답하는 동안 다른 프로세스가 목록을 바꿨을
+  // 수 있어서(예: 다른 터미널에서 계정을 추가함), updateRegistry가 락을 쥔 시점의 진짜
+  // 최신 목록을 기준으로 다시 필터링한다(그 사이 생긴 변경을 잃어버리지 않기 위함).
+  updateRegistry((current) => current.filter((a) => a.account_id !== account.account_id), registryPath);
 
   log(`"${label}" 계정을 삭제했습니다.`);
   return { applied: true, accountId: account.account_id };
