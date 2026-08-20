@@ -2,9 +2,9 @@
 
 [한국어](./README.md) | [English](./README.en.md)
 
-A statusline CLI for Claude Code. Written so that anyone can follow it from start to finish, even with little or no prior experience with computers or AI tools — this single document covers everything from installation to troubleshooting and legal information. (An experimental feature for registering API-key accounts is included but disabled by default; login-account automation and real auto-switching still don't exist — see "② Account switching" below.)
+A statusline CLI for Claude Code. Written so that anyone can follow it from start to finish, even with little or no prior experience with computers or AI tools — this single document covers everything from installation to troubleshooting and legal information. (An experimental feature for registering API-key accounts is included but disabled by default; login-account automation and fully automatic usage-triggered switching still don't exist — see "② Account switching" below.)
 
-> **Current status (important)**: "① Statusline" below is always safe and works right now. "② Account switching" will experimentally include API-key account registration starting with the next release, but it is **always disabled by default** — you must read the consent notice and explicitly opt in via `accounts enable`. Login (subscription) account automation still has no code at all, since it still conflicts with Anthropic's official Terms of Service, and there is still no usage-triggered auto-switching — all you can do today is "register" an API-key account (see "② Account switching" below for details). **The currently released version (v0.4.0) does not yet include this account feature** — everything below describes the latest development state that will ship in the next release (see "This document is written to the latest completed development state" right below).
+> **Current status (important)**: "① Statusline" below is always safe and works right now. "② Account switching" is **already included in the currently released v0.5.0** — you can register, list, delete, and rename API-key accounts, and it is **always disabled by default** — you must read the consent notice and explicitly opt in via `accounts enable`. The command to manually switch between registered accounts (`accounts switch`) exists only in the latest development state and hasn't shipped in a release yet. Login (subscription) account automation still has no code at all, since it still conflicts with Anthropic's official Terms of Service, and there is still no fully automatic usage-triggered switching (see "② Account switching" below for details).
 >
 > **This document is written against the latest developed state of the code.** The actual downloadable release (GitHub Release) is a snapshot from its own release date, so there can be a gap between what this document describes and what's in the build you download — check "Version history summary" below and the [Releases page](https://github.com/sodam-ai/ClaudeTower/releases/latest) for what's actually in a given release.
 
@@ -148,7 +148,7 @@ If you accidentally delete that fixed-location copy too and the statusline stops
 - `claudetower uninstall` — safely removes only the statusline registration (leaves your other Claude Code settings untouched)
 - `claudetower statusline` — the renderer Claude Code invokes internally (you won't run this by hand)
 
-> `accounts` commands will be included starting with the next release, but are **disabled by default** — until you run `accounts enable` to consent, everything except `status`/`config` lookups is refused. This is a fully separate feature from the statusline; see "② Account switching" below for details. Commands that actually exist: `accounts status` (check components) · `accounts config` (pre-set switch thresholds etc.) · `accounts enable` (opt in after reading consent) · `accounts add --api-key <label> <key>` (register an API-key account) · `accounts list` (view registered accounts) · `accounts disable` (turn back off).
+> `accounts` commands have already been included since v0.5.0, but are **disabled by default** — until you run `accounts enable` to consent, everything except `status`/`config` lookups is refused. This is a fully separate feature from the statusline; see "② Account switching" below for details. Commands actually included in v0.5.0: `accounts status` (check components) · `accounts config` (pre-set switch thresholds etc.) · `accounts enable` (opt in after reading consent) · `accounts add --api-key <label> <key>` (register an API-key account) · `accounts list` (view registered accounts) · `accounts remove <label>` (delete one account) · `accounts rename <old-label> <new-label>` (rename it) · `accounts disable` (turn back off) · `accounts diagnose-quota <label>` (check real usage). `accounts switch <label>` (manually switch between registered accounts) only exists in the latest development state, not yet in a release.
 
 ### Turn widgets on/off right from the Claude Code chat — no terminal needed
 
@@ -185,7 +185,7 @@ ClaudeTower/
 │   │   ├── widgets/            # model, location, git, context, cost, rate-limit widgets
 │   │   ├── config/             # settings read/write, gauge & text-safety helpers, etc.
 │   │   └── cache/               # Local Git-info cache
-│   └── accounts/              # Account registration/switching code — included in the exe starting next release (disabled by default; see "② Account switching" above)
+│   └── accounts/              # Account registration/switching code — included in the exe since v0.5.0 (disabled by default; see "② Account switching" above)
 ├── test/                     # Tests for the display/accounts modules
 ├── scripts/                  # Build & module-boundary check scripts
 ├── .PRD/                     # Design rationale & decision history (for developers)
@@ -249,7 +249,7 @@ Here's where this program actually creates or uses files on your computer.
 
 ### Architecture (in plain terms)
 
-This program was designed from the start with the "statusline" part and the "account-switching" part completely separated. The "statusline room" only displays information on screen, so it's always safe, and it has no code-level connection to the "account-switching room" at all (the repository proves this independence automatically on every build). The "account-switching room" will ship inside the executable starting next release, but its door is locked by default — it only opens once you consent via `accounts enable` — and even inside, all you can do today is register an API-key account. Login-account automation and real auto-switching still don't exist because of the Terms-of-Service conflict (see "② Account switching" below for details).
+This program was designed from the start with the "statusline" part and the "account-switching" part completely separated. The "statusline room" only displays information on screen, so it's always safe, and it has no code-level connection to the "account-switching room" at all (the repository proves this independence automatically on every build). The "account-switching room" has shipped inside the executable since v0.5.0, but its door is locked by default — it only opens once you consent via `accounts enable` — and even inside, what's officially available today is registering, listing, deleting, and renaming an API-key account; actually switching between registered accounts still only exists in development. Login-account automation and fully automatic switching still don't exist because of the Terms-of-Service conflict (see "② Account switching" below for details).
 
 ---
 
@@ -260,11 +260,11 @@ Originally, this project planned to add a feature that would let you automatical
 - Anthropic explicitly prohibits third-party tools from logging in with subscription (Free/Pro/Max) credentials and using that account on a user's behalf. As of 2026-01-09, this is also technically blocked server-side — confirmed by multiple independent news sources.
 - Access via API key, on the other hand, is an **explicit exception** Anthropic's Terms of Service carves out from this automation ban. However, whether registering and rotating multiple API keys at once runs afoul of a separate anti-abuse clause has not been confirmed — we don't assume it's safe.
 
-After an internal re-review (background and reasoning recorded in the repository's `.PRD/07_OAUTH_FLOW_SPEC.md`), we decided to **keep login-account automation out entirely, and proceed only with the hybrid API-key path that the Terms of Service carve out as an exception**. As a result, starting with the next release, here's exactly what's actually included and working, and what still isn't.
+After an internal re-review (background and reasoning recorded in the repository's `.PRD/07_OAUTH_FLOW_SPEC.md`), we decided to **keep login-account automation out entirely, and proceed only with the hybrid API-key path that the Terms of Service carve out as an exception**. As a result, here's exactly what's already included and working in the current release (v0.5.0), what exists only in the latest development state and hasn't shipped yet, and what still doesn't exist at all.
 
 > **Supported platforms (important, 2026-08-20)**: This "② Account switching" feature is **Windows and macOS only**. Linux is not supported for this feature (we don't have a physical Linux environment to live-verify the real credential store, and chose not to ship it unverified — see `CHECKPOINT.md` for details). On Linux, the **statusline (①) feature keeps working normally**, unaffected by this restriction.
 
-**What actually works today** (disabled by default — see "How to turn it on" below first, **Windows/macOS only**):
+**Already included in the current release (v0.5.0)** (disabled by default — see "How to turn it on" below first, **Windows/macOS only**):
 - `claudetower accounts status` — check whether the account module is on, and which parts are implemented vs. not (read-only)
 - `claudetower accounts config` — pre-set switch threshold, port, etc. locally without registering any account
 - `claudetower accounts enable` — shows the consent notice below and requires you to type `y` yourself before it turns on
@@ -275,10 +275,13 @@ After an internal re-review (background and reasoning recorded in the repository
 - `claudetower accounts disable` — turn it back off (registered account info is kept)
 - `claudetower accounts diagnose-quota <label> [--model <model-id>]` — sends one tiny real request (requires `[y/N]` confirmation, incurs a negligible real cost) using the registered account, to check whether usage info comes back in the expected format. **Does not switch accounts** — it's diagnostic only, and the result is shown in `accounts list` together with when it was last checked
 
-**What still doesn't exist**:
+**Exists only in the latest development state, not yet in a release** (from the GitHub source code — planned for the next release, but not in the v0.5.0 build you download today):
+- `claudetower accounts switch <label>` — switches to one of your registered accounts when **a person runs the command themselves** (manual switching, not automatic detection). It applies immediately with no confirmation step needed (it's reversible — just `switch` again — so it's not risky the way deletion is), only works between API-key accounts (you cannot switch to a login/subscription account), and each switch is recorded with when it happened and which account it switched from/to
+
+**What still doesn't exist at all**:
 - Automatic registration/cycling of login (subscription) accounts — no code exists for this, due to the Terms-of-Service issue above
 - Importing an already-logged-in Claude Code account as-is (`--import`)
-- **Actual usage-triggered auto-switching** — even with multiple accounts registered, nothing automatically switches to the next account when usage runs out today (only registration/lookup work)
+- **The program automatically switching accounts on its own (fully automatic)** — even with multiple accounts registered, nothing automatically switches to the next account when usage runs out today; only running `accounts switch` yourself changes it (see above — and that command itself hasn't shipped in a release yet)
 
 **How to turn it on, and what you're consenting to**: Running `claudetower accounts enable` shows a consent notice summarizing the above, and it only activates once you type `y` yourself. If you never run `enable`, this feature stays off indefinitely and has zero effect on the statusline feature.
 
@@ -288,10 +291,16 @@ The statusline (Display) feature keeps working safely regardless of any of this 
 
 ## Version history summary
 
-Officially released versions (current latest: v0.4.0). Click to expand.
+Officially released versions (current latest: v0.5.0). Click to expand.
 
 <details>
-<summary><strong>v0.4.0</strong> — Dynamic gauge width + config padding command (latest)</summary>
+<summary><strong>v0.5.0</strong> — Account registration & management officially included (latest)</summary>
+
+Starting with this version, the "② Account switching" feature ships in an actual release for the first time (still disabled by default). Once you consent via `accounts enable`, you can register, list, delete, and rename API-key accounts; the key values you register are stored only in this computer's OS credential vault (Windows Credential Manager / macOS Keychain) and never saved anywhere in plain text. `accounts diagnose-quota` lets you check real usage, and `accounts list` shows the usage last checked. Internal safeguards were also added so account data stays intact even with multiple program windows open at once. **However, actually switching accounts is not in this version** — only registering, listing, and deleting are available (the manual `accounts switch` command is in development after this version — see "② Account switching" above). Login (subscription) account automation is still not built, due to the Terms-of-Service issue. This account feature is Windows/macOS only; on Linux, only the statusline (①) feature is supported.
+</details>
+
+<details>
+<summary><strong>v0.4.0</strong> — Dynamic gauge width + config padding command</summary>
 
 Added automatic gauge-bar widening for wide terminals (120+ columns — bars go from 5 to 10 segments for finer detail) and a new `claudetower config padding <n>` command (default 0) to adjust the statusline's left/right padding. Neither change affects narrow terminals or users who keep the defaults (the width auto-adjustment always falls back to the original 5 segments when narrow, and padding's default is still 0, same as before). Also hardened `claudetower config statusline-refresh` against invalid input like empty strings (an internal robustness fix only — no visible behavior change).
 </details>
@@ -395,7 +404,7 @@ Initial release. Shows location, context, cost, and rate limits; `setup` install
 
 - **Does installing this automatically collect my account info?** No. Installing and using the statusline alone never touches account information at all. The account-registration feature is disabled by default — only after you explicitly consent via `accounts enable` and explicitly enter a key via `accounts add` does that account info (an API key) get stored in this computer's OS credential vault. Nothing is collected unless you explicitly tell it to.
 - **Does anything get sent over the internet?** No, everything runs locally only.
-- **Are there plans to build account switching?** Automatically cycling login (subscription) accounts has been found to conflict with Anthropic's Terms of Service, so it won't be built. That said, "registering" API-key accounts — the path the Terms of Service carve out as an exception — will be experimentally included starting with the next release, disabled by default. Actual usage-triggered auto-switching still doesn't exist (see "② Account switching" above for details).
+- **Are there plans to build account switching?** Automatically cycling login (subscription) accounts has been found to conflict with Anthropic's Terms of Service, so it won't be built. That said, "registering" API-key accounts — the path the Terms of Service carve out as an exception — has already been experimentally included since v0.5.0, disabled by default. Manually switching between registered accounts yourself (`accounts switch`) is planned for the next release; the program automatically detecting usage and switching fully on its own is still not planned (see "② Account switching" above for details).
 - **Is it really okay to delete the file I originally downloaded?** Yes, as long as you've run `setup` at least once first — see "Can I delete or move the installed file?" above.
 - **Does it cost money?** No, this program itself is free. Note that the "cost ($)" figure it *displays* is a separate thing — that's the cost of using Claude Code (the AI) itself, unrelated to this program.
 - **Why does the name say "working title"?** Trademark review finished on 2026-07-15. The result: we decided to keep the name "ClaudeTower" as-is, accepting a low-priority residual risk (see "Legal, copyright, license & commercial use" below for details). That said, we haven't fully ruled out changing the name later — if the user base grows significantly, or if Anthropic reaches out directly — so it's still labeled a "working title" rather than a fully final name.
@@ -411,7 +420,7 @@ Initial release. Shows location, context, cost, and rate limits; `setup` install
 
 **License (not yet finalized)**: The final product name isn't in a fully, permanently finalized state. Trademark review for the name "ClaudeTower" was completed on 2026-07-15, and the decision was to keep this name, accepting a low-priority residual risk (to be revisited only if the user base grows significantly or Anthropic reaches out directly). Until this "working title" status is fully resolved, the `npm install -g` distribution channel is also deliberately not being opened (an npm package name is effectively permanent once claimed).
 
-**Commercial use — strict prohibition**: This program is not designed for ❌ commercial sale, ❌ being offered as a paid service, or ❌ paid delivery to a company or organization. **This program is distributed for free, personal use only.** Reason for this strict limitation: this project planned to add an automatic multi-account switching feature, and after reading Anthropic's official Terms of Service directly, we confirmed that automating login-account cycling conflicts with Claude's terms of service (see "② Account switching" above). Starting with the next release, the API-key registration path the Terms of Service carve out as an exception is actually included — but whether rotating multiple API keys itself runs afoul of a separate anti-abuse clause is still unconfirmed. In other words, this risk is no longer hypothetical — it now exists in the actual distributed release. It doesn't apply to anyone who leaves the feature off and only uses the statusline (disabled by default, fully separated at the code level), but the commercial-use exclusion — a design principle from the very beginning meant to avoid amplifying exactly this kind of risk — remains in place.
+**Commercial use — strict prohibition**: This program is not designed for ❌ commercial sale, ❌ being offered as a paid service, or ❌ paid delivery to a company or organization. **This program is distributed for free, personal use only.** Reason for this strict limitation: this project planned to add an automatic multi-account switching feature, and after reading Anthropic's official Terms of Service directly, we confirmed that automating login-account cycling conflicts with Claude's terms of service (see "② Account switching" above). Since v0.5.0, the API-key registration path the Terms of Service carve out as an exception is **actually included in the build you download** — but whether rotating multiple API keys itself runs afoul of a separate anti-abuse clause is still unconfirmed. In other words, this risk is no longer hypothetical — it exists right now, in the actual release you can download. It doesn't apply to anyone who leaves the feature off and only uses the statusline (disabled by default, fully separated at the code level), but the commercial-use exclusion — a design principle from the very beginning meant to avoid amplifying exactly this kind of risk — remains in place.
 
 **What the license actually permits vs. what this project recommends (important)**: Apache License 2.0 itself contains no "no commercial use" clause. As long as you comply with its conditions (keeping copyright and license notices, etc.), modification, copying, redistribution, and commercial use are, in principle, permitted — it is a widely used permissive license. In other words, the "commercial use — strict prohibition" statement above does **not mean the license legally forbids it — it means this project does not recommend it (a design intent).**
 
