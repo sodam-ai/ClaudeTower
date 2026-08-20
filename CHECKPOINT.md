@@ -2955,3 +2955,48 @@ writeRegistry를 쓰도록 확장)에 이어 M54(quota 리셋 시각 표시, `ac
 add의 라벨 충돌 검사가 락 밖) 외에, 락 기반 상호배제는 파일 하나당 최대 300회(약 6초)
 대기 후 포기한다(quota-cache-store.js와 동일한 한도) — 이 프로젝트의 실사용 규모(개인
 사용자 1명)에서는 현실적 위험이 아니다.
+
+## M56: 2026-08-20 — 프록시 서버 Origin/Referer 검사 신설 + npm audit HIGH 취약점 해소 (04_PROJECT_SPEC.md Should Have 2건, 20여 라운드 만에 첫 조치)
+
+**배경**: PRD 전수 재독 중 `.PRD/04_PROJECT_SPEC.md` "보안 설정(ASVS V14) — Should Have"의
+"Account: Origin/Referer 헤더 검사로 브라우저발 요청(DNS 리바인딩) 차단, CORS 응답 미노출"과
+"의존성 보안(ASVS V14.2) — Should Have: npm audit 고위험 항목 검사"를 CHECKPOINT.md 전체
+grep으로 대조한 결과, 두 항목 모두 **한 번도 실제로 처리된 적이 없었다**(npm audit
+brace-expansion HIGH는 20여 라운드 동안 "기존에 이미 알려진 항목, 변화 없음"으로만
+반복 언급됐을 뿐 실제로 고쳐진 적이 없었음을 확인).
+
+**만든 것**:
+- [x] `src/accounts/proxy/server.js`의 `startProxyServer` — 요청 헤더에 `origin` 또는
+  `referer`가 있으면(브라우저만 자동으로 붙이는 헤더, 정상 클라이언트인 Claude Code CLI는
+  애초에 보내지 않음) 접근 토큰 검사보다 **먼저** 403으로 거부. CORS 응답 헤더
+  (`Access-Control-Allow-*`)는 이 서버가 애초에 한 번도 보낸 적이 없어("CORS 응답 미노출"
+  요구사항의 나머지 절반은 이미 충족돼 있었음) 추가 조치 불필요, 회귀 테스트로 확인만 추가.
+- [x] 신규 테스트 3건(실제 로컬 TCP 서버로 검증, mock 아님): Origin 헤더가 있으면 유효한
+  토큰이어도 거부, Referer 헤더가 있으면 거부, 응답에 `Access-Control-Allow-*` 헤더가
+  전혀 없음을 실제 응답 헤더로 직접 확인.
+- [x] `npm audit fix` 실행 — `brace-expansion` 5.0.7→5.0.9(패치 버전, breaking change
+  없음, dev-only 의존성이라 배포 실행파일에는 영향 없음). `npm audit` 결과 0건 확인.
+- 검증: `test:accounts`(신규 3건 포함, 전체 통과) 2회 연속 재확인, `test:display` 245/245
+  회귀 없음, `npm run lint`·`lint:boundary` 통과, `live-wiring-gate.test.js` 재확인 통과,
+  `npm run build` 성공.
+
+**정직하게 기록(과잉 낙관 금지)**: 검증 도중 `npm run test:accounts` 1회 실행에서
+`quota-cache-store.test.js`(내가 건드리지 않은 파일) 관련 스택 트레이스가 출력된 적이
+있었다 — Node.js v26.7.0의 `evalTypeScript` 관련 문구가 섞여 있어 이 프로젝트가 상시 겪는
+프로세스 폭주 환경의 일시적 문제로 의심하고, 그 파일만 격리해 3회 연속 재실행(14/14 매번
+통과, 회귀 없음) + 전체 스위트 2회 재실행(둘 다 전체 통과)으로 재현 여부를 확인했다 —
+재현되지 않아 일시적 환경 요인으로 판단하고 넘어간다("실패한 테스트를 무시하고 넘어가기"
+금지 원칙에 따라, 무시가 아니라 재현 시도 후 결론임을 명시).
+
+**동시 세션 관찰**: 이번 라운드 시작 시 동시 세션의 M55(`accounts-registry.js` 락+원자적쓰기)
+커밋이 이미 로컬에 반영돼 있었다 — 겹치는 파일 없이(`proxy/server.js`·
+`test/accounts/proxy-server.test.js`·`package-lock.json`만 건드림) 안전하게 이어서 작업했다.
+
+**의도적으로 하지 않은 것**: 실거래 배선은 이번에도 진행하지 않음 — `startProxyServer` 코드
+자체를 강화한 것이지 켠 것이 아니다. `--import`도 이번에도 손대지 않음.
+
+**남은 위험**: Origin/Referer 검사는 이 두 헤더가 존재하는지만 보고 값을 검증하지 않는다
+(예: 화이트리스트 도메인 허용 같은 건 없음) — 이 프로젝트의 목적상 "브라우저에서 온 요청은
+전부 거부"가 맞는 정책이라(로컬 CLI 도구이지 브라우저와 통신할 이유가 없음) 값 검증 없이
+존재 여부만 보는 게 의도적으로 맞는 설계다. 실제 Anthropic 서버로의 최종 왕복은 여전히
+`diagnose-quota`를 사용자가 실행해야만 검증되며, 이 세션에서는 실행하지 않았다.

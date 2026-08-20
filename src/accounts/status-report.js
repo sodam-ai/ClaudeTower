@@ -17,7 +17,7 @@ const IMPLEMENTED_COMPONENTS = [
   { name: 'accounts enable / add --api-key / list / remove / rename / disable / account-purge', detail: 'API키 계정 등록·조회·개별삭제·이름변경·비활성화·전체삭제 가능(로그인 계정 등록·--import는 여전히 미구현)' },
   { name: 'accounts list 사용률 표시', detail: 'diagnose-quota로 마지막 확인한 사용률을 캐시에서 보여줌(실시간 API 호출 없음) — 한 번도 diagnose-quota를 안 돌린 계정은 "확인 안 됨"' },
   { name: 'accounts list 마지막 사용 정보 표시', detail: '전환(applySwitch) 시점에 레지스트리에 기록된 last_project_path/last_used_at을 보여줌 — 실거래 배선 전까지는 실사용에서 값이 채워지지 않음(테스트로만 검증됨)' },
-  { name: '로컬 프록시 서버', detail: '127.0.0.1 고정 바인딩 + 로컬 접근 토큰 검증 — 단, 실제 기동(startProxyServer)은 미배선' },
+  { name: '로컬 프록시 서버', detail: '127.0.0.1 고정 바인딩 + 로컬 접근 토큰 검증 + Origin/Referer 헤더 검사(브라우저발 요청 차단, CORS 응답 미노출) — 단, 실제 기동(startProxyServer)은 미배선' },
   { name: '회전 감사 로그', detail: 'Windows: icacls / macOS·Linux: chmod 소유자 전용 권한' },
   { name: '동의 고지 문구', detail: '.PRD/08_ACCOUNTS_ENABLE_CONSENT_DRAFT.md v2.1-hybrid-scope-clarified' },
   {

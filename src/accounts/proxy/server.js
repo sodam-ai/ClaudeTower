@@ -68,6 +68,23 @@ async function startProxyServer(proxyConfig, { onAuthorizedRequest } = {}) {
   }
 
   const server = http.createServer((req, res) => {
+    // .PRD/04_PROJECT_SPEC.md "보안 설정(ASVS V14) — Should Have": "Origin/Referer 헤더
+    // 검사로 브라우저발 요청(DNS 리바인딩) 차단, CORS 응답 미노출". 이 서버는
+    // Access-Control-Allow-* 응답 헤더를 애초에 한 번도 보내지 않으므로("CORS 응답
+    // 미노출") 요구사항의 그 절반은 이미 충족돼 있다 — 어떤 브라우저 cross-origin
+    // fetch/XHR도 프리플라이트에서 막힌다. 이 검사는 나머지 절반(Origin/Referer 검사)을
+    // 채운다: 정상 클라이언트(Claude Code CLI 등 브라우저가 아닌 HTTP 클라이언트)는 이
+    // 두 헤더를 애초에 보내지 않는다(브라우저만 자동으로 붙인다) — 그래서 "존재하면
+    // 거부"가 정상 트래픽에 아무 영향 없이 브라우저발 요청(단순 폼 제출·no-cors 이미지
+    // 태그 등, 토큰 헤더를 못 붙여도 시도는 가능한 요청)만 정확히 걸러낸다. 접근 토큰
+    // 검사보다 먼저 하는 이유: 브라우저 컨텍스트에서 온 요청이라면 토큰이 우연히 맞더라도
+    // 신뢰하지 않는다는 원칙(방어 심층화, 두 검사가 서로 독립적으로 작동).
+    if (req.headers.origin || req.headers.referer) {
+      res.writeHead(403, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ error: 'browser-originated requests are not allowed (Origin/Referer header present)' }));
+      return;
+    }
+
     const providedToken = req.headers[ACCESS_TOKEN_HEADER];
     if (!verifyLocalAccessToken(providedToken, proxyConfig.access_token)) {
       res.writeHead(401, { 'content-type': 'application/json' });
