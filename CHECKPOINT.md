@@ -1706,3 +1706,126 @@ API 키가 있었다면 이번에 함께 지워졌을 수 있다 — 없었다�
 쪽보다 감사 목적상 더 안전한 실패 방향이라고 판단해 이번 범위에서는 다루지 않았다. Windows
 Credential Manager의 실제 등록 계정 상태는 사용자가 `claudetower accounts list`로 직접
 확인해야 한다(위 사고로 인한 영향 여부 확인 필요).
+
+**2026-08-21 후속 확인(위 Credential Manager 사고의 실제 영향 범위 확정)**: 환경변수
+override 없이 실제 운영 경로(`~/.claudetower/accounts-registry.json`)로 `claudetower
+accounts list`/`accounts status`를 직접 실행한 결과 — **등록된 계정 0개, Account 모듈도
+비활성화 상태**였다. 즉 이 컴퓨터에서 실제로 `accounts add`를 실행해 진짜 계정을 등록한
+적 자체가 없었다는 뜻이므로(레지스트리가 계정 존재의 유일한 근거이고 credential-store만
+따로 값이 남는 경우는 있을 수 없음 — add는 항상 레지스트리 기록과 함께 이뤄짐), 위에서
+무차별 삭제한 8건은 전부 QA 테스트 잔재였고 **실사용자 데이터 유실은 없었다**(추측이
+아니라 직접 조회로 확정). 이 항목은 완전히 해소됐다 — 더 이상 확인할 것이 남아있지 않다.
+
+---
+
+## 다음 세션 작업 계획: `active_account` 상태표시줄 위젯 (2026-08-21 계획 수립 — 아직 착수 안 함)
+
+> **주의**: 이 절은 M-번호를 붙이지 않는다. 이 파일 최상단이 명시한 원칙("완료 항목은
+> 실제로 실행해 확인한 것만 done으로 표기")에 따라, M-번호는 실제로 구현·검증까지 끝난
+> 것에만 부여한다 — 이 계획은 다음 세션(또는 이 세션의 다음 라운드)이 실제로 만들고
+> 검증을 마친 뒤에 그 시점의 다음 M번호를 새로 받는다.
+
+### 왜 이것이 다음 순서인가 (근거, 전부 실측 확인됨— 추측 없음)
+
+1. `.PRD/02_DATA_MODEL.md`(2026-08-17)가 이 위젯의 유일한 차단 사유로 명시한 조건 —
+   "`ActiveAccountHandle`을 실제로 쓰는 코드 경로가 아직 없다" — 가 M59(`accounts
+   switch`)로 해소됐다. `accounts switch`는 실거래 배선 게이트와 무관하게 지금 당장
+   실제 CLI에서 `ActiveAccountHandle`에 값을 쓰는 유일한 코드 경로다.
+2. M59 CHECKPOINT 본문에 이미 "다음 라운드 후보로 남김"으로 명시적으로 예고돼 있었다.
+3. **코드로 직접 재확인**(2026-08-21): `src/display/config/widget-config.js`의
+   `ALL_WIDGET_TYPES`는 여전히 `['model','location','git','context','cost',
+   'rate_limit']` 6종뿐, `src/display/widgets/`에 `active-account` 관련 파일 없음,
+   `src/display/` 전체에 `active-account-handle` 참조 0건 — 문서만 오래된 게 아니라
+   실제로 미구현임을 확인했다.
+4. **CHECKPOINT.md·`.PRD/`를 grep으로 전수 스캔해 다른 미완료 "다음 세션" 항목과 비교
+   대조했다** — OAuth/`--import`(ToS 영구 차단), 실거래 배선·핫리로드·영구셸별칭
+   (🛑 게이트 차단), macOS/Linux 실측(물리 기기 없음), Windows 코드서명(재검토 조건
+   미충족), `accounts --history`(PRD가 반복적으로 저우선순위 격하) — 이 중 지금 바로
+   착수 가능한 항목은 이 위젯이 유일하다. 다른 후보와의 비교표는 이 대화의 직전 라운드
+   보고에 있다(요약: 전부 게이트/ToS/환경 부재로 막혀 있거나, 순수 코스메틱이라 이
+   기능적 갭보다 우선순위가 낮음).
+
+### 구현 시 반드시 참고할 검증된 기존 패턴 (2026-08-21 실제 코드 확인, 추측 아님)
+
+- `src/display/widgets/model.js`가 최소 위젯 템플릿: `render(session) => string|null`,
+  보여줄 게 없으면 `null` 반환(그러면 `statusline.js`가 자동으로 줄에서 제외).
+- `src/display/widgets/git.js`가 "stdin이 아닌 다른 소스에서 값을 읽는 위젯"의 기존
+  전례다 — git은 `execFileSync`+`session_id` 캐싱을 쓰지만, `active_account`는 단순
+  로컬 JSON 파일 1회 동기 읽기라(외부 프로세스 스폰 없음) **캐싱이 필요 없을 가능성이
+  높다** — 다만 최종 판단은 구현 시 실측(느린지 아닌지)으로 확인할 것, 추측으로
+  단정하지 말 것.
+- `src/shared/active-account-handle/read.js`의 `readActiveAccountHandle(filePath)`가
+  이미 존재하고 완성돼 있다 — 파일이 없으면 `null`, 손상돼도 `null`(크래시 없음),
+  격리 방어막 불필요(읽기 전용이라 read.js 자체 주석이 이미 그렇게 설계함). 이 위젯은
+  이 함수를 그대로 가져다 쓰면 되고 **새로 작성할 로직이 아니다**.
+- `statusline.js`의 `WIDGETS` 배열에 `{ type: 'active_account', render: renderActiveAccount }`
+  추가, `widget-config.js`의 `ALL_WIDGET_TYPES`에 `'active_account'` 추가,
+  `setup-wizard.js`의 `WIDGET_LABELS`에 한국어 라벨(예: `active_account: '활성 계정'`)
+  추가 — 이 3곳 전부 실제로 확인했고, 셋 다 안 고치면 각각 다른 방식으로 깨진다(①
+  없으면 위젯이 렌더링 안 됨, ②·③ 없으면 `accounts config`/`widgets` 명령이 새 타입을
+  모르는 채로 남음). **하나만 고치고 끝냈다고 착각하지 말 것.**
+
+### 구현 전 반드시 결정해야 하는 열린 질문 (임의로 단정하지 말고 결정한 뒤 근거를 남길 것)
+
+1. **`WIDGET_DROP_PRIORITY`(statusline.js) 어디에 넣을지**: 터미널 폭이 좁을 때 이
+   위젯을 얼마나 먼저/나중에 뺄지 순서가 아직 없다 — 넣지 않으면 줄이 넘쳐도 이 위젯만
+   영원히 안 빠지는 결함이 생긴다(코드로 직접 확인: `fitToLineBudget`은 이 목록에 있는
+   타입만 제거 대상으로 삼는다). 권고(제안일 뿐, 확정 아님): git/rate_limit과 비슷하게
+   낮은 우선순위(먼저 빠지는 쪽)로 — 세션 정체성이 아니라 부가 정보이므로.
+2. **표시 문구 형식**: `account_label`을 그대로 보여줄지, 접두어(예: "계정: ")를 붙일지
+   — `model.js`는 접두어를 실사용 피드백으로 오히려 뺐던 전례가 있다(과유불급). 최종
+   문구는 실제 화면에서 다른 위젯과 나란히 놓고 가독성을 확인한 뒤 정할 것.
+3. **Account 모듈을 한 번도 켠 적 없는 사용자에게 보이는 방식**: `readActiveAccountHandle`이
+   `null`을 반환하면 위젯이 완전히 비표시(줄에 아무 흔적도 안 남음)여야 한다 — "설치
+   후 Account 미사용 시 Display 동작 완전히 무관"이라는 01_PRD.md §5 성공 기준과 직결.
+   빈 텍스트나 "(없음)" 같은 걸 보여주면 안 된다(원칙은 정해졌으나, 코드로 실제
+   구현·테스트할 것).
+
+### 예상되는 위험/충돌/실패 시나리오 (착수 전 반드시 먼저 확인할 것)
+
+- **동시 세션 충돌 위험(이번 세션이 실제로 겪은 사고, M60 참고)**: 이 저장소는 상시
+  다른 세션과 공유된다. 착수 직전 반드시 `git status`/`git fetch`/`git log`로 이
+  기능이 이미 다른 세션에 의해 진행 중이거나 완료되지 않았는지 먼저 확인할 것 —
+  안 하면 이번 세션이 겪은 "고친 코드가 흔적도 없이 되돌아가 있던" 사고가 반복될 수
+  있다. 파일 수정 후에는 즉시 grep/Read로 실제로 저장됐는지 재확인하는 습관을 유지할 것.
+- **모듈 경계 위반 아님을 재확인**: `src/shared/active-account-handle/read.js`는
+  `src/accounts/`가 아니라 `src/shared/`에 있어 Display가 import해도 모듈 경계 규칙
+  위반이 아니다(이미 이렇게 설계된 유일한 연결점) — 그래도 구현 후 `npm run
+  lint:boundary`와 `verify-display-standalone` CI job으로 반드시 재확인할 것(주장이
+  아니라 실측으로).
+- **위젯 단위 격리 유지**: `statusline.js`가 각 위젯을 try/catch로 감싸 하나가 죽어도
+  나머지는 살아남게 하는 기존 구조(04_PROJECT_SPEC.md DO NOT 규칙)를 그대로 따를 것 —
+  새 위젯이라고 예외로 두지 말 것.
+- **성능 예산**: statusline 전체가 100ms 미만을 목표로 한다는 기존 요구사항(여러 라운드
+  전부터 미확정 상태로 남아있는 "남은 위험")이 있다 — 파일 읽기 하나 추가가 유의미한
+  악화를 일으키지 않는지 구현 후 실측할 것(기존 값과 비교).
+- **기존 사용자 영향**: 이미 `config.json`에 `enabled_widgets`를 명시적으로 저장해둔
+  기존 사용자는 업그레이드해도 새 위젯이 자동으로 켜지지 않는다(기존 목록에 새 타입이
+  없으므로) — 이는 결함이 아니라 기존 `git` 위젯 추가 때와 동일한, 이미 검증된 정상
+  동작이다. "왜 새 위젯이 안 보이지"를 버그로 오인하지 말 것.
+
+### 함께 갱신해야 하는 문서 (구현 직후, 빠뜨리면 이 프로젝트가 반복 겪은 "코드가 문서보다
+앞서가는" 패턴 재발)
+
+- `.PRD/02_DATA_MODEL.md`: `active_account` 위젯을 "미구현"이라 적어둔 각주 정정
+- `.PRD/03_PHASES.md` 115행: `active_account` 위젯 항목을 완료로 갱신(단, 같은 줄의
+  Powerline 색상 테마·Git 위젯은 별개 항목이라 이번 작업과 무관하게 미완료로 유지 —
+  한 줄에 묶여 있다고 전부 완료 처리하지 말 것)
+- `src/accounts/status-report.js`: 직접 관련은 없으나 "구현된 컴포넌트" 목록에
+  Display 쪽 변화를 넣을지는 판단 필요(Account 모듈 자체는 안 바뀌므로 보통은 불필요 —
+  신중히 판단할 것)
+- README.md/README.en.md: 새 위젯이 사용자에게 보이는 기능이므로 명령어/위젯 목록에
+  반영 필요 여부 확인
+
+### 완료 기준 (done-when — 전부 실측 확인 후에만 체크)
+
+- [ ] `active_account` 위젯이 `ALL_WIDGET_TYPES`·`WIDGET_LABELS`·`WIDGETS`·
+      `WIDGET_DROP_PRIORITY` 4곳 전부에 일관되게 반영됨
+- [ ] Account 모듈 미사용 사용자: 위젯이 줄에 전혀 나타나지 않음(실측)
+- [ ] `accounts switch`로 실제 전환 후: 위젯이 정확한 라벨을 보여줌(실측, 단위테스트
+      아니라 실제 CLI 흐름으로)
+- [ ] `ActiveAccountHandle` 파일이 손상된 경우에도 statusline 전체가 죽지 않음(실측)
+- [ ] `npm run verify`(lint+lint:boundary+test:display) 전부 통과
+- [ ] `verify-display-standalone` CI job 통과(Account 코드 삭제 상태에서도 Display 정상)
+- [ ] 위 "함께 갱신해야 하는 문서" 전부 반영
+- [ ] `npm run build` 성공 + 실제 exe로 최소 1회 라이브 스모크
