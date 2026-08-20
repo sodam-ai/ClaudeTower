@@ -26,7 +26,7 @@ const os = require('node:os');
 const crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
 const { CONFIG_DIR_NAME } = require('../../shared/constants');
-const { readRegistry } = require('./accounts-registry');
+const { readRegistry, writeRegistry } = require('./accounts-registry');
 const { appendRotationEvent } = require('../audit/rotation-log');
 const { writeActiveAccountHandle } = require('../../shared/active-account-handle/write');
 
@@ -240,8 +240,23 @@ function applySwitch(
     return { applied: false, reason: 'target_account_not_usable' };
   }
 
+  const occurredAt = new Date().toISOString();
+
   writeActiveAccountId(target.account_id, statePath);
   writeActiveAccountHandle(target.label, activeAccountHandlePath);
+
+  // `.PRD/01_PRD.md` §3 "계정별 마지막 사용 프로젝트 경로 표시"(2026-08-20 감사로 발견한
+  // 잔여 갭 — account.js 스키마엔 이미 있었고 RotationEvent에는 이미 기록되고 있었지만,
+  // 정작 계정 레지스트리 항목 자체는 한 번도 갱신되지 않았었다). projectPath가 null이면
+  // (호출부가 cwd를 모르는 경우) 기존에 알고 있던 값을 덮어쓰지 않는다 — "몰랐다"는 정보로
+  // "알고 있던 값"을 지우는 건 사용자에게 손해이기 때문. last_used_at은 projectPath 유무와
+  // 무관하게 항상 이 전환 시각으로 갱신한다(전환이 실제로 일어났다는 사실 자체는 확실하므로).
+  const updatedAccounts = accounts.map((a) =>
+    a.account_id === target.account_id
+      ? { ...a, last_project_path: projectPath !== null ? projectPath : a.last_project_path, last_used_at: occurredAt }
+      : a
+  );
+  writeRegistry(updatedAccounts, registryPath);
 
   const { event } = appendRotationEvent(
     {
@@ -250,7 +265,7 @@ function applySwitch(
       toAccountId: target.account_id,
       projectPath,
       reason: decision.reason,
-      occurredAt: new Date().toISOString(),
+      occurredAt,
     },
     rotationLogPath
   );

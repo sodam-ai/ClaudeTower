@@ -16,16 +16,31 @@ const { readQuotaCacheEntry } = require('../quota/quota-cache-store');
 // tokens_reset_at, requests_reset_at, checked_at } 또는 아직 확인 이력이 없으면 null.
 // "실시간 값이 아니라 마지막 확인 시점 값"임을 매번 명시한다(diagnose-quota-command.js
 // 주석 참고 — list는 실비용이 드는 실제 API 호출을 하지 않는다).
+// .PRD/01_PRD.md §3 "계정별 마지막 사용 프로젝트 경로 표시"(2026-08-20 감사로 발견한 잔여
+// 갭 — 스키마·RotationEvent에는 이미 있었지만 표시가 빠져 있었다). account 자체가
+// active-account-state.js의 applySwitch가 갱신한 값을 그대로 담고 있어(레지스트리 필드),
+// 여기서는 추가 조회 없이 그대로 보여주기만 한다 — quotaEntry와 달리 실시간/실비용 조회가
+// 아니다.
+function formatLastUsedLine(account) {
+  if (!account.last_used_at) {
+    return '      마지막 사용: 기록 없음(아직 이 계정으로 전환된 적 없음)';
+  }
+  const project = account.last_project_path ? ` (프로젝트: ${account.last_project_path})` : '';
+  return `      마지막 사용: ${account.last_used_at}${project}`;
+}
+
 function formatAccountLine(account, quotaEntry = null) {
   const base = `  - ${account.label} (${account.auth_type}, ${account.status}, 등록: ${account.created_at})`;
-  if (!quotaEntry) {
-    return `${base}\n      사용률: 확인 안 됨(claudetower accounts diagnose-quota ${account.label}로 확인 가능)`;
-  }
-  const pct = (v) => (typeof v === 'number' ? `${v.toFixed(1)}%` : '알 수 없음');
-  return (
-    `${base}\n      사용률(마지막 확인: ${quotaEntry.checked_at}): ` +
-    `토큰 ${pct(quotaEntry.tokens_used_pct)} / 요청수 ${pct(quotaEntry.requests_used_pct)}`
-  );
+  const quotaLine = !quotaEntry
+    ? `      사용률: 확인 안 됨(claudetower accounts diagnose-quota ${account.label}로 확인 가능)`
+    : (() => {
+        const pct = (v) => (typeof v === 'number' ? `${v.toFixed(1)}%` : '알 수 없음');
+        return (
+          `      사용률(마지막 확인: ${quotaEntry.checked_at}): ` +
+          `토큰 ${pct(quotaEntry.tokens_used_pct)} / 요청수 ${pct(quotaEntry.requests_used_pct)}`
+        );
+      })();
+  return `${base}\n${quotaLine}\n${formatLastUsedLine(account)}`;
 }
 
 function runAccountsListCommand({ registryPath, quotaCachePath, log = () => {} } = {}) {
