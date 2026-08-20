@@ -243,6 +243,29 @@ function applySwitch(
 
   const occurredAt = new Date().toISOString();
 
+  // 2026-08-21 실측으로 발견한 결함 수정: 이 함수는 트랜잭션이 아니라 4개의 부수효과를
+  // 순서대로 실행하는 일반 함수다 — 예전엔 감사로그(appendRotationEvent)를 마지막에
+  // 기록했는데, 그 마지막 단계가 실패하면(예: 디스크 권한 문제) 예외가 던져져 호출부는
+  // "실패"로 보고하지만 이미 실행된 앞 단계(활성 계정 포인터·Display 노출용 핸들·
+  // 레지스트리의 마지막 사용 정보)는 롤백되지 않고 그대로 남아있었다 — "실패했다"는
+  // 응답과 실제 상태가 어긋나는 정합성 결함(`claudetower accounts switch` 라이브 QA
+  // 중 rotation-log 쓰기 실패를 인위로 재현해 실측 확인). 감사로그를 가장 먼저 기록하도록
+  // 순서를 바꿔, 감사로그 기록 자체가 실패하면 그 무엇도 바뀌지 않은 채 깔끔하게 전체
+  // 실패하도록 만든다 — "RotationEvent 로그를 끄거나 생략하지 마" DO NOT 규칙과도 부합한다
+  // (감사로그가 없으면 그 무엇도 적용되지 않아야 한다는 뜻으로 재해석). 나머지 3개 쓰기는
+  // 전부 이미 EPERM/EBUSY 재시도 로직이 있어 이 순서 뒤에서도 감사로그보다 훨씬 안정적이다.
+  const { event } = appendRotationEvent(
+    {
+      eventId: crypto.randomUUID(),
+      fromAccountId,
+      toAccountId: target.account_id,
+      projectPath,
+      reason: decision.reason,
+      occurredAt,
+    },
+    rotationLogPath
+  );
+
   writeActiveAccountId(target.account_id, statePath);
   writeActiveAccountHandle(target.label, activeAccountHandlePath);
 
@@ -265,18 +288,6 @@ function applySwitch(
           : a
       ),
     registryPath
-  );
-
-  const { event } = appendRotationEvent(
-    {
-      eventId: crypto.randomUUID(),
-      fromAccountId,
-      toAccountId: target.account_id,
-      projectPath,
-      reason: decision.reason,
-      occurredAt,
-    },
-    rotationLogPath
   );
 
   return { applied: true, toAccountId: target.account_id, event };
