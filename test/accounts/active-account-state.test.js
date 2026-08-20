@@ -160,6 +160,46 @@ test('applySwitch: 정상 케이스 — 상태 파일·active-account-handle·�
   fs.unlinkSync(rotationLogPath);
 });
 
+// 2026-08-21 실측으로 발견한 결함 회귀 테스트: `claudetower accounts switch` 라이브 QA
+// 중 감사로그(rotationLogPath) 쓰기가 실패하도록 인위로 재현했더니, 이미 실행된
+// state/handle/registry 쓰기가 롤백되지 않고 그대로 남은 채 예외만 던져져 — CLI는
+// "실패"로 보고했지만 실제로는 활성 계정이 몰래 바뀌어 있었다. 감사로그를 가장 먼저
+// 기록하도록 순서를 바꿔, 감사로그 실패 시 그 무엇도 바뀌지 않게 수정했다.
+test('applySwitch: 감사로그 기록이 실패하면 예외를 던지고, state/handle/registry 무엇도 바뀌지 않는다(2026-08-21 회귀)', () => {
+  const registryPath = tmpJsonPath('registry');
+  const statePath = tmpJsonPath('state');
+  const activeAccountHandlePath = tmpJsonPath('handle');
+  // rotationLogPath의 부모 경로 일부가 실제로는 파일이라 mkdirSync가 ENOTDIR로 실패한다
+  // (appendRotationEvent 내부의 fs.mkdirSync(path.dirname(filePath)) 지점).
+  const fileAsDir = tmpJsonPath('not-a-directory');
+  fs.writeFileSync(fileAsDir, 'i am a file, not a directory', 'utf8');
+  const rotationLogPath = path.join(fileAsDir, 'impossible', 'rotation-log.jsonl');
+
+  appendAccount(
+    { account_id: 'a2', label: 'backup-account', auth_type: 'api_key', status: 'active', created_at: '2026-08-20T00:00:00Z' },
+    registryPath
+  );
+
+  assert.throws(() =>
+    applySwitch(
+      { shouldSwitch: true, reason: 'quota_threshold', toAccountId: 'a2' },
+      { fromAccountId: 'a1', registryPath, statePath, rotationLogPath, activeAccountHandlePath, projectPath: 'C:\\some\\project' }
+    )
+  );
+
+  assert.equal(fs.existsSync(statePath), false, '감사로그가 실패했으면 활성 계정 상태 파일이 생기면 안 된다');
+  assert.equal(fs.existsSync(activeAccountHandlePath), false, '감사로그가 실패했으면 handle 파일이 생기면 안 된다');
+  const accounts = readRegistry(registryPath);
+  assert.equal(
+    accounts[0].last_used_at,
+    undefined,
+    '감사로그가 실패했으면 레지스트리의 last_used_at이 갱신되면 안 된다(appendAccount로 넣은 원본 그대로)'
+  );
+
+  fs.unlinkSync(registryPath);
+  fs.unlinkSync(fileAsDir);
+});
+
 test('applySwitch: 정상 케이스 — 레지스트리의 last_project_path/last_used_at도 함께 갱신한다', () => {
   const registryPath = tmpJsonPath('registry');
   appendAccount(
