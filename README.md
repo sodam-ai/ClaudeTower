@@ -269,7 +269,7 @@ ClaudeTower/
 - `claudetower accounts config` — 전환 임계값·포트 등을 계정 등록 없이 미리 로컬에 설정
 - `claudetower accounts enable` — 아래 동의문구를 화면에 보여주고, 직접 `y`를 입력해야만 켜집니다
 - `claudetower accounts add --api-key <라벨> <키값>` — API 키 계정을 등록합니다. 키값은 이 컴퓨터의 운영체제 금고(Windows: Credential Manager / macOS: Keychain)에만 저장되고 어디로도 전송되지 않습니다
-- `claudetower accounts list` — 등록된 계정 목록과, `diagnose-quota`로 마지막 확인한 사용률(있는 경우) 확인(키값 자체는 표시되지 않음)
+- `claudetower accounts list` — 등록된 계정 목록과 함께, `diagnose-quota`로 마지막 확인한 사용률·그 사용률이 다시 채워지는 예정 시각, 그리고 각 계정을 마지막으로 언제·어느 작업 폴더에서 썼는지까지 확인(키값 자체는 표시되지 않음)
 - `claudetower accounts remove <라벨>` — 계정 1개만 삭제([y/N] 확인 필수, 되돌릴 수 없음). 전체 삭제는 아래 `account-purge` 참고
 - `claudetower accounts rename <기존라벨> <새라벨>` — 계정 표시 이름만 변경(저장된 키값에는 영향 없음)
 - `claudetower accounts disable` — 다시 끄기(등록해둔 계정 정보는 남아있음)
