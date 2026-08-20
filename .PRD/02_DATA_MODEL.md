@@ -130,7 +130,15 @@ Account 모듈이 Display 모듈에게 "지금 활성 계정이 뭔지"만 알�
 
 ## [NEEDS CLARIFICATION]
 
-- [ ] `ActiveAccountHandle` 파일도 다른 사용자가 못 읽게 권한 제한이 필요한지 — **재개(2026-07-27)**:
-  N/A(2026-07-15) 처리는 보류 결정에 근거했던 것이라 무효화, 구현 세션에서 재검토
+- [x] ~~`ActiveAccountHandle` 파일도 다른 사용자가 못 읽게 권한 제한이 필요한지~~ →
+  **2026-08-20 해소**: `active-account-state.json`(내부 활성 계정 포인터)·
+  `active-account.json`(ActiveAccountHandle, Display 노출용)에 M30(RotationEvent 감사
+  로그)과 동일한 소유자 전용 권한(Windows: `icacls`로 상속 ACE 제거 후 현재 사용자에게만
+  전체 권한 부여, POSIX: `chmod 0o600`)을 실제로 구현·테스트·실측 확인했다
+  (`src/accounts/accounts/active-account-state.js`, `src/shared/active-account-handle/write.js`).
+  RotationEvent와의 차이점: 두 파일은 append가 아니라 매 쓰기마다 임시파일+`rename()`으로
+  전체 교체되므로("최초 생성 시 1회만"이 아니라) 매 쓰기마다 임시 파일에 권한을 적용한다
+  — 같은 볼륨 내 `rename()`은 원본(임시 파일)의 보안 속성을 그대로 옮기는 NTFS/POSIX 공통
+  동작이라 최종 파일도 항상 소유자 전용 권한을 갖는다. 상세 근거는 `CHECKPOINT.md` M50 참고.
 - [ ] `consent_text_version`이 바뀌면... 재동의를 요구할지 정책 필요 — **재개(2026-07-27)**:
   N/A(2026-07-15) 처리는 보류 결정에 근거했던 것이라 무효화, 구현 세션에서 재검토

@@ -37,6 +37,43 @@ test('writeActiveAccountId: 빈 문자열은 거부한다', () => {
   assert.throws(() => writeActiveAccountId('', tmpJsonPath('state')), TypeError);
 });
 
+test('writeActiveAccountId: 소유자 전용 권한(permissionRestricted)이 실제로 적용된다', () => {
+  const p = tmpJsonPath('state-perm');
+  const result = writeActiveAccountId('acc-perm', p);
+  assert.equal(typeof result.permissionRestricted, 'boolean');
+  assert.equal(result.permissionRestricted, true, '이 PC(Windows)에서는 icacls 강제가 항상 성공해야 한다');
+  fs.unlinkSync(p);
+});
+
+test(
+  'writeActiveAccountId(win32): icacls 결과 실제로 현재 사용자만 접근 가능하고 상속된 ACE가 남아있지 않다',
+  { skip: process.platform !== 'win32' },
+  () => {
+    const { execFileSync } = require('node:child_process');
+    const p = tmpJsonPath('state-acl');
+    writeActiveAccountId('acc-acl', p);
+    const output = execFileSync('icacls', [p], { encoding: 'utf8' });
+    const username = os.userInfo().username;
+    const aceLines = output
+      .split('\n')
+      .map((line) => line.trimEnd())
+      .filter((line) => /:\([A-Za-z,]+\)$/.test(line));
+    assert.equal(aceLines.length, 1, `단일 ACE만 있어야 함: ${output}`);
+    assert.match(aceLines[0], new RegExp(`${username}:\\(F\\)`));
+    fs.unlinkSync(p);
+  }
+);
+
+test('writeActiveAccountId: 매 쓰기(=매 rename)마다 다시 권한을 강제한다(append 로그와 다른 지점)', () => {
+  const p = tmpJsonPath('state-reperm');
+  const first = writeActiveAccountId('acc-1', p);
+  const second = writeActiveAccountId('acc-2', p);
+  assert.equal(first.permissionRestricted, true);
+  assert.equal(second.permissionRestricted, true, '두 번째 쓰기(새 임시파일→rename)도 여전히 강제돼야 한다');
+  assert.equal(readActiveAccountId(p), 'acc-2');
+  fs.unlinkSync(p);
+});
+
 test('readActiveAccountId: 손상된 파일은 null로 안전하게 폴백한다', () => {
   const p = tmpJsonPath('corrupt');
   fs.writeFileSync(p, '{ not valid json', 'utf8');

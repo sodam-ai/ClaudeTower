@@ -2519,13 +2519,18 @@ Windows Credential Manager 잔재 확인 수단이다 — 앞으로 이 프로�
 이 API를 1순위로 쓸 것.
 
 **남은 위험**:
-1. README.md/README.en.md에 remove/rename 명령이 아직 문서화되지 않음(다음 라운드 정리
-   대상 — 이 프로젝트가 반복 겪은 "코드는 있는데 문서가 못 따라간" 패턴을 또 만들지 않게
-   빨리 닫을 것).
-2. 사용률 캐시는 diagnose-quota를 최소 1번 실행해야만 채워진다 — 등록만 하고 한 번도
+1. 사용률 캐시는 diagnose-quota를 최소 1번 실행해야만 채워진다 — 등록만 하고 한 번도
    diagnose-quota를 안 돌린 계정은 계속 "확인 안 됨"으로 보임(의도된 동작, 실비용 없이는
    채울 방법이 없음).
-3. 이번 커밋도 로컬 전용(push는 검증 완료 후).
+2. 이번 커밋도 로컬 전용(push는 검증 완료 후).
+
+**2026-08-20 정정**: 위 목록에 있던 "README.md/README.en.md에 remove/rename 명령이 아직
+문서화되지 않음" 항목은 사실이 아니었다 — 실제로는 이 M48을 만든 바로 그 커밋(`79dd7ed`)에
+README.md·README.en.md 양쪽 다 이미 반영돼 있었다(`git log -- README.md README.en.md`로
+재확인). 이 CHECKPOINT 기록 시점에 실제 diff를 재확인하지 않고 "문서화 남음"이라고
+과대평가해서 적은 것으로 보인다 — 이 프로젝트가 반복 겪어온 "코드가 문서보다 앞서간다"
+패턴의 정반대(문서 상태를 실제보다 나쁘게 기록) 사례라 다음 세션이 혼동하지 않도록
+바로잡는다.
 
 ## M49: 2026-08-20 — 종합 QA 중 발견: 원자적 쓰기가 Windows에서 EPERM으로 실패할 수 있는
 결함 수정 (active-account-state.js + active-account-handle/write.js)
@@ -2571,3 +2576,71 @@ test:accounts` 267개 중 1개가 실패하는 걸 발견했다.
 여전히 그대로다(M47이 이미 명시한, 별개의 남은 위험). 이번 수정 범위 밖.
 
 - 상태: **완료, 로컬 커밋만(push는 검증 완료 후 진행)**.
+
+## M50: 2026-08-20 — PRD 전수 재독으로 발견한 실제 갭 3건 해소: 파일 권한 하드닝 + 릴리즈 드리프트 + 로컬 브랜치 동기화
+
+**배경**: 사용자 요청으로 `.PRD/` 9개 문서 전체를 다시 정독하고 실제 코드·커밋·GitHub 상태와
+대조하는 감사를 진행했다. 새 기능을 추가하는 대신 "PRD가 스스로 남긴 약속인데 코드가 못
+따라간 것"만 찾는 데 집중했다 — 그 결과 실제 갭 2건과 로컬 환경 위험 1건을 발견했다.
+
+**1) 보안 갭 — `.PRD/02_DATA_MODEL.md` NEEDS CLARIFICATION이 끝내 미해소 상태였음**:
+"`ActiveAccountHandle` 파일도 다른 사용자가 못 읽게 권한 제한이 필요한지"가 2026-07-27
+"구현 세션에서 재검토"로 재개됐지만, `CHECKPOINT.md` 전체를 grep해도 이 항목을 처리한
+M-엔트리가 0건이었다. 코드로 직접 대조한 결과, 이유가 드러났다: M30에서 RotationEvent
+감사 로그에는 소유자 전용 권한(Windows `icacls`, POSIX `chmod 0o600`)을 적용했는데, 그
+뒤 M46~M49에서 새로 생긴 `active-account-state.json`(내부 활성 계정 포인터)·
+`active-account.json`(ActiveAccountHandle, Display 노출용) 두 파일에는 그 패턴이 전혀
+적용되지 않았다(두 파일 모두 icacls/chmod 코드 0건, grep으로 직접 확인) — 원자적 쓰기까지
+하드닝(M47·M49)해놓고 권한만 빠뜨린 비일관 상태였다.
+
+**만든 것**:
+- [x] `src/accounts/accounts/active-account-state.js`·`src/shared/active-account-handle/write.js`
+  양쪽에 M30과 동일한 원칙의 `restrictOwnerOnlyPermission(filePath)` 추가(Windows: `icacls
+  /inheritance:r` + `/grant:r <사용자>:F` 후 실제 ACL을 재조회해 검증, POSIX: `chmod 0o600`
+  후 실제 모드 재확인 — "명령이 에러 안 남" ≠ "실제로 그렇게 됨"을 구분하는 M30 원칙 그대로).
+  두 파일은 `src/shared/`↔`src/accounts/` 모듈 경계상 로직을 공유할 수 없어(Display도 읽는
+  공유 파일에 Account 전용 로직을 얹으면 경계가 흐려짐) 의도적으로 중복 작성했다(이 프로젝트의
+  기존 `ACCOUNTS_ISOLATION_VARS` 중복 관례와 동일한 이유).
+- [x] **RotationEvent와의 차이를 반영한 적용 시점 조정**: RotationEvent는 append 파일이라
+  "최초 생성 시 1회만" 권한을 강제하면 충분하지만, 이 두 파일은 매 쓰기마다 임시파일을
+  새로 만들어 `rename()`으로 전체 교체하므로 — 같은 볼륨 내 `rename()`은 대상이 아니라
+  원본(임시 파일)의 보안 속성을 그대로 옮기는 NTFS/POSIX 공통 동작이라, **매 쓰기(=매
+  rename)마다** 새로 생기는 임시 파일에 매번 적용해야 최종 파일도 항상 소유자 전용 권한을
+  유지한다. 이를 회귀 테스트로 직접 확인(두 번째 쓰기도 여전히 `permissionRestricted:true`).
+- [x] `atomicWriteFileSync`(state)·`writeActiveAccountHandle`(handle) 둘 다 `{
+  permissionRestricted }`를 반환하도록 확장 — 기존 호출부(`applySwitch`)는 반환값을 쓰지
+  않으므로 하위 호환(undefined→객체 반환은 기존 어떤 호출부도 깨지 않음, grep으로 전체
+  호출부 확인).
+- [x] 신규 테스트 5건(active-account-state 3 + active-account-handle 2): `permissionRestricted`
+  boolean 검증, win32 전용 실제 `icacls` 출력 대조(단일 ACE·현재 사용자 전체 권한), 두
+  번째 쓰기에도 재적용되는지 확인. `test:accounts` 267→272.
+- [x] **실제 프로덕션 경로(단위테스트 아님)로 end-to-end 검증**: `appendAccount`→`applySwitch`
+  전체 흐름을 별도 스크립트로 실행해, 그 결과로 생성된 두 파일의 실제 `icacls` 출력을
+  직접 조회 — 둘 다 `현재사용자:(F)` 단일 ACE만 있음을 실측 확인(단위테스트가 아니라 실제
+  호출 경로로 재확인, 이 프로젝트가 반복 강조해온 "격리 테스트만으로 됐다고 하지 마" 원칙).
+- [x] `.PRD/02_DATA_MODEL.md`의 해당 NEEDS CLARIFICATION 항목을 해소됨으로 정정.
+- 검증: `npm run lint`(클린)·`npm run lint:boundary`(23개 파일 통과)·`test:accounts`
+  (272/272)·`test:display`(245/245, 회귀 없음)·`live-wiring-gate.test.js`(재확인, 여전히
+  통과 — 이번 작업도 `bin/claudetower.js`를 전혀 건드리지 않음)·`npm run build`(성공).
+
+**2) 릴리즈 드리프트**: `package.json`은 M40(2026-08-19)부터 `0.5.0`인데 GitHub 최신
+Release는 여전히 `v0.4.0`(2026-07-27)으로 3주 이상 뒤처져 있었다 — "버전을 올리면 태그·
+Release도 같이 최신 유지"라는 기존 원칙과 어긋나는 상태로 방치돼 있었다. `v0.5.0` 태그
+생성 + GitHub Release 발행으로 해소(릴리스 노트는 M35~M49 요약).
+
+**3) 로컬 작업 브랜치 동기화 필요성**: `docs-and-fixes/2026-07-06`이 이 라운드 시작 시점
+origin/main 대비 0 ahead / 9 behind였다(다른 PR로 병합된 커밋들이 로컬 반영 안 됨) — 이번
+라운드 도중에도 동시 세션의 신규 로컬 커밋(`f2b34e8`, PRD 문서 정정 2건)이 실시간으로
+관찰됐다. 작업 디렉터리 충돌은 없었다(내가 건드린 4개 파일과 전혀 겹치지 않음, `git status`로
+매번 재확인) — 이 프로젝트가 이미 여러 차례 겪은 동시 세션 패턴과 동일하며, 이번에도
+파일명을 명시 지정해 스테이징하는 기존 원칙으로 안전하게 격리했다.
+
+**의도적으로 하지 않은 것**: 실거래 배선(게이트 그대로 유지, `live-wiring-gate.test.js`
+재확인 완료) — 이번 라운드는 새 기능이 아니라 기존에 이미 약속한 것(PRD NEEDS
+CLARIFICATION, 릴리스 최신 유지 원칙)을 완결시키는 작업으로 범위를 한정했다.
+
+**남은 위험**: 파일 권한 하드닝은 "이 OS 사용자 계정 소유자만 읽기 가능"까지만 보장한다 —
+관리자 권한을 가진 다른 계정이나 물리적 디스크 접근까지 막는 것은 아니며(OS 표준 ACL의
+근본적 한계, RotationEvent M30도 동일 한계를 이미 안고 있었음), 이 두 파일 자체는 애초에
+토큰이 아니라 계정 라벨/ID만 담고 있어(`.PRD/02_DATA_MODEL.md` 모듈 경계 규칙) 하드닝의
+가치는 "부가적 방어"이지 "이게 없으면 자격증명이 샌다"는 의미는 아니다(과대 고지 방지).

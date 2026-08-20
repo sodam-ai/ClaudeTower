@@ -4,8 +4,42 @@
 // 계정 라벨만 쓴다 — 토큰·만료시각 등 민감정보는 절대 포함하지 않는다(.PRD/02_DATA_MODEL.md 모듈 경계 규칙).
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
+const { execFileSync } = require('child_process');
 const { CONFIG_DIR_NAME } = require('../constants');
+
+// 2026-08-20 신설: `.PRD/02_DATA_MODEL.md` NEEDS CLARIFICATION("ActiveAccountHandle도
+// 다른 사용자가 못 읽게 권한 제한이 필요한지")를 해소 — active-account-state.js와 동일한
+// 원칙·코드(그쪽 파일 상단 주석에 이유 상세 — Windows는 ACL로 강제, POSIX는 chmod 후
+// 실제 모드 재확인, 매 쓰기(=매 rename)마다 새로 생기는 임시 파일에 매번 적용). 이
+// 파일은 src/shared/에 있어 src/accounts/의 코드를 import할 수 없으므로(Display 모듈도
+// 읽는 공유 파일이라 Account 전용 로직을 얹으면 모듈 경계가 흐려짐) 그대로 중복 작성한다.
+const ACL_ENTRY_PATTERN = /:\([A-Za-z,]+\)$/;
+
+function restrictOwnerOnlyPermission(filePath) {
+  if (process.platform === 'win32') {
+    try {
+      const username = os.userInfo().username;
+      execFileSync('icacls', [filePath, '/inheritance:r'], { stdio: 'ignore' });
+      execFileSync('icacls', [filePath, '/grant:r', `${username}:F`], { stdio: 'ignore' });
+      const output = execFileSync('icacls', [filePath], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+      const aceLines = output
+        .split('\n')
+        .map((line) => line.trimEnd())
+        .filter((line) => ACL_ENTRY_PATTERN.test(line));
+      return aceLines.length === 1 && aceLines[0].includes(`${username}:(F)`);
+    } catch {
+      return false;
+    }
+  }
+  try {
+    fs.chmodSync(filePath, 0o600);
+    return (fs.statSync(filePath).mode & 0o777) === 0o600;
+  } catch {
+    return false;
+  }
+}
 
 function getHandlePath() {
   return (
@@ -38,14 +72,15 @@ function writeActiveAccountHandle(accountLabel, filePath) {
   // 동시 프로세스 테스트, 이 PC의 배경 부하 아래서 재현)으로 확인 — 같은 재시도 해법을
   // 여기도 대칭으로 적용한다(두 파일이 코드를 공유하지 않는 이 프로젝트 관례 그대로 유지).
   const tmpPath = path.join(dir, `.${path.basename(handlePath)}.tmp-${process.pid}-${Date.now()}`);
-  fs.writeFileSync(tmpPath, payload, 'utf8');
+  fs.writeFileSync(tmpPath, payload, { encoding: 'utf8', mode: 0o600 });
+  const permissionRestricted = restrictOwnerOnlyPermission(tmpPath);
 
   const MAX_RETRIES = 10;
   const RETRY_DELAY_MS = 20;
   for (let attempt = 1; ; attempt++) {
     try {
       fs.renameSync(tmpPath, handlePath);
-      return;
+      return { permissionRestricted };
     } catch (err) {
       const isTransient = err.code === 'EPERM' || err.code === 'EBUSY';
       if (!isTransient || attempt >= MAX_RETRIES) {
