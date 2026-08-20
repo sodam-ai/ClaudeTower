@@ -33,6 +33,33 @@ test('writeActiveAccountHandle: 빈 라벨은 거부한다', () => {
   assert.throws(() => writeActiveAccountHandle('', tmpJsonPath('handle')), TypeError);
 });
 
+test('writeActiveAccountHandle: 소유자 전용 권한(permissionRestricted)이 실제로 적용된다', () => {
+  const p = tmpJsonPath('handle-perm');
+  const result = writeActiveAccountHandle('perm-account', p);
+  assert.equal(typeof result.permissionRestricted, 'boolean');
+  assert.equal(result.permissionRestricted, true, '이 PC(Windows)에서는 icacls 강제가 항상 성공해야 한다');
+  fs.unlinkSync(p);
+});
+
+test(
+  'writeActiveAccountHandle(win32): icacls 결과 실제로 현재 사용자만 접근 가능하고 상속된 ACE가 남아있지 않다',
+  { skip: process.platform !== 'win32' },
+  () => {
+    const { execFileSync } = require('node:child_process');
+    const p = tmpJsonPath('handle-acl');
+    writeActiveAccountHandle('acl-account', p);
+    const output = execFileSync('icacls', [p], { encoding: 'utf8' });
+    const username = os.userInfo().username;
+    const aceLines = output
+      .split('\n')
+      .map((line) => line.trimEnd())
+      .filter((line) => /:\([A-Za-z,]+\)$/.test(line));
+    assert.equal(aceLines.length, 1, `단일 ACE만 있어야 함: ${output}`);
+    assert.match(aceLines[0], new RegExp(`${username}:\\(F\\)`));
+    fs.unlinkSync(p);
+  }
+);
+
 test('readActiveAccountHandle: 파일이 없으면 null을 반환한다', () => {
   assert.equal(readActiveAccountHandle(tmpJsonPath('missing')), null);
 });

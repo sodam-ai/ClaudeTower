@@ -24,6 +24,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const crypto = require('node:crypto');
+const { execFileSync } = require('node:child_process');
 const { CONFIG_DIR_NAME } = require('../../shared/constants');
 const { readRegistry } = require('./accounts-registry');
 const { appendRotationEvent } = require('../audit/rotation-log');
@@ -66,16 +67,57 @@ const ALL_ISOLATION_VARS = [...DISPLAY_ISOLATION_VARS, ...ACCOUNTS_ISOLATION_VAR
 const RENAME_MAX_RETRIES = 10;
 const RENAME_RETRY_DELAY_MS = 20;
 
+// 2026-08-20 신설: `.PRD/02_DATA_MODEL.md` NEEDS CLARIFICATION("ActiveAccountHandle도
+// 다른 사용자가 못 읽게 권한 제한이 필요한지")가 그동안 미해결로 남아있었다 — 이 파일이
+// RotationEvent(M30)와 나란히 "지금 활성 계정이 뭔지"라는 계정 사용 메타데이터를
+// 로컬에 영속화하면서도 권한만 빠져 있었던 비일관성을 해소한다. M30(rotation-log.js)과
+// 동일한 원칙(Windows는 chmod 0o600이 예외 없이 "성공"해도 실제 모드가 0o666로 남는 걸
+// 이 PC에서 실측 확인했으므로 ACL로 강제, POSIX는 chmod 후 실제 모드를 재확인)을 쓰되,
+// 적용 시점은 다르다: rotation-log는 append 파일이라 "최초 생성 시 1회만" 충분하지만,
+// 이 파일은 매 쓰기마다 새 임시 파일을 만들어 rename()으로 통째로 교체하므로 — 같은
+// 볼륨 내 rename()은 대상이 아니라 원본(임시 파일)의 보안 속성을 그대로 옮기는 게
+// NTFS/POSIX 공통 동작이라, 매번 새로 생기는 임시 파일에 매번 적용해야 최종 파일도
+// 항상 소유자 전용 권한을 갖는다. src/shared/에는 이 로직을 둘 수 없다(Display 모듈도
+// 읽는 공유 파일이라 Account 전용 로직을 얹으면 모듈 경계가 흐려짐) — 그래서 코드는
+// active-account-handle/write.js에도 동일하게 중복 작성한다(이 프로젝트의 기존
+// ACCOUNTS_ISOLATION_VARS 중복 관례와 같은 이유).
+const ACL_ENTRY_PATTERN = /:\([A-Za-z,]+\)$/;
+
+function restrictOwnerOnlyPermission(filePath) {
+  if (process.platform === 'win32') {
+    try {
+      const username = os.userInfo().username;
+      execFileSync('icacls', [filePath, '/inheritance:r'], { stdio: 'ignore' });
+      execFileSync('icacls', [filePath, '/grant:r', `${username}:F`], { stdio: 'ignore' });
+      const output = execFileSync('icacls', [filePath], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+      const aceLines = output
+        .split('\n')
+        .map((line) => line.trimEnd())
+        .filter((line) => ACL_ENTRY_PATTERN.test(line));
+      return aceLines.length === 1 && aceLines[0].includes(`${username}:(F)`);
+    } catch {
+      return false;
+    }
+  }
+  try {
+    fs.chmodSync(filePath, 0o600);
+    return (fs.statSync(filePath).mode & 0o777) === 0o600;
+  } catch {
+    return false;
+  }
+}
+
 function atomicWriteFileSync(filePath, content) {
   const dir = path.dirname(filePath);
   fs.mkdirSync(dir, { recursive: true });
   const tmpPath = path.join(dir, `.${path.basename(filePath)}.tmp-${process.pid}-${Date.now()}`);
-  fs.writeFileSync(tmpPath, content, 'utf8');
+  fs.writeFileSync(tmpPath, content, { encoding: 'utf8', mode: 0o600 });
+  const permissionRestricted = restrictOwnerOnlyPermission(tmpPath);
 
   for (let attempt = 1; ; attempt++) {
     try {
       fs.renameSync(tmpPath, filePath);
-      return;
+      return { permissionRestricted };
     } catch (err) {
       const isTransient = err.code === 'EPERM' || err.code === 'EBUSY';
       if (!isTransient || attempt >= RENAME_MAX_RETRIES) {
@@ -138,7 +180,10 @@ function writeActiveAccountId(accountId, filePath) {
     assertNotPartialIsolation('CLAUDETOWER_ACCOUNTS_ACTIVE_ACCOUNT_PATH', '활성 계정 상태 파일');
     filePath = resolveActiveAccountStatePath();
   }
-  atomicWriteFileSync(filePath, JSON.stringify({ account_id: accountId, updated_at: new Date().toISOString() }, null, 2));
+  return atomicWriteFileSync(
+    filePath,
+    JSON.stringify({ account_id: accountId, updated_at: new Date().toISOString() }, null, 2)
+  );
 }
 
 // switch-decision.js(evaluateSwitchDecision)의 반환값을 실제로 적용한다.
