@@ -79,6 +79,63 @@ test('writeQuotaCacheEntry: 인자 없이(filePath undefined) 호출 시 다른 
   }
 });
 
+test('writeQuotaCacheEntry: 여러 프로세스가 동시에 서로 다른 계정 항목을 써도 전부 살아남는다(유실 없음)', async () => {
+  // 2026-08-20 회귀 테스트 — 전수 재검토로 발견한 결함: 이 파일은 "전체 캐시 읽기 →
+  // 이 계정 항목만 얹기 → 전체 파일 교체" 구조라, active-account-state.json(단일 값)의
+  // last-write-wins 위험과 달리, 서로 다른 계정으로 동시에 쓰면 나중에 rename에 성공한
+  // 쪽이 먼저 쓴 쪽의 "다른 계정" 항목을 통째로 지워버리는 유실이 생겼다. 실제 별도 OS
+  // 프로세스 N개를 동시에 띄워 각자 다른 계정 키를 쓰게 해서, 최종 캐시에 N개 전부
+  // 남아있는지 확인한다(단일 값 재현 테스트로는 이 유실을 못 잡는다 — 매번 같은 키만
+  // 덮어써서 "몇 개가 사라졌는지" 셀 수 없기 때문).
+  const { spawn } = require('node:child_process');
+  const filePath = tmpJsonPath();
+  const modulePath = path.join(__dirname, '..', '..', 'src', 'accounts', 'quota', 'quota-cache-store.js');
+
+  const N = 10;
+  const runs = Array.from({ length: N }, (_, i) => {
+    const code = `
+      const { writeQuotaCacheEntry } = require(${JSON.stringify(modulePath)});
+      writeQuotaCacheEntry(${JSON.stringify(`acc-${i}`)}, { tokens_used_pct: ${i}, requests_used_pct: null }, ${JSON.stringify(filePath)});
+    `;
+    return new Promise((resolve, reject) => {
+      const child = spawn(process.execPath, ['-e', code]);
+      let stderr = '';
+      child.stderr.on('data', (d) => (stderr += d));
+      child.on('exit', (code2) => (code2 === 0 ? resolve() : reject(new Error(`child ${i} exit ${code2}: ${stderr}`))));
+      child.on('error', reject);
+    });
+  });
+
+  await Promise.all(runs);
+
+  const finalCache = readQuotaCache(filePath);
+  const missing = Array.from({ length: N }, (_, i) => `acc-${i}`).filter((id) => !finalCache[id]);
+  assert.deepEqual(missing, [], `유실된 계정 항목이 있으면 안 됨: ${missing.join(', ')}`);
+  for (let i = 0; i < N; i++) {
+    assert.equal(finalCache[`acc-${i}`].tokens_used_pct, i);
+  }
+
+  const leftoverTmp = fs.readdirSync(os.tmpdir()).filter((f) => f.includes(path.basename(filePath)) && f.includes('.tmp-'));
+  assert.equal(leftoverTmp.length, 0, `임시 파일이 남아있음: ${leftoverTmp.join(', ')}`);
+
+  fs.unlinkSync(filePath);
+});
+
+test('writeQuotaCacheEntry: 죽은 프로세스가 남긴 오래된 락 파일은 강제로 회수하고 정상 진행한다(영구 교착 방지)', () => {
+  const filePath = tmpJsonPath();
+  const lockPath = `${filePath}.lock`;
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.closeSync(fs.openSync(lockPath, 'w')); // 락을 쥔 채로 죽은 프로세스를 흉내
+  const oldTime = new Date(Date.now() - 10000); // LOCK_STALE_MS(3000ms)보다 훨씬 오래됨
+  fs.utimesSync(lockPath, oldTime, oldTime);
+
+  writeQuotaCacheEntry('a1', { tokens_used_pct: 5, requests_used_pct: null }, filePath);
+
+  assert.equal(readQuotaCacheEntry('a1', filePath).tokens_used_pct, 5);
+  assert.equal(fs.existsSync(lockPath), false, '쓰기가 끝나면 락 파일이 정리돼야 한다');
+  fs.unlinkSync(filePath);
+});
+
 test('writeQuotaCacheEntry: 소유자 전용 권한(permissionRestricted)이 실제로 적용된다', () => {
   // 2026-08-20 추가 — active-account-state.js/active-account-handle/write.js와 동일한
   // 원자적쓰기+권한제한을 이 파일에도 적용(onUpstreamHeaders가 매 응답마다 쓰게 되면서
