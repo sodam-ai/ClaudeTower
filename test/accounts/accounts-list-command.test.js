@@ -72,6 +72,63 @@ test('formatAccountLine: 사용률 캐시가 있으면 마지막 확인 시각�
   assert.match(line, /2026-08-20T05:00:00\.000Z/);
 });
 
+test('formatAccountLine: last_used_at이 없으면 "기록 없음"을 보여준다', () => {
+  const line = formatAccountLine({
+    account_id: 'a1',
+    label: '업무용',
+    auth_type: 'api_key',
+    status: 'active',
+    created_at: '2026-08-20T00:00:00.000Z',
+    last_used_at: null,
+    last_project_path: null,
+  });
+  assert.match(line, /마지막 사용: 기록 없음/);
+});
+
+test('formatAccountLine: last_used_at/last_project_path가 있으면 함께 보여준다', () => {
+  const line = formatAccountLine({
+    account_id: 'a1',
+    label: '업무용',
+    auth_type: 'api_key',
+    status: 'active',
+    created_at: '2026-08-20T00:00:00.000Z',
+    last_used_at: '2026-08-20T05:00:00.000Z',
+    last_project_path: 'D:\\my\\project',
+  });
+  assert.match(line, /마지막 사용: 2026-08-20T05:00:00\.000Z/);
+  assert.match(line, /프로젝트: D:\\my\\project/);
+});
+
+test('formatAccountLine: last_used_at은 있는데 last_project_path가 없으면(프로젝트 정보만 없음) 시각만 보여준다', () => {
+  const line = formatAccountLine({
+    account_id: 'a1',
+    label: '업무용',
+    auth_type: 'api_key',
+    status: 'active',
+    created_at: '2026-08-20T00:00:00.000Z',
+    last_used_at: '2026-08-20T05:00:00.000Z',
+    last_project_path: null,
+  });
+  assert.match(line, /마지막 사용: 2026-08-20T05:00:00\.000Z/);
+  assert.doesNotMatch(line, /프로젝트:/);
+});
+
+test('runAccountsListCommand: 실제 전환(applySwitch) 후 list에 마지막 사용 정보가 반영된다(end-to-end)', () => {
+  const registryPath = tmpPath();
+  const { applySwitch } = require('../../src/accounts/accounts/active-account-state');
+  appendAccount({ account_id: 'a1', label: '업무용', auth_type: 'api_key', status: 'active', created_at: '2026-08-20T00:00:00.000Z' }, registryPath);
+
+  applySwitch(
+    { shouldSwitch: true, reason: 'quota_threshold', toAccountId: 'a1' },
+    { registryPath, statePath: tmpPath(), rotationLogPath: tmpPath(), activeAccountHandlePath: tmpPath(), projectPath: 'C:\\proj' }
+  );
+
+  const logs = [];
+  runAccountsListCommand({ registryPath, log: (m) => logs.push(m) });
+  assert.ok(logs.some((l) => l.includes('프로젝트: C:\\proj')));
+  fs.unlinkSync(registryPath);
+});
+
 test('runAccountsListCommand: quotaCachePath를 넘기면 실제 캐시를 읽어 표시한다', () => {
   const registryPath = tmpPath();
   const quotaCachePath = tmpPath();

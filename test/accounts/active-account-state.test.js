@@ -10,7 +10,7 @@ const {
   writeActiveAccountId,
   applySwitch,
 } = require('../../src/accounts/accounts/active-account-state');
-const { appendAccount } = require('../../src/accounts/accounts/accounts-registry');
+const { appendAccount, readRegistry } = require('../../src/accounts/accounts/accounts-registry');
 const { readActiveAccountHandle } = require('../../src/shared/active-account-handle/read');
 const { readRotationEvents } = require('../../src/accounts/audit/rotation-log');
 const { REASONS } = require('../../src/accounts/rotation/rotation-event');
@@ -158,6 +158,68 @@ test('applySwitch: 정상 케이스 — 상태 파일·active-account-handle·�
   fs.unlinkSync(statePath);
   fs.unlinkSync(activeAccountHandlePath);
   fs.unlinkSync(rotationLogPath);
+});
+
+test('applySwitch: 정상 케이스 — 레지스트리의 last_project_path/last_used_at도 함께 갱신한다', () => {
+  const registryPath = tmpJsonPath('registry');
+  appendAccount(
+    { account_id: 'a2', label: 'backup-account', auth_type: 'api_key', status: 'active', created_at: '2026-08-20T00:00:00Z' },
+    registryPath
+  );
+
+  const result = applySwitch(
+    { shouldSwitch: true, reason: 'quota_threshold', toAccountId: 'a2' },
+    {
+      fromAccountId: 'a1',
+      registryPath,
+      statePath: tmpJsonPath('state'),
+      rotationLogPath: tmpJsonPath('rotation-log'),
+      activeAccountHandlePath: tmpJsonPath('handle'),
+      projectPath: 'C:\\some\\project',
+    }
+  );
+
+  assert.equal(result.applied, true);
+  const updated = readRegistry(registryPath).find((a) => a.account_id === 'a2');
+  assert.equal(updated.last_project_path, 'C:\\some\\project');
+  assert.equal(typeof updated.last_used_at, 'string');
+  assert.ok(!Number.isNaN(Date.parse(updated.last_used_at)));
+
+  fs.unlinkSync(registryPath);
+});
+
+test('applySwitch: projectPath를 넘기지 않으면(null) 기존에 알던 project_path를 지우지 않는다', () => {
+  const registryPath = tmpJsonPath('registry');
+  appendAccount(
+    {
+      account_id: 'a2',
+      label: 'backup-account',
+      auth_type: 'api_key',
+      status: 'active',
+      created_at: '2026-08-20T00:00:00Z',
+      last_project_path: 'D:\\old\\project',
+      last_used_at: '2026-08-19T00:00:00Z',
+    },
+    registryPath
+  );
+
+  const result = applySwitch(
+    { shouldSwitch: true, reason: 'quota_threshold', toAccountId: 'a2' },
+    {
+      registryPath,
+      statePath: tmpJsonPath('state'),
+      rotationLogPath: tmpJsonPath('rotation-log'),
+      activeAccountHandlePath: tmpJsonPath('handle'),
+      // projectPath 생략 — 호출부가 cwd를 모르는 상황을 시뮬레이션
+    }
+  );
+
+  assert.equal(result.applied, true);
+  const updated = readRegistry(registryPath).find((a) => a.account_id === 'a2');
+  assert.equal(updated.last_project_path, 'D:\\old\\project', '기존 값을 null로 덮어쓰면 안 된다');
+  assert.notEqual(updated.last_used_at, '2026-08-19T00:00:00Z', 'last_used_at은 projectPath 유무와 무관하게 항상 갱신돼야 한다');
+
+  fs.unlinkSync(registryPath);
 });
 
 test('applySwitch: reevalIntervalMs가 지나지 않았으면 판단이 전환이어도 적용을 보류한다(진동 방지)', () => {

@@ -2780,3 +2780,51 @@ active-account-state.json의 기존 "단일 값 last-write-wins" 위험(M47이 �
 이 프로젝트의 실사용 규모(개인 사용자 1명, 계정 몇 개)에서는 현실적 위험이 아니다. 락
 파일 자체의 소유자 전용 권한은 별도로 강제하지 않는다(락은 존재 여부만 의미가 있고
 내용이 없어 정보 노출 위험이 없음 — 과잉 하드닝 자제).
+
+## M53: 2026-08-20 — 계정별 마지막 사용 프로젝트 경로 표시 신설 (Phase 2 마지막 잔여 갭 해소)
+
+**배경**: PRD 재독으로 발견한 잔여 갭 — `.PRD/01_PRD.md` §3·`.PRD/03_PHASES.md` Phase 2
+체크리스트가 명시한 "계정별 마지막 사용 프로젝트 경로 표시"가 `account.js` 스키마(
+`last_project_path`/`last_used_at` 필드)엔 이미 있었고 `RotationEvent`에는 이미 기록되고
+있었지만, 정작 계정 레지스트리 항목 자체는 한 번도 갱신되지 않았고 `accounts list`도 표시하지
+않았다. 동시 세션의 M51도 같은 전수 감사 중 이 갭을 발견해 "이번엔 손대지 않음, 범위 밖"으로
+명시적으로 남겨둔 항목이라(위 M51 참고), 겹치지 않게 이번 라운드에서 마무리했다.
+
+**만든 것**:
+- [x] `src/accounts/accounts/active-account-state.js`의 `applySwitch` — 전환 적용 시
+  `writeRegistry`로 대상 계정의 `last_project_path`/`last_used_at`도 함께 갱신하도록 확장.
+  `projectPath`가 `null`(호출부가 cwd를 모르는 경우)이면 **기존에 알던 값을 지우지 않는다**
+  — "몰랐다"는 정보로 "알고 있던 값"을 덮어쓰면 사용자에게 손해이기 때문. `last_used_at`은
+  `projectPath` 유무와 무관하게 항상 이 전환 시각으로 갱신(전환이 실제로 일어났다는 사실
+  자체는 확실하므로). `RotationEvent.occurred_at`과 같은 타임스탬프를 재사용해 두 기록이
+  같은 전환에 대해 서로 다른 시각을 갖지 않게 함(사소하지만 실제 정확성 개선).
+- [x] `src/accounts/accounts/accounts-list-command.js` — `formatAccountLine`이 "마지막
+  사용" 줄을 추가로 표시(기록 없음 / 시각만 / 시각+프로젝트 경로 3가지 상태 구분).
+  `quotaEntry`와 달리 실시간·실비용 조회가 아니라 레지스트리에 이미 있는 값을 그대로 보여줄
+  뿐이다.
+- [x] `.PRD/03_PHASES.md` Phase 2 체크리스트의 해당 항목을 완료로 정정.
+- [x] 신규 테스트 6건(active-account-state 2 + accounts-list-command 4, 이 중 1건은
+  `applySwitch`→`accounts list` 실제 프로덕션 경로 end-to-end): `test:accounts`
+  286/286(신규분 포함, 동시 세션 M52의 신규 8건과 합산된 수치), `test:display` 245/245
+  회귀 없음, `npm run lint`·`lint:boundary` 통과, `live-wiring-gate.test.js` 재확인
+  통과(이번 작업도 `bin/claudetower.js` 미접촉), `npm run build` 성공.
+- [x] **실제 프로덕션 경로로 end-to-end 스모크**(단위테스트 아님): `appendAccount` →
+  `applySwitch` → `runAccountsListCommand` 전체 흐름을 직접 실행 — 전환 전엔 "기록
+  없음", 전환 후엔 실제 시각+`process.cwd()` 경로가 그대로 표시됨을 실측 확인.
+
+**동시 세션 관찰**: 이번 라운드 중 동시 세션이 `quota-cache-store.js`(+테스트)를 수정 중인
+것을 확인했다 — 내가 건드린 4개 파일과 전혀 겹치지 않아(매번 `git status` 재확인) 그대로
+안전하게 병행했다. 그 세션의 M52 "남은 위험" 문단이 정확히 이번에 내가 고친 항목을 먼저
+지목해뒀던 것도 확인 — 서로 다른 각도(하나는 "무엇이 됐는지" 감사, 하나는 "무엇이 안 됐는지"
+감사)로 접근했는데 같은 결론에 도달한 셈이다.
+
+**의도적으로 하지 않은 것**: `--import`(기존 OAuth 로그인 가져오기)는 이번에도 손대지 않음
+— `.PRD/07_OAUTH_FLOW_SPEC.md §5-2`가 명시한 ToS 리스크가 그대로 유효하고, 이 결정은
+AI가 임의로 재론할 사안이 아니다. 실거래 배선도 이번에도 진행하지 않음.
+
+**남은 위험**: 이 필드는 `applySwitch`가 호출될 때만 갱신되는데, 실거래 배선이 꺼져 있어
+현재는 실사용에서 호출되지 않는다 — 배선이 켜지기 전까지는 코드는 완성됐지만 실제 값이
+채워지는 걸 실사용에서 관찰할 수 없다(M46~M52의 다른 안전지대 코드와 동일한 처지). Phase 2
+체크리스트 중 이제 진짜로 남은 항목은 OAuth 계정 등록/`--import`(ToS로 의도적 보류)와
+실거래 배선(게이트로 의도적 보류) 둘뿐이다 — 둘 다 사용자의 별도 결정이 필요하고, AI가
+자체적으로 더 진행할 수 있는 Phase 2 항목은 이 시점 기준 남아있지 않다.
