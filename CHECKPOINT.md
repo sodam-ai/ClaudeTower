@@ -2519,13 +2519,18 @@ Windows Credential Manager 잔재 확인 수단이다 — 앞으로 이 프로�
 이 API를 1순위로 쓸 것.
 
 **남은 위험**:
-1. README.md/README.en.md에 remove/rename 명령이 아직 문서화되지 않음(다음 라운드 정리
-   대상 — 이 프로젝트가 반복 겪은 "코드는 있는데 문서가 못 따라간" 패턴을 또 만들지 않게
-   빨리 닫을 것).
-2. 사용률 캐시는 diagnose-quota를 최소 1번 실행해야만 채워진다 — 등록만 하고 한 번도
+1. 사용률 캐시는 diagnose-quota를 최소 1번 실행해야만 채워진다 — 등록만 하고 한 번도
    diagnose-quota를 안 돌린 계정은 계속 "확인 안 됨"으로 보임(의도된 동작, 실비용 없이는
    채울 방법이 없음).
-3. 이번 커밋도 로컬 전용(push는 검증 완료 후).
+2. 이번 커밋도 로컬 전용(push는 검증 완료 후).
+
+**2026-08-20 정정**: 위 목록에 있던 "README.md/README.en.md에 remove/rename 명령이 아직
+문서화되지 않음" 항목은 사실이 아니었다 — 실제로는 이 M48을 만든 바로 그 커밋(`79dd7ed`)에
+README.md·README.en.md 양쪽 다 이미 반영돼 있었다(`git log -- README.md README.en.md`로
+재확인). 이 CHECKPOINT 기록 시점에 실제 diff를 재확인하지 않고 "문서화 남음"이라고
+과대평가해서 적은 것으로 보인다 — 이 프로젝트가 반복 겪어온 "코드가 문서보다 앞서간다"
+패턴의 정반대(문서 상태를 실제보다 나쁘게 기록) 사례라 다음 세션이 혼동하지 않도록
+바로잡는다.
 
 ## M49: 2026-08-20 — 종합 QA 중 발견: 원자적 쓰기가 Windows에서 EPERM으로 실패할 수 있는
 결함 수정 (active-account-state.js + active-account-handle/write.js)
