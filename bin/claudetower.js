@@ -200,6 +200,19 @@ async function run(args) {
       const result = runRenameAccountCommand(oldLabel, newLabel, { log: (msg) => console.log(msg) });
       return result.applied === false ? 1 : 0;
     }
+    if (subcommand === 'switch') {
+      // 수동 강제 전환 — applySwitch()를 실제로 호출하는 첫 CLI 경로(2026-08-20 발견,
+      // switch-account-command.js 상단 주석 참고). API 키 계정만 지원, 확인 절차 없음
+      // (가역적 — 다시 switch하면 되돌릴 수 있음, remove/purge와 다름).
+      const label = args[2];
+      if (!label) {
+        console.log('사용법: claudetower accounts switch <라벨>');
+        return 1;
+      }
+      const { runSwitchAccountCommand } = require('../src/accounts/accounts/switch-account-command');
+      const result = runSwitchAccountCommand(label, { log: (msg) => console.log(msg) });
+      return result.applied === false ? 1 : 0;
+    }
     if (subcommand === 'disable') {
       // 동의 문구(consent-text.js)가 "언제든지 disable로 다시 끌 수 있다"고 약속하는데
       // 이 명령이 없으면 그 약속이 거짓이 된다(2026-08-19 발견) — 확인 없이 즉시 처리한다
@@ -232,7 +245,7 @@ async function run(args) {
         rl.close();
       }
     }
-    console.log('accounts 서브커맨드: status, config, enable, add --api-key, list, remove, rename, disable, diagnose-quota 사용 가능합니다.');
+    console.log('accounts 서브커맨드: status, config, enable, add --api-key, list, remove, rename, switch, disable, diagnose-quota 사용 가능합니다.');
     console.log('(자동전환 기동은 아직 개발 중입니다. 계정 완전 삭제는 claudetower account-purge를 쓰세요.)');
     return subcommand === undefined ? 0 : 1;
   }

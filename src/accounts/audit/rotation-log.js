@@ -34,6 +34,55 @@ const os = require('node:os');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { createRotationEvent } = require('../rotation/rotation-event');
+const { CONFIG_DIR_NAME } = require('../../shared/constants');
+
+// 2026-08-21 신설(실측으로 발견): 이 파일은 지금까지 filePath를 항상 호출부가 명시적으로
+// 넘겨야만 동작했다(기본 경로 해석 함수가 없었음) — active-account-state.js·
+// accounts-registry.js 등 다른 모든 Account 상태 파일은 진작에 `resolve*Path()`
+// 기본값을 갖고 있었는데 이 파일만 예외였다. 지금까지는 이 함수를 실제로 호출하는 CLI
+// 경로가 0개였어서(applySwitch의 유일한 실사용 경로는 🛑 실거래 배선 게이트로 막힌
+// active-account-provider.js뿐) 이 결함이 드러나지 않았다 — `claudetower accounts switch`
+// (첫 실사용 호출부)를 실제로 실행하자 `path.dirname(undefined)` 크래시로 즉시 재현됨.
+// 다른 파일들과 동일한 관례(CLAUDETOWER_* 환경변수 override + 기본 경로)로 맞춘다.
+// 다른 5개 파일과 동일하게 Display 격리 변수까지 포함한 전체 목록을 기준으로 검사한다 —
+// Account 변수만 보면 "CLAUDETOWER_WIDGET_CONFIG_PATH만 설정된 부분격리" 같은 실제
+// 위험한 상태를 놓친다(이 파일이 처음엔 Account 변수만 검사하도록 좁게 만들어졌다가
+// 회귀 테스트로 바로 발견·수정됨, 2026-08-21).
+const DISPLAY_ISOLATION_VARS = [
+  'CLAUDETOWER_SETTINGS_PATH',
+  'CLAUDETOWER_WIDGET_CONFIG_PATH',
+  'CLAUDETOWER_SKILLS_DIR',
+  'CLAUDETOWER_INSTALL_DIR',
+  'CLAUDETOWER_CACHE_DIR',
+];
+const ACCOUNTS_ISOLATION_VARS = [
+  'CLAUDETOWER_ACCOUNTS_SWITCH_POLICY_PATH',
+  'CLAUDETOWER_ACCOUNTS_ACTIVATION_STATE_PATH',
+  'CLAUDETOWER_ACCOUNTS_REGISTRY_PATH',
+  'CLAUDETOWER_ACCOUNTS_ACTIVE_ACCOUNT_PATH',
+  'CLAUDETOWER_ACTIVE_ACCOUNT_HANDLE_PATH',
+  'CLAUDETOWER_ACCOUNTS_QUOTA_CACHE_PATH',
+  'CLAUDETOWER_ACCOUNTS_ROTATION_LOG_PATH',
+];
+const ALL_ISOLATION_VARS = [...DISPLAY_ISOLATION_VARS, ...ACCOUNTS_ISOLATION_VARS];
+
+function assertNotPartialIsolation(ownOverrideVar, targetLabel) {
+  const partiallyIsolated =
+    !process.env[ownOverrideVar] &&
+    ALL_ISOLATION_VARS.some((v) => v !== ownOverrideVar && Boolean(process.env[v]));
+  if (partiallyIsolated) {
+    throw new Error(
+      `테스트 격리 변수(CLAUDETOWER_*)가 일부만 설정되어 있어 실제 ${targetLabel}을(를) 건드리지 않습니다. 테스트라면 ${ownOverrideVar}도 함께 지정하세요.`
+    );
+  }
+}
+
+function resolveRotationLogPath() {
+  return (
+    process.env.CLAUDETOWER_ACCOUNTS_ROTATION_LOG_PATH ||
+    path.join(os.homedir(), CONFIG_DIR_NAME, 'rotation-log.jsonl')
+  );
+}
 
 // icacls 출력에서 실제 ACE(접근 제어 항목) 줄만 뽑아낸다 — 파일 경로+요약 문구는
 // 로케일에 따라 문구가 달라지므로(이 PC는 한글) 문구 매칭 대신 ACE 형식
@@ -60,6 +109,11 @@ function restrictWindowsAcl(filePath) {
 function appendRotationEvent(eventFields, filePath) {
   const event = createRotationEvent(eventFields);
   const line = `${JSON.stringify(event)}\n`;
+
+  if (filePath === undefined) {
+    assertNotPartialIsolation('CLAUDETOWER_ACCOUNTS_ROTATION_LOG_PATH', '계정 전환 감사 로그 파일');
+    filePath = resolveRotationLogPath();
+  }
 
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   const fileExistedBefore = fs.existsSync(filePath);
@@ -91,7 +145,7 @@ function appendRotationEvent(eventFields, filePath) {
 // JSON.parse가 예외를 던져 파일 전체를 못 읽게 되던 것을 수정 — 감사 로그는 정의상
 // "일부가 손상돼도 나머지는 읽혀야" 신뢰할 수 있는데, 정반대로 동작하고 있었다.
 // 손상된 줄만 건너뛰고 나머지 정상 줄은 그대로 반환한다(반환 타입은 배열 그대로 유지).
-function readRotationEvents(filePath) {
+function readRotationEvents(filePath = resolveRotationLogPath()) {
   if (!fs.existsSync(filePath)) return [];
   const events = [];
   for (const line of fs.readFileSync(filePath, 'utf8').split('\n')) {
@@ -107,4 +161,4 @@ function readRotationEvents(filePath) {
   return events;
 }
 
-module.exports = { appendRotationEvent, readRotationEvents };
+module.exports = { appendRotationEvent, readRotationEvents, resolveRotationLogPath };

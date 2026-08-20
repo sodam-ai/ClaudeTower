@@ -1537,3 +1537,101 @@ Display 전용 항목(Powerline 색상 테마·Git 위젯)은 이번 라운드�
 게이트뿐이다 — 둘 다 사용자의 별도 결정이 필요한 항목이라, 체크리스트 차원에서 AI가
 자체적으로 더 진행할 수 있는 Phase 2 항목은 이 시점 기준 남아있지 않다(단, 이 결론을
 과신하지 않기로 한 M54의 교훈을 그대로 유지 — 다음 세션도 이 문장을 실행 전에 재검증할 것).
+
+## M59: 2026-08-21 — `claudetower accounts switch <라벨>`(수동 강제 전환) 신설 + rotation-log.js의
+숨어있던 크래시 결함을 실사용 도중 발견·수정
+
+**배경(PRD 전수 재독으로 발견)**: `applySwitch()`(active-account-state.js, M46부터 락·원자적쓰기·
+소유자 전용 권한까지 완성돼 있음)를 실제로 호출하는 CLI 경로가 이 시점까지 **0개**였다 — 유일한
+호출부인 `active-account-provider.js`는 🛑 실거래 배선 게이트로 막혀 CLI에서 도달 불가능했다.
+`rotation-event.js`의 `REASONS` 화이트리스트에 `'quota_threshold'`/`'http_429_failover'`와 나란히
+처음부터 `'manual'`이 등록돼 있었던 것도 이 명령이 원래 설계에 있었다는 증거였다 — 지금껏 아무도
+발생시키지 않았을 뿐. `.PRD/03_PHASES.md` Phase 3의 "Account: ... 수동 강제 전환" 항목.
+
+**왜 이 방향을 선택했나(대안 비교)**: Powerline 색상 테마·Git 위젯(Display 전용, 안전하지만
+코스메틱), TUI 대시보드(활동 로그를 보여줄 실사용 데이터가 아직 없어 전제조건 미충족), 영구 셸
+별칭(`claudetower run` 진입점 의존 — 그 자체가 게이트 대상)을 검토했으나 전부 기각. 선택한 방향은
+🛑 게이트를 전혀 건드리지 않으면서(`startProxyServer`/`active-account-provider`/
+`createRequestForwarder` 미접촉, `live-wiring-gate.test.js` 그대로 통과) ToS 리스크도 없고(자동
+감지·순환이 아니라 매번 사용자가 직접 실행하는 1회성 전환, API 키 계정만 허용 — `applySwitch`가
+이미 강제), 지금까지 만든 계정 전환 인프라 전체(락·원자적쓰기·권한 하드닝·감사로그)를 처음으로
+실사용에서 검증받게 만드는 유일한 후보였다.
+
+**만든 것**:
+- [x] `src/accounts/accounts/switch-account-command.js`(신규) — `runSwitchAccountCommand(label,
+  opts)`. 라벨→계정 조회(친절한 오류 메시지용, 최종 판단은 `applySwitch`/`updateRegistry`의 락
+  시점 최신 상태 기준), OAuth 계정·비활성 계정·이미 활성인 계정을 각각 명확한 한국어 메시지로
+  거부, `decision = { shouldSwitch: true, toAccountId, reason: 'manual' }`를 구성해 기존
+  `applySwitch()`에 그대로 위임(전환 로직 자체는 재사용, 새로 안 만듦). `reevalIntervalMs`는
+  의도적으로 0 — 그 스로틀은 "자동 재평가 진동 방지" 목적이라(M46) 사용자가 명시적으로 요청한
+  수동 전환까지 막을 이유가 없다고 판단. `process.cwd()`를 `projectPath`로 전달(M53과 동일 원칙).
+  확인 절차 없음(rename과 동일 원칙 — remove/purge만 DO NOT 대상, switch는 가역적).
+- [x] `bin/claudetower.js`에 `accounts switch` 서브커맨드 배선, 사용법 안내 갱신.
+- [x] `test/accounts/switch-account-command.test.js`(신규 9건): 라벨 누락/계정없음/OAuth계정
+  거부/비활성계정 거부/정상전환(state·handle·RotationEvent 실제 갱신 확인)/레지스트리
+  last_project_path·last_used_at 갱신(M53 경로 재사용 확인)/이미 활성 상태 재전환 거부(감사로그
+  중복 안 남는지까지 확인)/두 계정 간 전환 시 from·to가 정확히 기록되는지/정적 검사(credential-
+  store·oauth·proxy 미참조).
+
+**실사용 중 발견·수정한 실제 결함(중요)**: 격리 스크래치 경로로 첫 라이브 스모크 테스트를
+실행하자 `accounts switch`가 `The "path" argument must be of type string. Received undefined`로
+즉시 크래시했다. 원인: `rotation-log.js`(RotationEvent 감사 로그)만 다른 5개 Account 상태 파일과
+달리 **기본 경로 해석 함수(`resolve*Path()`)가 없었다** — `appendRotationEvent(eventFields,
+filePath)`가 `filePath`를 항상 호출부가 명시적으로 넘겨야만 동작했는데, `applySwitch`가 이 값을
+그대로 통과시킬 뿐 자체 기본값이 없어 `path.dirname(undefined)`에서 죽었다. 이 결함이 지금까지
+드러나지 않은 이유는 이 함수를 실제로 호출하는 CLI 경로가 이번 작업 전까지 0개였기 때문 — 이번이
+**이 코드 경로의 첫 실사용 호출**이라, "안전지대(격리 테스트만으로 검증된 코드)"의 숨은 결함이
+실사용 전환 과정에서 스스로 드러난 사례다.
+- [x] `rotation-log.js`에 `resolveRotationLogPath()` 신설(`CLAUDETOWER_ACCOUNTS_ROTATION_LOG_PATH`
+  override + 기본 경로 `~/.claudetower/rotation-log.jsonl`), `appendRotationEvent`/
+  `readRotationEvents` 둘 다 filePath 기본값 적용(읽기는 default param, 쓰기는 다른 파일들과
+  동일하게 `assertNotPartialIsolation` 가드 후 기본값 — 읽기엔 격리 가드가 필요 없다는 기존
+  원칙 그대로).
+- [x] **가드 자체의 결함도 함께 발견·수정**: 처음엔 `ACCOUNTS_ISOLATION_VARS`만으로
+  `assertNotPartialIsolation`을 만들었는데, 새로 추가한 회귀 테스트("Display 변수만 설정된
+  부분격리 상태에서 거부하는지")가 즉시 실패해 드러났다 — 다른 5개 파일은 전부 `DISPLAY_
+  ISOLATION_VARS`까지 합친 `ALL_ISOLATION_VARS`를 기준으로 검사하는데 이 파일만 Account
+  변수만 좁게 검사하고 있었다. `DISPLAY_ISOLATION_VARS`/`ALL_ISOLATION_VARS`를 다른 파일과
+  동일하게 추가해 바로잡았다 — 테스트가 없었으면 그대로 넘어갔을 안전장치 결함이었다.
+- [x] **대칭 방어 원칙 적용**: 새 환경변수 `CLAUDETOWER_ACCOUNTS_ROTATION_LOG_PATH`를 기존
+  5개 파일(`active-account-state.js`·`accounts-registry.js`·`quota-cache-store.js`·
+  `switch-policy-config.js`·`module-activation-state-store.js`)의 `ACCOUNTS_ISOLATION_VARS`
+  목록에도 대칭으로 추가(M46이 세운 관례 — "새 파일이 격리된 채 이 파일들만 격리 안 된 상태를
+  놓치지 않도록").
+- [x] `test/accounts/rotation-log.test.js`에 회귀 테스트 3건 추가: env var override 확인,
+  filePath 생략 시 격리 경로로 실제 쓰고 읽기(크래시 없음 확인), 부분격리 거부 확인(위 가드
+  결함을 실제로 잡아낸 테스트).
+- [x] `src/accounts/status-report.js` 갱신 — `switch` 명령 추가, "마지막 사용 정보 표시"
+  항목의 "실거래 배선 전까지는 테스트로만 검증됨" 문구를 "`accounts switch`로 이제 실사용에서도
+  값이 채워짐"으로 정정(과소 고지 시정).
+- [x] `.PRD/03_PHASES.md` Phase 3 Account 항목에 "수동 강제 전환만 완료" 취소선+주석 추가(TUI
+  대시보드·핫 리로드·영구 셸 별칭은 여전히 미착수, 셸 별칭은 배선 게이트 의존이라 착수 자체
+  불가능함을 명시).
+
+**실측 검증(전부 직접 실행)**:
+- `npm run test:accounts` **308/308**(신규 12건: switch-account-command 9 + rotation-log
+  회귀 3), `npm run test:display` 245/245 회귀 없음, `npm run lint` 클린, `npm run lint:boundary`
+  23개 파일 무변경(Display는 이번 작업과 무관), `live-wiring-gate.test.js` 재확인 통과(이번
+  작업도 `bin/claudetower.js`에 `startProxyServer` 계열을 전혀 추가하지 않음), `npm run build`
+  성공(수정 후 재빌드까지 확인).
+- **실제 exe가 아니라 소스로 격리 스크래치 경로 라이브 스모크**(전용 임시 디렉터리, `CLAUDETOWER_*`
+  7개 변수로 완전 격리, 실제 사용자 설치는 전혀 안 건드림): enable→add(smoke-a/smoke-b)→
+  **switch smoke-a**(성공)→list(마지막 사용 시각·프로젝트 경로 실제로 채워짐 확인)→**switch
+  smoke-a 재시도**(`already_active`로 거부, 감사로그 추가 안 됨 확인)→**switch smoke-b**(성공)→
+  list(둘 다 갱신 확인)→**switch ghost-label**(`account_not_found`로 거부) 전체 흐름 실행,
+  `rotation-log.jsonl` 원문에 `reason: manual`인 이벤트 2건이 정확한 from/to로 기록됨을 직접
+  확인, `handle.json`이 최종 활성 계정(`smoke-b`)을 정확히 반영함을 확인.
+- **뒷정리**: 스모크 테스트로 실제 Windows Credential Manager에 생긴 2건(`smoke-a`/`smoke-b`)을
+  `findCredentials('claudetower')`로 조회해 정확히 그 2건만(다른 계정 2건은 이전 라운드 잔재로
+  판단해 손대지 않음) `deletePassword()`로 삭제, 재조회로 삭제 확인.
+
+**의도적으로 하지 않은 것**: 실거래 배선·`--import`는 이번에도 손대지 않음. `active_account`
+Display 위젯은 이번 작업으로 전제조건(ActiveAccountHandle에 실제 값이 채워짐)은 갖춰졌지만,
+범위를 최소화하기 위해 이번 라운드에는 포함하지 않음(다음 라운드 후보로 남김). add-api-key의
+라벨 중복 검사가 락 밖에 있는 것과 동일한 성격의 "add 흐름 전체를 락 안으로" 재구조화도 이번
+범위 밖(M55가 이미 남긴 위험, 변화 없음).
+
+**남은 위험**: `accounts switch`는 여전히 API 키 계정 사이의 전환만 가능하다(OAuth 계정은
+`applySwitch`가 구조적으로 거부, 의도된 제약). 이 명령이 실거래 배선 없이도 유의미하려면
+사용자가 계정을 최소 2개 이상 등록해야 한다(1개뿐이면 전환할 대상이 없음, 결함 아님). 락 기반
+동시성 보호는 기존과 동일한 한계(파일당 최대 300회/약 6초 대기 후 포기)를 그대로 상속받는다.
