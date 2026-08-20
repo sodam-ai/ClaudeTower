@@ -79,6 +79,47 @@ test('writeQuotaCacheEntry: 인자 없이(filePath undefined) 호출 시 다른 
   }
 });
 
+test('writeQuotaCacheEntry: 소유자 전용 권한(permissionRestricted)이 실제로 적용된다', () => {
+  // 2026-08-20 추가 — active-account-state.js/active-account-handle/write.js와 동일한
+  // 원자적쓰기+권한제한을 이 파일에도 적용(onUpstreamHeaders가 매 응답마다 쓰게 되면서
+  // 위험 등급이 같아짐). 같은 관례로 같은 형태의 테스트를 둔다.
+  const p = tmpJsonPath();
+  const result = writeQuotaCacheEntry('a1', { tokens_used_pct: 10, requests_used_pct: null }, p);
+  assert.equal(typeof result.permissionRestricted, 'boolean');
+  assert.equal(result.permissionRestricted, true, '이 PC(Windows)에서는 icacls 강제가 항상 성공해야 한다');
+  fs.unlinkSync(p);
+});
+
+test('writeQuotaCacheEntry: 매 쓰기(=매 rename)마다 다시 권한을 강제한다', () => {
+  const p = tmpJsonPath();
+  const first = writeQuotaCacheEntry('a1', { tokens_used_pct: 10, requests_used_pct: null }, p);
+  const second = writeQuotaCacheEntry('a2', { tokens_used_pct: 20, requests_used_pct: null }, p);
+  assert.equal(first.permissionRestricted, true);
+  assert.equal(second.permissionRestricted, true, '두 번째 쓰기(새 임시파일→rename)도 여전히 강제돼야 한다');
+  assert.equal(readQuotaCacheEntry('a1', p).tokens_used_pct, 10);
+  assert.equal(readQuotaCacheEntry('a2', p).tokens_used_pct, 20);
+  fs.unlinkSync(p);
+});
+
+test(
+  'writeQuotaCacheEntry(win32): icacls 결과 실제로 현재 사용자만 접근 가능하고 상속된 ACE가 남아있지 않다',
+  { skip: process.platform !== 'win32' },
+  () => {
+    const { execFileSync } = require('node:child_process');
+    const p = tmpJsonPath();
+    writeQuotaCacheEntry('a1', { tokens_used_pct: 10, requests_used_pct: null }, p);
+    const output = execFileSync('icacls', [p], { encoding: 'utf8' });
+    const username = os.userInfo().username;
+    const aceLines = output
+      .split('\n')
+      .map((line) => line.trimEnd())
+      .filter((line) => /:\([A-Za-z,]+\)$/.test(line));
+    assert.equal(aceLines.length, 1, `단일 ACE만 있어야 함: ${output}`);
+    assert.match(aceLines[0], new RegExp(`${username}:\\(F\\)`));
+    fs.unlinkSync(p);
+  }
+);
+
 test('quota-cache-store.js는 credential-store/oauth/proxy를 절대 require하지 않는다(정적 검사)', () => {
   const source = fs.readFileSync(
     path.join(__dirname, '..', '..', 'src', 'accounts', 'quota', 'quota-cache-store.js'),

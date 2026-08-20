@@ -21,7 +21,71 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
+const { execFileSync } = require('node:child_process');
 const { CONFIG_DIR_NAME } = require('../../shared/constants');
+
+// 2026-08-20 신설(active-account-provider.js 연결과 함께): 이 파일은 지금까지
+// diagnose-quota-command.js가 사용자 [y/N] 확인 후 1회 호출할 때만 쓰였다. 그런데
+// onUpstreamHeaders(proxy/active-account-provider.js)가 이번에 이 캐시를 실제 전환
+// 판단에 쓰기 시작하면서, 매 업스트림 응답마다(사용자 명령 1회당 1번이 아니라) 자동으로
+// 이 파일에 쓰게 된다 — active-account-state.js·active-account-handle/write.js가 이미
+// 겪은 것과 똑같은 위험 등급 상승이다(그 두 파일의 상단 주석·`.PRD/05_FIELD_ISSUES_2026-07-04.md`
+// 이슈#1 참고). 그래서 그 두 파일과 동일한 원자적쓰기(임시파일+rename)+Windows EPERM/EBUSY
+// 재시도+소유자 전용 권한(icacls/chmod) 패턴을 여기도 그대로 적용한다(이 프로젝트 관례대로
+// 코드는 공유하지 않고 중복 작성).
+const ACL_ENTRY_PATTERN = /:\([A-Za-z,]+\)$/;
+const RENAME_MAX_RETRIES = 10;
+const RENAME_RETRY_DELAY_MS = 20;
+
+function restrictOwnerOnlyPermission(filePath) {
+  if (process.platform === 'win32') {
+    try {
+      const username = os.userInfo().username;
+      execFileSync('icacls', [filePath, '/inheritance:r'], { stdio: 'ignore' });
+      execFileSync('icacls', [filePath, '/grant:r', `${username}:F`], { stdio: 'ignore' });
+      const output = execFileSync('icacls', [filePath], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+      const aceLines = output
+        .split('\n')
+        .map((line) => line.trimEnd())
+        .filter((line) => ACL_ENTRY_PATTERN.test(line));
+      return aceLines.length === 1 && aceLines[0].includes(`${username}:(F)`);
+    } catch {
+      return false;
+    }
+  }
+  try {
+    fs.chmodSync(filePath, 0o600);
+    return (fs.statSync(filePath).mode & 0o777) === 0o600;
+  } catch {
+    return false;
+  }
+}
+
+function atomicWriteFileSync(filePath, content) {
+  const dir = path.dirname(filePath);
+  fs.mkdirSync(dir, { recursive: true });
+  const tmpPath = path.join(dir, `.${path.basename(filePath)}.tmp-${process.pid}-${Date.now()}`);
+  fs.writeFileSync(tmpPath, content, { encoding: 'utf8', mode: 0o600 });
+  const permissionRestricted = restrictOwnerOnlyPermission(tmpPath);
+
+  for (let attempt = 1; ; attempt++) {
+    try {
+      fs.renameSync(tmpPath, filePath);
+      return { permissionRestricted };
+    } catch (err) {
+      const isTransient = err.code === 'EPERM' || err.code === 'EBUSY';
+      if (!isTransient || attempt >= RENAME_MAX_RETRIES) {
+        try {
+          fs.unlinkSync(tmpPath);
+        } catch {
+          // 임시파일 정리 실패는 무시 — 원래 에러(rename 실패)가 더 중요하므로 그대로 던진다.
+        }
+        throw err;
+      }
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, RENAME_RETRY_DELAY_MS);
+    }
+  }
+}
 
 const DISPLAY_ISOLATION_VARS = [
   'CLAUDETOWER_SETTINGS_PATH',
@@ -84,8 +148,7 @@ function writeQuotaCacheEntry(accountId, reading, filePath) {
   }
   const cache = readQuotaCache(filePath);
   cache[accountId] = { ...reading, checked_at: new Date().toISOString() };
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, JSON.stringify(cache, null, 2), 'utf8');
+  return atomicWriteFileSync(filePath, JSON.stringify(cache, null, 2));
 }
 
 module.exports = { resolveQuotaCachePath, readQuotaCache, readQuotaCacheEntry, writeQuotaCacheEntry };

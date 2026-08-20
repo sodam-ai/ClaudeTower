@@ -11,9 +11,24 @@
 // 실제로 부르는지 모른다.
 //
 // 알려진 트레이드오프(숨기지 않고 명시): onUpstreamHeaders는 매 응답마다 registry·
-// 활성상태·정책 파일을 동기(sync) 읽기한다 — 전환이 일어나지 않는 흔한 경우에도 그렇다.
-// 실제 배선 전까지는 트래픽량을 알 수 없어 최적화(캐싱 등)를 지금 하지 않는다 — 조기
-// 최적화보다, 실제로 켜본 뒤 필요하면 그때 다룬다(범위 확대 자제).
+// 활성상태·정책·quota 캐시 파일을 동기(sync) 읽기하고, quota 캐시는 매번 다시 쓰기까지
+// 한다 — 전환이 일어나지 않는 흔한 경우에도 그렇다. 실제 배선 전까지는 트래픽량을 알 수
+// 없어 최적화(캐싱 등)를 지금 하지 않는다 — 조기 최적화보다, 실제로 켜본 뒤 필요하면
+// 그때 다룬다(범위 확대 자제).
+//
+// 2026-08-20 수정(발견한 결함): 이 함수는 원래 evaluateSwitchDecision에
+// quotaByAccountId를 전혀 넘기지 않았다(기본값 {}로 항상 비어있는 채 호출) —
+// switch-decision.js의 candidatePct()는 quotaByAccountId에 없는 계정을 "0%(가장
+// 여유 있음)"로 취급하도록 설계돼 있어서(막 등록한 신규 계정을 후순위로 미루지 않으려는
+// 의도), 이 파라미터가 항상 비어 있으면 모든 후보가 항상 0%로 보여 best 전략이 사실상
+// "registry 배열 순서상 첫 번째 후보 선택"으로, next-available도 "항상 첫 후보 즉시
+// 선택"으로 퇴화했다. quota-cache-store.js(M48)가 diagnose-quota로 확인한 사용률을 이미
+// 저장해두고 있었는데도 연결이 안 돼 있었다 — 계정을 3개 이상 등록해야만 드러나는
+// 결함이라(후보가 1개뿐이면 quota 데이터 유무와 무관하게 그 계정이 선택됨) 기존
+// end-to-end 테스트(2계정 시나리오)로는 못 잡았다. 이번에 quotaByAccountId를 실제로
+// 채워 넘기도록 고치고, 매 응답마다 현재 계정 자신의 실측값도 캐시에 함께 기록해
+// (reading이 null이 아닐 때만 — quota-cache-store.js의 계약) 이후 이 계정이 다시
+// 후보가 됐을 때 최신 값을 쓸 수 있게 한다(자가 갱신).
 
 const { readRegistry } = require('../accounts/accounts-registry');
 const { getSecret } = require('../credential-store');
@@ -22,6 +37,7 @@ const { readActiveAccountId, applySwitch } = require('../accounts/active-account
 const { readSwitchPolicy } = require('../switch-policy-config');
 const { parseApiKeyQuotaHeaders } = require('../quota/api-key-quota-reading');
 const { evaluateSwitchDecision } = require('../quota/switch-decision');
+const { readQuotaCache, writeQuotaCacheEntry } = require('../quota/quota-cache-store');
 
 function credentialRefFor(account) {
   return { account_id: account.account_id, backend: backendForPlatform(), external_ref: account.account_id };
@@ -51,6 +67,7 @@ function createActiveAccountProvider({
   rotationLogPath,
   activeAccountHandlePath,
   policyPath,
+  quotaCachePath,
   projectPath = null,
 } = {}) {
   async function getApiKey() {
@@ -73,10 +90,12 @@ function createActiveAccountProvider({
 
     const reading = parseApiKeyQuotaHeaders(headers);
     const policy = readSwitchPolicy(policyPath);
+    const quotaByAccountId = readQuotaCache(quotaCachePath);
     const decision = evaluateSwitchDecision({
       currentAccountId: currentAccount.account_id,
       currentQuotaReading: reading,
       allAccounts: accounts,
+      quotaByAccountId,
       policy,
     });
 
@@ -89,6 +108,10 @@ function createActiveAccountProvider({
       projectPath,
       reevalIntervalMs: policy.reeval_interval_ms,
     });
+
+    if (reading !== null) {
+      writeQuotaCacheEntry(currentAccount.account_id, reading, quotaCachePath);
+    }
   }
 
   return { getApiKey, onUpstreamHeaders };

@@ -64,6 +64,10 @@ function freshPaths() {
     rotationLogPath: tmpJsonPath('rotation-log'),
     activeAccountHandlePath: tmpJsonPath('handle'),
     policyPath: tmpJsonPath('policy'),
+    // 2026-08-20 추가 — quotaCachePath를 빠뜨리면 onUpstreamHeaders가 실제 사용자
+    // 홈 디렉터리의 진짜 quota 캐시 파일(resolveQuotaCachePath() 기본값)을 읽고 쓰게
+    // 된다(다른 경로들과 동일한 이유로 반드시 매 테스트마다 격리해야 함).
+    quotaCachePath: tmpJsonPath('quota-cache'),
   };
 }
 
@@ -183,6 +187,68 @@ test('end-to-end: 임계값 초과 헤더가 오면 실제로 전환하고 상�
     assert.equal(events[0].to_account_id, 'a2');
     assert.equal(events[0].reason, 'quota_threshold');
 
+    cleanup(paths);
+  });
+});
+
+test('end-to-end(3계정 이상): quota 캐시에 저장된 후보들의 실제 사용률을 반영해 가장 여유 있는 계정을 고른다', async () => {
+  // 2026-08-20 회귀 테스트 — 발견한 결함(evaluateSwitchDecision에 quotaByAccountId를
+  // 전혀 안 넘겨 항상 첫 후보만 선택되던 문제)은 후보가 정확히 1개뿐인 시나리오로는
+  // 드러나지 않는다. 계정을 3개 이상 등록해야만 "첫 후보 선택"과 "진짜 가장 여유 있는
+  // 후보 선택"이 서로 다른 결과를 내 구분된다.
+  await withMockedCredentialStore({ a1: FAKE_KEY_ONE, a2: FAKE_KEY_TWO, a3: 'test-placeholder-key-three' }, async (createActiveAccountProvider) => {
+    const { writeQuotaCacheEntry } = require('../../src/accounts/quota/quota-cache-store');
+    const paths = freshPaths();
+    appendAccount({ account_id: 'a1', label: 'first', auth_type: 'api_key', status: 'active', created_at: 'x' }, paths.registryPath);
+    appendAccount({ account_id: 'a2', label: 'second', auth_type: 'api_key', status: 'active', created_at: 'x' }, paths.registryPath); // registry 순서상 첫 후보 — 하지만 사용률이 더 높음
+    appendAccount({ account_id: 'a3', label: 'third', auth_type: 'api_key', status: 'active', created_at: 'x' }, paths.registryPath); // 실제로 가장 여유 있는 계정
+    writeSwitchPolicyField('threshold_pct', '90', paths.policyPath);
+    writeSwitchPolicyField('strategy', 'best', paths.policyPath);
+    writeQuotaCacheEntry('a2', { tokens_used_pct: 40, requests_used_pct: null }, paths.quotaCachePath);
+    writeQuotaCacheEntry('a3', { tokens_used_pct: 10, requests_used_pct: null }, paths.quotaCachePath);
+    const { onUpstreamHeaders } = createActiveAccountProvider(paths);
+
+    onUpstreamHeaders({
+      'anthropic-ratelimit-tokens-limit': '1000',
+      'anthropic-ratelimit-tokens-remaining': '10', // a1: 99% — 임계값 초과, 전환 필요
+    });
+
+    assert.equal(readActiveAccountId(paths.statePath), 'a3', 'registry 순서상 첫 후보(a2)가 아니라 실제로 가장 여유 있는 a3가 선택돼야 한다');
+    cleanup(paths);
+  });
+});
+
+test('onUpstreamHeaders: 응답이 올 때마다 현재 계정 자신의 실측값을 quota 캐시에 자동으로 기록한다(자가 갱신)', async () => {
+  await withMockedCredentialStore({ a1: FAKE_KEY_ONE, a2: FAKE_KEY_TWO }, async (createActiveAccountProvider) => {
+    const { readQuotaCacheEntry } = require('../../src/accounts/quota/quota-cache-store');
+    const paths = freshPaths();
+    appendAccount({ account_id: 'a1', label: 'first', auth_type: 'api_key', status: 'active', created_at: 'x' }, paths.registryPath);
+    appendAccount({ account_id: 'a2', label: 'second', auth_type: 'api_key', status: 'active', created_at: 'x' }, paths.registryPath);
+    writeSwitchPolicyField('threshold_pct', '90', paths.policyPath); // 50% < 90% — 전환은 안 일어남, 캐시 기록만 확인
+    const { onUpstreamHeaders } = createActiveAccountProvider(paths);
+
+    onUpstreamHeaders({
+      'anthropic-ratelimit-tokens-limit': '1000',
+      'anthropic-ratelimit-tokens-remaining': '500', // 50%
+    });
+
+    const entry = readQuotaCacheEntry('a1', paths.quotaCachePath);
+    assert.ok(entry, '현재 계정(a1)의 실측값이 캐시에 기록돼야 한다');
+    assert.equal(entry.tokens_used_pct, 50);
+    cleanup(paths);
+  });
+});
+
+test('onUpstreamHeaders: 기대한 헤더가 전혀 없어 reading이 null이면 quota 캐시에 아무것도 기록하지 않는다', async () => {
+  await withMockedCredentialStore({ a1: FAKE_KEY_ONE }, async (createActiveAccountProvider) => {
+    const { readQuotaCache } = require('../../src/accounts/quota/quota-cache-store');
+    const paths = freshPaths();
+    appendAccount({ account_id: 'a1', label: 'first', auth_type: 'api_key', status: 'active', created_at: 'x' }, paths.registryPath);
+    const { onUpstreamHeaders } = createActiveAccountProvider(paths);
+
+    onUpstreamHeaders({ 'content-type': 'application/json' }); // quota 헤더 없음 → reading=null
+
+    assert.deepEqual(readQuotaCache(paths.quotaCachePath), {}, 'reading이 null이면 quota-cache-store.js의 계약(null 아닌 것만 저장)을 지켜 아무것도 안 써야 한다');
     cleanup(paths);
   });
 });

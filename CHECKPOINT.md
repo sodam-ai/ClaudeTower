@@ -2644,3 +2644,81 @@ CLARIFICATION, 릴리스 최신 유지 원칙)을 완결시키는 작업으로 �
 근본적 한계, RotationEvent M30도 동일 한계를 이미 안고 있었음), 이 두 파일 자체는 애초에
 토큰이 아니라 계정 라벨/ID만 담고 있어(`.PRD/02_DATA_MODEL.md` 모듈 경계 규칙) 하드닝의
 가치는 "부가적 방어"이지 "이게 없으면 자격증명이 샌다"는 의미는 아니다(과대 고지 방지).
+
+## M51: 2026-08-20 — 전수 감사로 발견: "best/next-available 전환 판단"이 실제로는 작동하지
+않던 결함 수정(quota 연결 누락) + quota-cache-store.js 원자적쓰기 하드닝 + PRD 문서 3건 정정
+
+**배경**: 사용자 요청으로 지금까지 만든 Account 모듈 코드 전체(31개 파일)와
+CHECKPOINT.md·`.PRD/` 문서 전체를 각각 전수 감사하는 조사 두 건을 병렬로 진행했다(읽기
+전용 조사). 코드 감사에서 이 프로젝트의 "본래 구현 목적" 자체가 작동하지 않는 실제 결함을
+발견했다.
+
+**발견한 결함**: `active-account-provider.js`의 `onUpstreamHeaders`가
+`evaluateSwitchDecision()`을 호출할 때 `quotaByAccountId`를 전혀 넘기지 않고 있었다
+(파라미터 자체를 생략, 기본값 `{}`). `switch-decision.js`의 `candidatePct()`는
+`quotaByAccountId`에 없는 계정을 "0%(가장 여유 있음)"로 취급하도록 설계돼 있는데(막 등록한
+신규 계정을 후순위로 미루지 않으려는 의도), 이 파라미터가 항상 비어 있으면 **모든 후보가
+항상 0%로 보여** `best` 전략이 "가장 여유 있는 계정 선택"이 아니라 사실상 "registry 배열
+순서상 첫 번째 후보 선택"으로 퇴화하고, `next-available`도 "항상 첫 후보 즉시 선택"으로
+퇴화한다. `quota-cache-store.js`(M48)가 이 데이터(계정별 마지막 확인 사용률)를 이미
+저장해두고 있었는데도 연결이 안 돼 있었다. 계정을 **정확히 3개 이상 등록해야만** 드러나는
+결함이라(후보가 1개뿐이면 quota 데이터 유무와 무관하게 그 계정이 선택됨)
+`active-account-provider.test.js`의 기존 end-to-end 테스트(2계정 시나리오)로는 발견되지
+않았다 — `switch-decision.test.js` 자체는 3계정 시나리오까지 정확히 검증하고 있어 판단
+로직 자체(순수 함수)는 문제없었다.
+
+**수정**:
+- [x] `onUpstreamHeaders`가 `quota-cache-store.js`의 `readQuotaCache()`로 실제
+  `quotaByAccountId`를 채워 `evaluateSwitchDecision()`에 넘기도록 수정.
+- [x] 매 응답마다 현재 계정 자신의 실측값(`reading`)도 캐시에 함께 기록하도록 추가(자가
+  갱신) — `reading`이 null이 아닐 때만 쓰는 `quota-cache-store.js`의 기존 계약을 그대로
+  지킴. 이렇게 해야 이 계정이 나중에 다시 "후보"가 됐을 때 최신 값을 쓸 수 있다(등록만
+  해두고 `diagnose-quota`를 안 돌린 계정도, 실제로 활성 계정으로 한 번이라도 쓰이면 그때
+  실측값이 채워짐).
+- [x] **파생 위험 하나 더 발견·선제 조치**: 이 연결로 `quota-cache-store.js`가 지금까지
+  "diagnose-quota 실행 시 1회"만 쓰이던 파일에서 "매 업스트림 응답마다" 쓰이는 파일로
+  위험 등급이 바뀐다 — active-account-state.js·active-account-handle/write.js가 이미
+  겪은 것과 정확히 같은 상황(M47/M49/M50 참고)이라, 배선을 켜기 전에 미리 같은
+  원자적쓰기(임시파일+`rename()`)+Windows EPERM/EBUSY 재시도+소유자 전용 권한(icacls/
+  chmod) 패턴을 `quota-cache-store.js`에도 동일하게 적용했다(기존 `fs.writeFileSync`
+  통짜 덮어쓰기를 대체). 이 프로젝트 관례대로 코드는 공유하지 않고 세 번째로 중복 작성.
+- [x] 신규 테스트 6건: `active-account-provider.test.js`에 3계정 이상 시나리오(첫 후보가
+  아니라 실제로 가장 여유 있는 계정이 선택되는지 회귀 검증), 자가 갱신 캐시 기록 검증,
+  reading=null일 때 캐시 미기록 검증 — `quota-cache-store.test.js`에 권한 하드닝 검증
+  2건 + win32 ACL 상세 검증 1건(active-account-state.test.js와 동형).
+
+**PRD 문서 3건 정정(전수 감사 중 함께 발견)**:
+1. `.PRD/03_PHASES.md` Phase 2 체크리스트 — `accounts enable`(M36)·`RotationEvent`
+   감사로그(M23/M30)·`ActiveAccountHandle` 기록(M46)·`claudetower config`(M33) 4개가
+   실제로는 완료됐는데 미완료(`[ ]`)로 표시돼 있어 정정. 사용률 표시(M48) 항목은
+   **부분 완료**로 정확히 구분(사용률 %는 표시하지만 리셋 시각은 아직 미표시, "5h/7d"
+   용어 대신 실제 헤더 모양 그대로 표시 — 전체 체크는 아직 하지 않음).
+2. `.PRD/08_ACCOUNTS_ENABLE_CONSENT_DRAFT.md`가 "여전히 CLI 어디에도 연결 안 됨"이라고
+   자칭하고 있었으나 실제로는 M36부터 라이브(`src/accounts/consent-text.js`)이고, 그
+   라이브 버전은 `--import` 관련 과대고지 오류를 2026-08-19에 이미 스스로 정정까지 마친
+   상태 — 이 초안 문서는 그 정정 이전 버전인 채로 멈춰 있어 지금 읽으면 실제 동의
+   화면과 다른 내용을 보여준다. 실제 출처는 이 문서가 아니라 `consent-text.js`임을
+   명시하고 이 문서는 역사적 기록으로 격하.
+3. (이전 라운드 `f2b34e8`에서 이미 정정) M48 "README 미문서화" 잘못된 남은위험 기록.
+
+**동시 세션 관찰(안전하게 격리 확인)**: 이번 라운드 도중 동시 세션의 커밋(`40abbdd`,
+active-account-state/handle 파일 권한 하드닝, `.PRD/02_DATA_MODEL.md` NEEDS
+CLARIFICATION 해소)이 실시간으로 관찰됐다 — 정확히 내가 전수 감사로 찾아 고치려던 항목
+하나(02_DATA_MODEL.md 미해결 표시)를 동시 세션이 먼저 해소해, 그 항목은 중복 작업하지
+않고 건너뛰었다. 파일 겹침 없음(내가 건드린 4개 코드/테스트 파일 + PRD 문서 2개는 그
+커밋과 전혀 겹치지 않음, `git status`로 매번 재확인) — 이 프로젝트가 이미 여러 차례 겪은
+동시 세션 패턴과 동일, 파일명 명시 스테이징으로 안전하게 격리.
+
+**검증**: `test:accounts` 278/278(신규 6건 포함, 이전 267 대비 나머지 5건은 동시 세션의
+M50 신규 테스트) 통과, `test:display` 245/245 회귀 없음, `npm run lint` 통과,
+`live-wiring-gate.test.js` 재확인 통과(이번 수정도 `bin/claudetower.js`를 전혀 건드리지
+않음).
+
+**의도적으로 하지 않은 것**: 실거래 배선은 이번에도 진행하지 않음 — 오히려 이번 발견으로
+보류 이유가 더 강해졌다(버그가 있는 채로 배선했다면 계정 3개 이상 등록한 사용자에게
+조용히 잘못된 계정을 골라줬을 것).
+
+**남은 위험**: `.PRD/03_PHASES.md`의 "계정별 마지막 사용 프로젝트 경로 표시"·`--import`는
+여전히 진짜 미구현 상태로 정확히 남아있다(이번엔 손대지 않음, 범위 밖). quota 캐시의
+"자가 갱신"은 최초에는 비어있다가 실제 트래픽이 쌓여야 채워지므로, 배선 직후 첫 실행
+때는 여전히 신규 계정과 동일하게 0%로 취급된다(의도된 폴백 동작, 결함 아님).
