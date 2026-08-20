@@ -269,7 +269,7 @@ After an internal re-review (background and reasoning recorded in the repository
 - `claudetower accounts config` — pre-set switch threshold, port, etc. locally without registering any account
 - `claudetower accounts enable` — shows the consent notice below and requires you to type `y` yourself before it turns on
 - `claudetower accounts add --api-key <label> <key>` — registers an API-key account. The key value is stored only in this computer's OS credential vault (Windows: Credential Manager / macOS: Keychain) and is never transmitted anywhere
-- `claudetower accounts list` — view registered accounts and, if available, the usage last checked via `diagnose-quota` (key values themselves are never shown)
+- `claudetower accounts list` — view registered accounts along with the usage last checked via `diagnose-quota`, when that usage is expected to reset, and when/which project folder each account was last used from (key values themselves are never shown)
 - `claudetower accounts remove <label>` — deletes a single account (`[y/N]` confirmation required, irreversible). For deleting everything at once, see `account-purge` below
 - `claudetower accounts rename <old-label> <new-label>` — renames the account's display label only (the stored key value is untouched)
 - `claudetower accounts disable` — turn it back off (registered account info is kept)
