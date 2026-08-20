@@ -72,6 +72,47 @@ test('formatAccountLine: 사용률 캐시가 있으면 마지막 확인 시각�
   assert.match(line, /2026-08-20T05:00:00\.000Z/);
 });
 
+test('formatAccountLine: 리셋 시각이 있으면 원문 그대로(가공 없이) 보여준다', () => {
+  const line = formatAccountLine(
+    { account_id: 'a1', label: '업무용', auth_type: 'api_key', status: 'active', created_at: '2026-08-20T00:00:00.000Z' },
+    {
+      tokens_used_pct: 12.3,
+      requests_used_pct: 4.5,
+      checked_at: '2026-08-20T05:00:00.000Z',
+      tokens_reset_at: '2026-08-20T10:00:00Z',
+      requests_reset_at: '1755680400',
+    }
+  );
+  assert.match(line, /리셋 예정/);
+  assert.match(line, /2026-08-20T10:00:00Z/, '날짜 형식으로 재가공하지 않고 원문 그대로 보여야 한다');
+  assert.match(line, /1755680400/, 'Unix epoch 초 형식이어도 파싱을 시도하지 않고 원문 그대로 보여야 한다');
+});
+
+test('formatAccountLine: 리셋 시각 필드가 없으면(헤더에 없었던 경우) "알 수 없음"으로 안전하게 표시한다', () => {
+  const line = formatAccountLine(
+    { account_id: 'a1', label: '업무용', auth_type: 'api_key', status: 'active', created_at: '2026-08-20T00:00:00.000Z' },
+    { tokens_used_pct: 12.3, requests_used_pct: 4.5, checked_at: '2026-08-20T05:00:00.000Z', tokens_reset_at: null, requests_reset_at: null }
+  );
+  assert.match(line, /리셋 예정.*알 수 없음 \/ 요청수 알 수 없음/);
+});
+
+test('runAccountsListCommand: quota 캐시의 리셋 시각이 실제로 화면에 반영된다(end-to-end)', () => {
+  const registryPath = tmpPath();
+  const quotaCachePath = tmpPath();
+  appendAccount({ account_id: 'a1', label: '업무용', auth_type: 'api_key', status: 'active', created_at: '2026-08-20T00:00:00.000Z' }, registryPath);
+  writeQuotaCacheEntry(
+    'a1',
+    { tokens_used_pct: 55, requests_used_pct: 10, tokens_reset_at: '2026-08-21T00:00:00Z', requests_reset_at: '2026-08-21T00:00:00Z' },
+    quotaCachePath
+  );
+
+  const logs = [];
+  runAccountsListCommand({ registryPath, quotaCachePath, log: (m) => logs.push(m) });
+  assert.ok(logs.some((l) => l.includes('2026-08-21T00:00:00Z')));
+  fs.unlinkSync(registryPath);
+  fs.unlinkSync(quotaCachePath);
+});
+
 test('formatAccountLine: last_used_at이 없으면 "기록 없음"을 보여준다', () => {
   const line = formatAccountLine({
     account_id: 'a1',
