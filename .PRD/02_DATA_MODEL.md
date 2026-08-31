@@ -69,10 +69,16 @@
   주석이 "git은 2026-08-03 Phase 3 신규(.PRD/01_PRD.md §3 'Git/PR 위젯 + 캐싱', PR 상태는
   제외)"라고 명시. 실제 `ALL_WIDGET_TYPES`는 `['model','location','git','context','cost',
   'rate_limit']` 6종뿐이다.
-- **`active_account` 위젯은 아직 미구현**이다 — Account 모듈 CLI 자체가 미배선 상태(2026-08-17
-  감사로 확인, `bin/claudetower.js`에 `accounts status`만 읽기전용으로 존재)라 이 위젯이
-  읽어올 `ActiveAccountHandle`을 실제로 쓰는 코드 경로가 아직 없다. 설계는 유효하나 구현
-  순서상 Account CLI 배선 이후로 미룬 상태.
+- ~~`active_account` 위젯은 아직 미구현이다~~ → **2026-08-31 구현 완료**: `src/display/widgets/
+  active-account.js`(신규) — `src/shared/active-account-handle/read.js`를 통해서만
+  `ActiveAccountHandle`을 읽는다(모듈 경계 규칙 그대로 준수, Account 엔티티 직접 참조 없음).
+  `ALL_WIDGET_TYPES`/`WIDGET_LABELS`/`WIDGETS`/`WIDGET_DROP_PRIORITY` 4곳 전부 배선 완료.
+  Account 모듈을 한 번도 켠 적 없는 사용자(핸들 파일 없음, 절대다수)에게는 항상 완전히
+  비표시됨을 실제 CLI(`node bin/claudetower.js statusline`) 실행으로 직접 확인. `claudetower
+  setup`의 대화형 질문 목록에서는 의도적으로 제외(Account가 Display 설치와 별개의 opt-in
+  절차라는 원칙 유지) — 대신 `enabled_widgets`에 항상 조용히 포함되어, Account를 실제로
+  쓰기 시작하면(`accounts switch`) 별도 설정 없이 자동으로 나타난다. 상세 근거는
+  `CHECKPOINT.md` M62 참고.
 - **PlatformProfile / QuickSetup 엔티티는 별도 데이터 구조로 구현되지 않았다** — Phase 1엔
   영속화가 필요하지 않다고 판단해(`src/display/config/widget-config.js` 주석 근거) 즉석
   판단값으로만 쓰이고 저장되지 않는다.

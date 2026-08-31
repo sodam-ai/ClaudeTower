@@ -45,7 +45,7 @@ Example:
 ```
 Sonnet 5  📁 my-project  🌿 main  컨텍스트 ██░░░ 45%  💰 $1.50  5시간 ████░ 78%·1:41  7일 ███░░ 71%·일06:00
 ```
-(The reset countdown is always shown alongside the percentage, regardless of usage level. If your terminal window is 120 columns or wider, the gauge bars automatically become more detailed — from 5 segments to 10 — with nothing to configure. The Git branch/changes item only appears automatically when the current folder is a git repository, and is hidden automatically otherwise. Conversely, if your screen is too narrow for every item to fit on one line, relatively lower-priority items [in this order, from the back: Git → rate limits → cost → context] are automatically dropped so the line never wraps and breaks the display — this also requires no configuration.)
+(The reset countdown is always shown alongside the percentage, regardless of usage level. If your terminal window is 120 columns or wider, the gauge bars automatically become more detailed — from 5 segments to 10 — with nothing to configure. The Git branch/changes item only appears automatically when the current folder is a git repository, and is hidden automatically otherwise. If you've actually turned on the "②" account auto-switching feature below and switched accounts at least once, an "Active account" item also appears — for the vast majority of users who only use ① (never turned the account feature on), it stays completely invisible. Conversely, if your screen is too narrow for every item to fit on one line, relatively lower-priority items [in this order, from the back: active account → Git → rate limits → cost → context] are automatically dropped so the line never wraps and breaks the display — this also requires no configuration.)
 
 ### Before you start
 
@@ -138,7 +138,7 @@ If you accidentally delete that fixed-location copy too and the statusline stops
 - `claudetower status` — check whether it's currently installed and which widgets are enabled
   ```
   Install status: installed (claudetower's statusline is registered with Claude Code)
-  Widgets shown: model, project location, git branch/changes, context usage, cost, rate limits (5h/7d)
+  Widgets shown: model, project location, git branch/changes, context usage, cost, rate limits (5h/7d), active account
   ```
 - `claudetower widgets` — check which widgets are currently on
 - `claudetower widgets off <widgets...>` / `claudetower widgets on <widgets...>` — turn only the named widgets on/off (everything else stays as-is — no need to re-answer every `setup` question). Widget names: `model`, `location`, `git`, `context`, `cost`, `rate_limit`

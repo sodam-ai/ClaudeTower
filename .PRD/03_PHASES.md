@@ -112,7 +112,8 @@ Display 모듈과 Account 모듈이 "현재 활성 계정 표시"로 자연스�
 
 ### 기능 (2026-07-04 CLI 전환 반영)
 - [x] Display: Powerline **구분자 스타일**(색상 테마 없이 위젯 사이 구분 기호만 전환, `claudetower config powerline <on|off>`, 기본 꺼짐) — 2026-07-18 구현·테스트(179개)·커밋 완료(`5c81c3a`). Account 모듈에 의존하지 않는다는 게 확인되어 Phase 2 완료 전에 선구현함. **단, 작업 브랜치(`docs-and-fixes/2026-07-06`)에만 있고 아직 main 미병합·릴리스 미발행**
-- [ ] Display: Powerline **색상 테마**, Git/PR 위젯, `active_account` 위젯(ActiveAccountHandle 읽기) — `active_account`는 Account 모듈 완성이 전제라 계속 보류. 색상 테마·Git 위젯은 구조적으로는 독립 착수 가능하나 아직 미착수
+- [ ] Display: Powerline **색상 테마**, Git/PR 위젯 — 색상 테마·Git 위젯은 구조적으로는 독립 착수 가능하나 아직 미착수
+- [x] Display: `active_account` 위젯(ActiveAccountHandle 읽기) — **2026-08-31 완료**: M59(`accounts switch`)로 ActiveAccountHandle에 실제 값이 기록되기 시작한 뒤 착수. CHECKPOINT.md M62 참고.
 - [ ] Account: TUI 대시보드(계정 테이블·할당량 진행률·활동 로그, teamclaude 실측 키 조작 벤치마킹), **핫 리로드**(재시작 없이 계정 추가, teamclaude `R` 키 패턴), ~~수동 강제 전환~~, **영구 셸 별칭 등록(opt-in)** — `claude` 명령 자체를 `claudetower` 경유로 바꿔 `claudetower`이라 타이핑할 필요조차 없앰(기본 실행은 이미 Phase 2부터 `claudetower`이므로 이 단계는 "그마저도 생략"하는 선택 사항), sub-100ms 전환 최적화(caam 벤치마킹 — 토큰 파일 사전 준비 후 교체 방식) — **수동 강제 전환만 완료(M59, 2026-08-21)**: `claudetower accounts switch <라벨>` 신설, `applySwitch()`(M46)를 실제로 호출하는 첫 CLI 경로. 나머지 3개(TUI 대시보드·핫 리로드·영구 셸 별칭)는 여전히 미착수 — 셸 별칭은 `claudetower run` 진입점(🛑 실거래 배선 게이트) 의존이라 그 게이트 해제 전까지 착수 자체가 불가능
 - [ ] `subagentStatusLine` 커스터마이징(Display, 경쟁 도구 미제공 영역)
 - [ ] `claudetower accounts --history`(신규, 격하) — 과거 여러 날의 사용 패턴 참고용 로컬 집계(ccusage 벤치마킹, UsageHistory 엔티티) — 2026-07-04 재확인으로 MVP에서 Phase 3 부가 기능으로 조정
@@ -132,4 +133,4 @@ Display 모듈과 Account 모듈이 "현재 활성 계정 표시"로 자연스�
 |-------|----------|------|
 | Phase 1 (MVP) | Display 모듈 + 격리 구조 확정 | **완료(2026-07-18)** |
 | Phase 2 | Account 모듈(동의 기반 활성화, 하이브리드 OAuth+API키) | **재개 확정(2026-07-27)** — 문서 갱신 완료, 실동작 착수 전(다음 세션) |
-| Phase 3 | 고도화 + 계정 표시 연동 위젯 | **부분 착수** — Powerline 구분자만 구현(2026-07-18, 109행 참고), 나머지는 Phase 2 실동작 착수 후 |
+| Phase 3 | 고도화 + 계정 표시 연동 위젯 | **부분 착수** — Powerline 구분자(2026-07-18, 109행)·수동 강제 전환(M59)·`active_account` 위젯(2026-08-31, M62) 구현, 나머지(TUI 대시보드·핫 리로드·영구 셸 별칭·Powerline 색상 테마·Git/PR 위젯)는 미착수 |

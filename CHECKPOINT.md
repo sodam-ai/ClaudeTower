@@ -1718,7 +1718,10 @@ accounts list`/`accounts status`를 직접 실행한 결과 — **등록된 계�
 
 ---
 
-## 다음 세션 작업 계획: `active_account` 상태표시줄 위젯 (2026-08-21 계획 수립 — 아직 착수 안 함)
+## 다음 세션 작업 계획: `active_account` 상태표시줄 위젯 (2026-08-21 계획 수립 — 2026-08-31 M62로 완료)
+
+> **2026-08-31 완료 표시**: 아래 계획 그대로 구현·검증까지 끝났다 — 상세는 맨 아래 M62 참고.
+> 이 절은 "당시 어떤 계획이었는지"의 기록으로 보존한다(취소선·수정 없이 원문 그대로 유지).
 
 > **주의**: 이 절은 M-번호를 붙이지 않는다. 이 파일 최상단이 명시한 원칙("완료 항목은
 > 실제로 실행해 확인한 것만 done으로 표기")에 따라, M-번호는 실제로 구현·검증까지 끝난
@@ -1945,3 +1948,298 @@ GitHub 저장소(`sodam-ai/ClaudeTower`)의 **About 설명(저장소 소개 문�
 **미해결로 남은, 이번 세션이 만들지 않았지만 인지하고 있는 것**: `.gitignore`가 위 5개
 미추적 플러그인 부산물 파일을 아직 포함하지 않는다(요청 범위 밖이라 이번 세션엔 손대지
 않음 — 언젠가 `git add -A`를 실수로 쓰면 함께 딸려 들어갈 수 있는 잠재 위험으로만 기록).
+
+---
+
+## `claudetower-widgets` 스킬이 조용히 죽어 있음 (2026-08-23, /doctor 진단 — 코드 변경 없음, 기록만)
+
+### 증상 (실사용 영향 있음)
+사용자가 **"상태표시줄에서 컨텍스트 꺼줘"**, **"비용 표시 꺼줘"**, **"상태표시줄 설정 바꿔줘"**
+라고 말해도 `claudetower-widgets` 스킬이 **매칭되지 않는다.** 정작 그 트리거 문구들은 이 스킬의
+`description`에 정확히 적혀 있는데, 그 description 자체가 무시되고 있기 때문이다.
+
+### 원인 (확인됨)
+`%APPDATA%\claude-code\skills\claudetower-widgets\SKILL.md` 의 frontmatter에 **`name:` 줄이 없다.**
+
+```
+L1| ---
+L2| description: ClaudeTower 상태표시줄(statusline) 위젯을 켜고 끄거나 ...
+L3| argument-hint: [...]
+L4| allowed-tools: Bash("C:/Users/PC/.claudetower/bin/claudetower.exe" widgets *), ...
+L5| ---
+```
+
+`name`이 없으면 스킬 이름은 폴더명으로 대체되고 **나머지 필드가 전부 드롭**된다. 즉:
+- `description` 소실 → 트리거 문구가 매칭 근거로 쓰이지 않음 (위 증상의 직접 원인)
+- `allowed-tools` 소실 → 이 스킬에 걸어둔 **도구 제한이 조용히 해제됨**
+- `argument-hint` 소실
+
+**증거(추측 아님)**: 2026-08-23 세션의 사용 가능한 스킬 목록에서 `claudetower-widgets`는
+**설명 없이 이름만** 올라와 있었다. 같은 목록의 `long-horizon`·`spec-workflow`는 설명이 정상
+표시됐다 — 즉 목록 전체가 잘린 게 아니라 이 스킬만 필드를 잃은 것이다. 경고는 어디에도 뜨지 않는다.
+
+### 조치 (미적용 — 사용자 결정으로 보류)
+2026-08-23 /doctor에서 수리를 제안했으나, **사용자가 파일 수정 대신 이 문서에 기록만 남기도록
+지시**했다. SKILL.md는 손대지 않았다.
+
+- [ ] **CT-W1** `%APPDATA%\claude-code\skills\claudetower-widgets\SKILL.md` 2번째 줄 앞에 한 줄 추가:
+      `name: claudetower-widgets`
+      - 검증: 새 세션을 열어 스킬 목록에 이 스킬의 **설명이 함께** 뜨는지 확인.
+        같은 세션 재확인은 캐시 스냅샷 때문에 무의미하다(sodam-persona 사례와 동일한 함정).
+      - done-when: 새 세션에서 "상태표시줄 설정 바꿔줘"에 이 스킬이 실제로 호출됨.
+- [ ] **CT-W2** 회귀 방지 — ClaudeTower가 이 SKILL.md를 배포·설치하는 경로가 있다면
+      템플릿 원본에도 `name:`이 있는지 대조. 원본이 빠져 있으면 재설치 때 되살아난다.
+
+### 같은 진단에서 함께 나온 주변 항목 (ClaudeTower 소관 아님 — 인지용 기록)
+2026-08-23 /doctor가 같은 회차에 찾은 것들. 사용자가 여기 함께 적어두라고 지시했다.
+
+- [ ] **X-1** `%APPDATA%\claude-code\skills\ct-configdir-test\` — 본문이 "이건 config-dir 위치
+      테스트입니다" 한 줄뿐인 **시험용 스킬**인데 `name:` 누락 상태로 스킬 목록을 계속 차지 중.
+      수리보다 **폴더 삭제**가 맞다. (ClaudeTower의 config-dir 실험 잔재로 보이나 미확인)
+- [ ] **X-2** 에이전트 정의 3개의 frontmatter 파손 — `description:` 값에 여러 줄 예시가 따옴표 없이
+      들어가 `user:`/`assistant:` 가 별도 키로 잘못 읽힌다:
+      `~/.claude/agents/Design/design-temp/design/` 의 `brand-guardian.md`, `ux-researcher.md`,
+      `visual-storyteller.md` (각 L4~). 수정 = description을 `|` 블록으로 감싸거나 예시를 본문으로 내림.
+      **우선순위 낮음** — 아래 X-4 참조.
+- [ ] **X-3** `%APPDATA%\claude-code\.claude.json.tmp.*` **13개 (~1.5MB)** — 2026-07~08 저장 중
+      남은 찌꺼기. 삭제 대상. `.claude.json`(현행)과 `.claude.json.backup`(백업)은 **건드리지 말 것**.
+- **X-4 (참고 사실, 조치 아님)** `~/.claude/agents/` 의 **에이전트 정의 1,211개는 이번 세션의
+  사용 가능한 에이전트 목록에 하나도 올라와 있지 않다.** 목록에는 플러그인 제공(`ecc:*`, `sodam-*`)과
+  내장 에이전트만 있었다. `~/.claude/CLAUDE.md`가 이미 이들을 "Glob/Read로 탐색해 쓰는 참조
+  라이브러리"로 문서화해 놓았고 실제로 그렇게 동작하므로 **결함이 아니다.** 다만 "등록된
+  에이전트"로 알고 있었다면 사실과 다르다. (로더 소스가 아니라 세션 목록으로 확인한 것이므로,
+  "확인됨"은 목록 부재까지이고 그 원인까지 규명한 것은 아니다.)
+  CLAUDE.md의 수치 자체는 정확했다 — 실측 1,357개 파일 / 이름 있는 정의 1,211개 / SKILL.md 619개
+  (최상위 100 + 중첩 519), 전부 일치.
+
+### 이번 진단에서 ClaudeTower가 건강했던 부분
+설치 자체는 문제 없었다: Claude Code 2.1.241 = `latest` 채널 최신, 설정 파일 전부 JSON 파싱 정상,
+중복 설치·npm 잔재 없음, `permissions.defaultMode`는 이미 유저 스코프에 `auto`.
+ClaudeTower statusline 실행 파일 잠금 경합(과거 이슈)은 이번 진단 범위에서 재현되지 않았다 —
+재현 안 됐다는 뜻이지, 해결됐다고 확인한 것은 아니다.
+
+---
+
+## statusLine `refreshInterval` 권장값 = 5초 (2026-08-30, /doctor 8회차 실측 — 코드 변경 없음, 기록만)
+
+바로 위 8/23 항목이 "잠금 경합은 재현 안 됐지만 해결됐다고 확인한 것은 아니다"로 남겨둔 부분의
+후속이다. 이번엔 **실행 시간을 직접 재서** 숫자로 결론을 냈다.
+
+### 실측 (2026-08-30, `C:\Users\PC` 세션)
+
+`echo '{}' | claudetower.exe statusline` 를 5회 연속 실행:
+
+```
+run1: 77ms   run2: 76ms   run3: 73ms   run4: 77ms   run5: 77ms
+```
+
+평균 **76ms**, 편차 4ms. 현재 `~/.claude/settings.json` 의 `refreshInterval` 은 **3**.
+
+| refreshInterval | 시간당 스폰(1세션) | 4세션 동시 | CPU 점유율 |
+|---|---|---|---|
+| 1 (구 기본값, 2026-07-04 폭주 당시) | 3,600회 | 14,400회 | 7.6% |
+| **3 (현재값)** | 1,200회 | 4,800회 | **2.5%** |
+| **5 (권장)** | **720회** | **2,880회** | **1.5%** |
+
+### 🔴 과거 판정 강등 — statusline은 UI 멈춤의 유력 원인이 아니다
+
+2026-08-30 세션에서 Claude Code TUI가 선택 프롬프트 화면에서 멈추는 사고가 있었고,
+진단 초기에 `05_FIELD_ISSUES_2026-07-04.md` 의 잠금 경합 이력을 근거로 statusline을
+원인 후보 2순위로 올렸다. **실측 후 철회한다.**
+
+- 점유율 **2.5%**(76ms/3초)로는 UI 정지를 설명할 수 없다.
+- 인용했던 경합 이력은 **`refreshInterval: 1` + 83MB exe** 시절 조건이고,
+  그 조건은 2026-07-06 FR-1 적용(3초)으로 이미 완화돼 있었다.
+- 즉 8/23 항목의 "재현 안 됨"은 **우연이 아니라 이미 완화된 결과**일 가능성이 높다(가설).
+  다만 잠금 경합 자체가 코드로 해결된 것은 아니므로 "해결됨"으로 표기하지 않는다.
+
+### 그럼에도 5초를 권장하는 이유 (손해 없는 경량화)
+
+1. **제품이 스스로 정한 권장 범위의 상단**
+   `.PRD/05_FIELD_ISSUES_2026-07-04.md:197` — *"refreshInterval 상향(예: 2~5초)로
+   스폰 빈도·잠금 창 축소(가장 저렴)"*. 범위 밖(10초 등)으로 나가지 않는다.
+2. **작업 중 체감 손실이 0이다** — 이게 결정적 근거
+   `.PRD/.archive/PulseLine원본/RESEARCH_SOURCES.md:75` — *"refreshInterval 필드는
+   **이벤트 기반 업데이트에 추가로** N초마다 명령을 다시 실행합니다."*
+   → 작업 중에는 이벤트마다 이미 갱신되고, `refreshInterval` 은 **유휴 상태 전용 백업
+   타이머**다. 3초 → 5초는 *가만히 있을 때* 갱신이 2초 늦는 것뿐이다.
+3. 스폰 **40% 감소**(시간당 1,200 → 720회). 설치·업데이트 시 exe 교체와 겹칠 잠금 창도
+   같은 비율로 줄어든다.
+
+### 조치
+
+- [x] **CT-S1** `claudetower config statusline-refresh 5` — **2026-08-30 적용 완료**
+      (`src/display/config-command.js`, FR-1으로 2026-07-06 구현·단위테스트·CLI 스모크 완료.
+      `settings.json` 의 `refreshInterval` 키만 원자적으로 수정하고 다른 키는 보존한다.)
+      - CLI 출력: `상태표시줄 갱신 주기를 5초로 설정했습니다: C:\Users\PC\.claude\settings.json`
+      - **무결성 검증 (적용 전/후 해시 대조 — 실측)**: `refreshInterval` 3 → 5.
+        `statusLine.command` · `env`(DISABLE_AUTOUPDATER·ECC_GATEGUARD) · `permissions` ·
+        `hooks.PreToolUse` · `hooks.PostToolUse` **전부 SHA-256 앞 12자리 동일**.
+        파일 크기 995 → 993B(-2)는 `env` 값 뒤 **불필요한 공백 2개가 정규화**된 것으로,
+        `JSON.stringify` 비교 결과 **의미적으로 완전 동일**함을 확인(`semantic equal = true`).
+        → FR-2가 약속한 "다른 키 보존"이 실제 파일에서 재확인됨.
+      - 적용 전 원본 = `~/.claude/settings.json.bak-doctor-20260830`(995B, 유효한 복원점).
+      - [ ] **라이브 확인 대기** — 같은 세션 확인은 캐시 스냅샷 때문에 무의미하다
+        (`claudetower-widgets` CT-W1과 동일한 함정). **새 세션**에서 상태표시줄이 정상 표시되고
+        유휴 상태 갱신이 5초 주기로 도는지 확인해야 done이다.
+      - 되돌리기: `claudetower config statusline-refresh 3`.
+
+- [ ] **CT-S2** **README의 갱신 주기 안내 보완** (프로젝트 진행 후 README 작성·갱신 시 필수 확인 항목)
+
+      ※ 이 항목은 2026-08-30 세션에서 **한 번 잘못 적었다가 실측으로 정정한 것**이다.
+      최초에 "README 어디에도 권장 주기 안내가 없다"고 썼으나, 실제로 확인해 보니
+      **4종 README 모두 각 4곳씩 언급이 있었다.** 없는 게 아니라 **불완전**한 것이 문제다.
+      (교훈: README 관련 판단은 실제 grep 전에 단정하지 말 것.)
+
+      **현재 있는 것** — `README.md:145`
+      > `claudetower config statusline-refresh <초>` — 상태표시줄 갱신 주기를 조절합니다
+      > (기본 3초, **세션을 여러 개 띄워두는 경우 5초 이상**으로 늘리면 컴퓨터 부담이 더 줄어듭니다)
+
+      **문제 1 (가장 중요) — `README.md:219` 가 오해를 유발한다**
+      > 1. Claude Code와 대화를 주고받는 동안, Claude Code가 **정해둔 주기마다(기본 3초, …)**
+      >    자동으로 이 프로그램을 실행합니다.
+
+      이 서술은 **이벤트 기반 갱신을 빠뜨렸다.** Claude Code 사양상 `refreshInterval` 은
+      *"이벤트 기반 업데이트에 **추가로** N초마다"* 도는 값이다
+      (`.PRD/.archive/PulseLine원본/RESEARCH_SOURCES.md:75`). 즉 실제로는 **유휴 상태 전용
+      백업 타이머**인데, 219행만 읽으면 "3초마다만 갱신된다 → 짧을수록 반응이 빠르다"로
+      읽힌다. **권장 방향과 정반대의 오해**이고, 2026-07-04 스폰 폭주와 같은 경로다.
+
+      **문제 2 — 권장이 조건부라 단일 세션 사용자에게는 기준이 없다**
+      145행의 "5초 이상" 권장은 *"세션을 여러 개 띄워두는 경우"* 에만 걸려 있다.
+      세션 하나만 쓰는 사용자는 기본 3초를 그대로 쓰게 된다.
+
+      **문제 3 — 근거 수치가 없다**
+      "컴퓨터 부담이 줄어듭니다"만 있고 얼마나 줄어드는지가 없어 판단할 근거가 안 된다.
+
+      - 넣을 내용:
+        · `README.md:219` 를 **이벤트 갱신 + 유휴 타이머** 2단 구조로 정정 (문제 1 — 최우선)
+        · 조건 없는 **기본 권장값 5초** 로 상향 (문제 2)
+        · 실측 근거: 실행 **76ms/회** → 1초 7.6% / 3초 2.5% / **5초 1.5%** (문제 3)
+        · 제품 자체 권장 범위가 2~5초임을 명시 (`.PRD/05_FIELD_ISSUES_2026-07-04.md:197`)
+      - done-when: `README.md` · `README.en.md` · `README.html` · `README.en.html` **4종 전부**
+        반영되고 한국어판·영어판 내용이 일치. (영어판 3종의 현재 문구는 아직 대조하지 않았다 —
+        한국어판과 같은 구조일 것이라는 **추정**이므로 작업 시 먼저 확인할 것.)
+      - ⚠️ **M61(2026-08-21 README 전면 갱신)이 끝난 뒤에 나온 요구사항**이다.
+        M61이 끝났다고 README를 다 된 것으로 간주하면 그대로 누락된다.
+
+### 남은 한계 (숨기지 않고 기록)
+
+- 76ms는 **5회 연속 실행이라 OS 파일 캐시가 따뜻한 상태**의 값이다. 오랜 유휴 뒤 첫 실행
+  (콜드 스타트, 83MB exe 로딩)은 더 느릴 수 있는데 **측정하지 못했다**. 다만 콜드 스타트일수록
+  간격을 늘리는 쪽이 유리하므로 5초 권장의 방향은 바뀌지 않는다.
+- 이번 측정은 **1세션 기준**이다. 4세션 동시 수치는 단순 곱셈으로 낸 추정치이며 실측이 아니다.
+- 2026-08-30 UI 멈춤의 진짜 원인은 **끝내 규명하지 못했다**. 해당 턴이 트랜스크립트에 한 줄도
+  기록되지 않아(=응답이 커밋되기 전에 프로세스가 멈춤) 로그로 추적할 근거 자체가 없다.
+  당시 세션 컨텍스트가 408k 토큰(1M의 41%)이었다는 점만 정황으로 남긴다. ClaudeTower 소관 아님.
+
+---
+
+## M62: 2026-08-31 — 회귀 버그 수정(`claudetower-widgets` 스킬 name: 누락) + `active_account`
+상태표시줄 위젯 신설 (2026-08-21 "다음 세션 작업 계획" 완료)
+
+**착수 전 확인**: `git fetch` + `git log origin/docs-and-fixes/2026-07-06..HEAD` / 역방향 둘 다
+0건 — 동시 세션 없음, origin과 완전 동기화 확인 후 시작(이 문서가 반복 요구해온 절차).
+
+### ① 회귀 버그 수정: `skill-file.js`의 `buildSkillFileContent()`에 `name:` 프론트매터 누락
+
+**발견 경위**: PRD·CHECKPOINT 전수 재검독 중 2026-08-23 `/doctor` 기록(바로 위 절, CT-W1 —
+"사용자 결정으로 보류")을 실제 배포 파일과 대조하다가 **모순**을 하나 찾았다. 이 PC에 설치된
+`%APPDATA%\claude-code\skills\claudetower-widgets\SKILL.md`는 `name:` 필드가 이미 있었다
+(누군가 배포본만 수동 패치, 이 문서엔 반영 안 됨) — 그런데 그 패치의 **원본 소스**
+(`src/display/config/skill-file.js`의 `buildSkillFileContent()`)는 여전히 `name:` 없이
+`description:`으로 프론트매터가 바로 시작했다. 즉 CT-W2가 이미 경고했던 그 시나리오("원본이
+빠져 있으면 재설치 때 되살아난다")가 실제로 성립하는 상태였다 — 다음 `claudetower setup`
+재실행(재설치·업데이트 포함)마다 이 수동 패치가 덮어써져 버그가 되살아난다. `name:`이 없으면
+Claude Code가 이 스킬의 이름을 폴더명으로만 대체하고 `description`/`argument-hint`/
+`allowed-tools`를 전부 드롭한다 — `01_PRD.md` §3 P1 요구사항("슬래시 명령 대화형 설정")이
+재설치할 때마다 조용히(에러 없이) 깨지는 구조적 결함이었다.
+
+**수정**: `buildSkillFileContent()`가 반환하는 템플릿 첫 줄에 `name: ${SKILL_NAME}` 추가(이미
+있던 상수를 재사용, 새 문자열 하드코딩 없음). 회귀 테스트 1건 추가 — frontmatter의 정확히
+2번째 줄(`---` 바로 다음)이 `name: claudetower-widgets`인지 검증(순서까지 고정해 재발 방지).
+
+**범위**: Display 모듈 전용, 🛑 실거래 배선 게이트와 완전히 무관. 이 PC의 실제 설치본
+(`%APPDATA%\claude-code\skills\...`)은 이번 세션에서 건드리지 않았다 — 다음
+`claudetower setup` 재실행 시 정상 내용(신규 6종 위젯 설명 포함, 배포본은 구버전 5종
+문구로 낡아 있던 것도 확인)으로 자동 갱신된다.
+
+### ② `active_account` 상태표시줄 위젯 신설 (2026-08-21 계획 그대로 구현)
+
+**배경**: 위 계획 섹션이 이미 근거를 전부 남겨뒀다 — M59(`accounts switch`)로
+`ActiveAccountHandle`을 실제로 쓰는 코드 경로가 처음 생겨 차단 조건이 해소됐고, 다른 후보는
+전부 ToS/🛑게이트/환경 부재로 막혀 있어 이 위젯이 AI가 자체적으로 진행 가능한 유일한 항목이었다.
+
+**만든 것**:
+- [x] `src/display/widgets/active-account.js`(신규) — `src/shared/active-account-handle/
+  read.js`(Display↔Account 유일한 연결점, 02_DATA_MODEL.md 모듈 경계 규칙)를 통해서만
+  핸들을 읽는다. 핸들 없음(Account 미사용, 절대다수)·라벨 공백·JSON 손상 전부 크래시 없이
+  `null`(비표시)로 안전하게 폴백. `👤 ` 접두어 + `truncateForDisplay`(model.js와 동일 정책).
+- [x] `widget-config.js`의 `ALL_WIDGET_TYPES`, `setup-wizard.js`의 `WIDGET_LABELS`,
+  `statusline.js`의 `WIDGETS`·`WIDGET_DROP_PRIORITY` 4곳 전부 배선(계획이 명시한 "하나만
+  고치고 끝냈다고 착각하지 말 것" 체크리스트 그대로 이행). `WIDGET_DROP_PRIORITY`는 git보다도
+  먼저 빠지도록 맨 앞에 둠(계획의 권고 그대로 채택).
+- [x] **설계 결정(계획에 없던 것, 이번 세션이 직접 발견·판단)**: `setup-wizard.js`의 대화형
+  Y/n 질문 목록(`PROMPTED_WIDGET_TYPES`)에서 `active_account`를 의도적으로 제외했다 —
+  Account 모듈은 `accounts enable`이라는 완전히 별개의 opt-in·동의 절차를 이미 갖고 있는데,
+  Display 설치 시점에 "활성 계정 표시할까요?"라고 물으면 절대다수인 Display 전용 사용자에게
+  아직 알지도 못하는 기능을 낯설게 소개하는 셈이 된다(`01_PRD.md`의 "①Display=즉시 안전,
+  ②Account=별도 opt-in" 두 단계 분리 원칙과 직결). 대신 `enabled_widgets`에는 항상 조용히
+  포함시켜 저장한다 — 렌더가 핸들 부재 시 항상 `null`이므로 기본으로 켜둬도 안전하고, Account를
+  실제로 쓰기 시작하면(`accounts switch`) 별도 설정 변경 없이 자동으로 나타난다. "설정 완료"
+  로그에도 물어본 적 없는 이 항목은 표시하지 않는다.
+- [x] `.PRD/02_DATA_MODEL.md`("미구현" 각주)·`.PRD/03_PHASES.md`(115행 체크박스 + Phase
+  로드맵 요약 표)를 완료로 정정. README.md/README.en.md에 위젯 설명 문단 1곳 + `status` 예시
+  출력 1곳씩 반영(비개발자 대상 표현 유지, "Display는 계정 정보를 다루지 않는다"는 기존 문구와
+  모순되지 않도록 "Account가 이미 쓴 값을 읽기만 한다"는 취지로 서술).
+
+**실제로 코드 작성 중 테스트로 잡아낸 버그 2건(정직하게 기록, "짰다"≠"맞다")**:
+1. `setup-wizard.js`에서 `let displayEnabled = enabled;`가 배열을 복사하지 않고 같은 참조를
+   가리켜, 이후 `enabled.push('active_account')`가 `displayEnabled`도 함께 오염시켰다 — "설정
+   완료" 로그에 물어본 적 없는 "활성 계정"이 그대로 노출되는 결함. 테스트로 즉시 발견(`/활성
+   계정/` 매치), `[...enabled]` 얕은 복사로 수정 후 재검증 통과.
+2. `active-account.test.js`의 80자 절단 테스트가 접두어 길이를 `2`(글자 수)로 하드코딩했다가
+   실패(`83 !== 82`) — 👤(U+1F464)가 BMP 밖 문자라 JS 문자열 `.length`가 서로게이트 쌍(2)으로
+   세어 실제 접두어 길이는 3이었다(model.js/location.js/git.js의 이모지 접두어도 전부 같은
+   함정). `'👤 '.length`로 동적 계산하도록 테스트를 고쳐 재검증 통과.
+
+**검증(전부 직접 실행, 자기선언 아님)**:
+- `npm run verify`(lint+lint:boundary+test:display): **259/259**(기존 245 + 신규 14 — 위
+  버그 2건을 잡아 수정한 뒤 최종 통과), `lint:boundary`: `src/display/` **24개 파일**(신규
+  1개 포함) 전부 모듈 경계 준수(PASS 문구까지 직접 확인).
+- `npm run test:accounts`: **309/309**(M61 이후 무변화, Account 모듈 완전 무관 확인).
+- **실제 CLI 엔드투엔드 스모크**(단위테스트 아님, 격리 경로 — `CLAUDETOWER_*` 환경변수로 완전
+  격리, 이 PC의 실제 설치는 전혀 접촉 안 함):
+  1. `node bin/claudetower.js setup`에 6개 답변(`y y y y y y`)만 파이프 — **정확히 6개
+     질문만** 나옴(active_account 질문 없음, 계획대로 배선됐는지 실측 확인) → "설정 완료"
+     로그에 "활성 계정" 미노출 확인 → `config.json`엔 `active_account`가 조용히 포함됨 확인.
+  2. `node bin/claudetower.js statusline` — 핸들 파일 없을 때: `Sonnet 5  📁 my-project`
+     (👤 없음) → 핸들 파일(`{"account_label":"업무용",...}`) 생성 후 재실행: `Sonnet 5
+     📁 my-project  👤 업무용` — 위젯이 실제 CLI 경로로 정확히 나타남·사라짐을 직접 확인.
+- 위 스모크 도중 PowerShell `Set-Content -Encoding utf8`이 UTF-8 BOM을 추가해(Windows
+  PowerShell 5.1 고유 동작, `[239,187,191]` 바이트로 직접 확인) `readRawConfig()`의
+  `JSON.parse`가 조용히 실패 → 기본값(ALL_WIDGET_TYPES)로 폴백하는 현상을 먼저 겪었다 —
+  **ClaudeTower 코드 결함이 아니라 이번 스모크 스크립트 자체의 문제**임을 바이트 직접 대조로
+  확인 후, `node`로 직접 파일을 쓰는 방식(실제 `writeEnabledWidgets`와 동일하게 BOM 없는
+  UTF-8)으로 재검증해 위 결과를 얻었다(과잉 결함 보고 방지, 원인 오귀속 없이 정정한 과정
+  그대로 기록).
+
+**의도적으로 하지 않은 것**:
+- README.html/README.en.html 재생성 — M61이 이미 "범위 밖, 수동 pandoc 필요"로 남겨둔 기존
+  격차이고, 이번 위젯은 절대다수 사용자에게 비표시라 실사용 임팩트가 낮다고 판단해 이번
+  라운드에서는 .md 2개만 갱신했다. **.html 2개는 이제 .md보다 한 걸음 더 뒤처졌다** — 다음에
+  README를 다시 손댈 때 반드시 함께 재생성할 것(M61과 동일한 pandoc 파이프라인 사용).
+- 이 PC의 실제 설치된 스킬 파일(`%APPDATA%\claude-code\skills\claudetower-widgets\SKILL.md`)
+  직접 수정 — 소스만 고쳤다. 사용자가 다음에 `claudetower setup`을 실행하면 자동 갱신된다.
+- Powerline 색상 테마·Git/PR 위젯(Phase 3 나머지 항목) — 이번 라운드 범위 밖, 새 기능이라
+  별도 판단 필요.
+
+**남은 위험**: 없음(신규, 위 2건은 발견 즉시 수정·재검증 완료). README.html/README.en.html이
+.md 대비 뒤처진 상태로 남는다는 것만 다음 세션이 알아야 할 부채로 명시.
+
+- 상태: **완료** — `src/display/widgets/active-account.js`(신규), `src/display/config/
+  skill-file.js`(수정), `src/display/config/widget-config.js`(수정), `src/display/
+  statusline.js`(수정), `src/display/setup-wizard.js`(수정), `test/display/active-account.test.js`
+  (신규), `test/display/skill-file.test.js`·`statusline.test.js`·`setup-wizard.test.js`·
+  `widgets-command.test.js`(수정), `.PRD/02_DATA_MODEL.md`·`.PRD/03_PHASES.md`·`README.md`·
+  `README.en.md`·`CHECKPOINT.md` 변경. 로컬 커밋만(push는 사용자가 이후 결정).
