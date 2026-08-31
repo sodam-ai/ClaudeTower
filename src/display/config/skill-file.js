@@ -85,7 +85,15 @@ function isPartialTestIsolation() {
 // 그대로 3개로 유지한다(재구성 최소화).
 function buildSkillFileContent(exePath) {
   const quotedExe = `"${exePath.replace(/\\/g, '/')}"`;
+  // name: 필드는 반드시 있어야 한다(2026-08-23 /doctor 진단으로 실사용 중 발견된 결함,
+  // CHECKPOINT.md "claudetower-widgets 스킬이 조용히 죽어 있음" 참고) — Claude Code는
+  // frontmatter에 name:이 없으면 스킬 이름을 폴더명으로만 대체하고 description/
+  // argument-hint/allowed-tools를 전부 드롭한다. 그 결과 이 스킬을 트리거해야 할
+  // 자연어 문구(description에 적힌 것)가 통째로 무시되고, allowed-tools로 걸어둔
+  // 실행 권한 제한도 조용히 해제된다 — 매 `claudetower setup` 실행마다(재설치·업데이트
+  // 포함) 이 함수가 그 상태를 다시 만들어내고 있었다.
   return `---
+name: ${SKILL_NAME}
 description: ClaudeTower 상태표시줄(statusline) 위젯을 켜고 끄거나 갱신 속도를 조절합니다. 표시 항목은 사용 모델·프로젝트 위치·Git 브랜치/변경사항·컨텍스트 사용량·비용·사용률 6가지. "상태표시줄에서 컨텍스트 꺼줘", "비용 표시 꺼줘", "상태표시줄 설정 바꿔줘", "ClaudeTower 위젯 켜/꺼", "상태표시줄 갱신을 느리게/빠르게 해줘" 같은 요청이면 반드시 이 스킬을 사용하고, config.json이나 settings.json을 직접 편집하지 마세요.
 argument-hint: [끄거나 켜고 싶은 항목, 또는 갱신 속도를 자연어로 — 비워두면 체크 메뉴가 뜹니다]
 allowed-tools: Bash(${quotedExe} widgets *), Bash(${quotedExe} config *), AskUserQuestion
