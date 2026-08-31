@@ -2443,3 +2443,53 @@ sodam-ai/ClaudeTower`를 이 컴퓨터의 살아있는 Claude Code 세션에서 
   `config.md`·`plugin/README.md`(전부 신규), `README.md`·`README.en.md`·`.PRD/03_PHASES.md`·
   `.PRD/04_PROJECT_SPEC.md`·`CHECKPOINT.md`(수정). 코드(`src/`,`bin/`) 변경 없음. 로컬 커밋만
   (push는 사용자가 이후 결정 — push 후 새 세션 라이브 설치 테스트 필요).
+
+---
+
+## M66: 2026-09-01 — `plugin/` 자동 회귀 테스트 신설(M65가 수동 확인만으로 남겨둔 빈틈 메움)
+
+**착수 전 확인**: `git fetch` + `git rev-list --left-right --count origin/docs-and-fixes/2026-07-06...HEAD`
+→ `0 5`(origin에만 있는 커밋 0개, HEAD에만 5개 = M61~M65 그대로) — 동시 세션 없음.
+
+**배경**: M65가 `plugin/`(마켓플레이스 래퍼)을 만들면서 `node -e`로 한 번 수동 확인만 하고
+커밋했다 — 이 프로젝트의 다른 모든 기능(`git-widget.test.js` 17개, `skill-file.test.js`
+25개 등)이 예외 없이 자동 테스트를 동반해온 것과 달리, `plugin/`만 테스트 0건인 상태로
+남아있었다. 이 갭을 grep으로 직접 확인한 뒤(`test/`에 `plugin.json`/`marketplace.json`을
+참조하는 파일이 0건), 이 프로젝트 자신의 기준을 마저 지키기로 했다.
+
+**만든 것**:
+- [x] `test/plugin/plugin-manifest.test.js`(신규, 18개 테스트) — JSON 문법 유효성,
+  `plugin.json`↔`package.json` 버전 일치(둘 다 손으로 관리해 어긋나기 쉬움), `marketplace.json`
+  ↔`plugin.json` 버전 일치, `marketplace.json`의 `source`가 실제 존재하는지, `commands/`
+  폴더가 의도한 3개 파일만 갖고 있는지, 명령 3개 전부 frontmatter 2번째 줄이 정확히
+  `name: claudetower:X`인지(M62 회귀와 동일 부류 방지), `allowed-tools`가 각자의 CLI
+  서브명령 하나로만 좁혀져 있는지(최소 권한 원칙 — 다른 서브명령이 몰래 섞이는 걸 차단),
+  개인 홈 경로 미노출.
+- [x] `package.json`에 `test:plugin` 스크립트 신설 + `verify`에 편입(`lint && lint:boundary
+  && test:display && test:plugin`) — 안 넣으면 이 테스트가 CI/로컬 검증 어디에도 안 걸리는
+  채로 방치될 뻔했다(신설 직후 grep으로 `test`/`test:display`/`test:accounts`가 전부
+  `test/plugin/**`를 커버하지 않는 걸 먼저 확인하고서야 이 필요성을 알아챘다).
+- [x] `verify-display-standalone` CI job(src/accounts/ 삭제 후 `npm run verify`)과의 충돌
+  여부 확인 — `.github/workflows/build.yml` 실제 내용을 읽어, 이 job이 `npm run verify`를
+  그대로 실행한다는 것과 `plugin/`이 `src/accounts/`를 전혀 참조하지 않는다는 것을 대조해
+  안전함을 확인(추측 아님).
+
+**테스트가 실제로 회귀를 잡는지 직접 검증(자기선언 아님, 결함 주입→확인→원복)**:
+1. `commands/config.md`의 `name:` 줄을 일부러 지움 → 해당 테스트 1건 정확히 실패 → 원복 →
+   재통과 확인.
+2. `plugin.json`의 version을 `9.9.9`로 일부러 바꿈 → 버전 일치 테스트 2건(plugin.json↔
+   package.json, marketplace.json↔plugin.json) 정확히 실패 → 원복 → `git diff plugin/`으로
+   완전히 원래대로 복구됐는지 확인(빈 diff).
+
+**검증**: `npm run verify`(lint+lint:boundary+test:display 259+test:plugin 18) 전부 통과,
+`npm run test:accounts`(309/309) 무영향 재확인.
+
+**의도적으로 하지 않은 것**: `plugin/` 코드 자체(설계·내용)는 이번에 바꾸지 않았다 — M65가
+이미 검증까지 마친 내용을 그대로 두고, 그 위에 안전망만 얹었다.
+
+**남은 위험**: M65와 동일 — 라이브 설치 테스트는 여전히 미검증(push 이후 새 세션 필요).
+이번에 추가한 건 "파일 구조가 스스로 어긋나지 않았는지"에 대한 안전망이지, "Claude Code가
+실제로 이 구조를 인식해 설치하는지"는 여전히 별개로 확인해야 한다.
+
+- 상태: **완료** — `test/plugin/plugin-manifest.test.js`(신규), `package.json`(수정),
+  `CHECKPOINT.md`(수정). `plugin/` 내용 자체는 무변경. 로컬 커밋만(push는 사용자가 이후 결정).

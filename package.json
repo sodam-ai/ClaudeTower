@@ -13,10 +13,11 @@
     "test": "node --test \"test/display/**/*.test.js\"",
     "test:display": "node --test \"test/display/**/*.test.js\"",
     "test:accounts": "node --test \"test/accounts/**/*.test.js\"",
+    "test:plugin": "node --test \"test/plugin/**/*.test.js\"",
     "build": "node scripts/build-sea.js",
     "lint": "eslint .",
     "lint:boundary": "node scripts/check-module-boundary.js",
-    "verify": "npm run lint && npm run lint:boundary && npm run test:display"
+    "verify": "npm run lint && npm run lint:boundary && npm run test:display && npm run test:plugin"
   },
   "license": "Apache-2.0",
   "author": "SoDam AI Studio",
