@@ -2493,3 +2493,71 @@ sodam-ai/ClaudeTower`를 이 컴퓨터의 살아있는 Claude Code 세션에서 
 
 - 상태: **완료** — `test/plugin/plugin-manifest.test.js`(신규), `package.json`(수정),
   `CHECKPOINT.md`(수정). `plugin/` 내용 자체는 무변경. 로컬 커밋만(push는 사용자가 이후 결정).
+
+---
+
+## M67: 2026-09-01 — 마켓플레이스 래퍼 경로 결함 발견·수정 (실사용자 라이브 테스트로 발견)
+
+**배경**: M66까지 로컬에서 아무리 검증해도 잡을 수 없는 종류의 결함이었다 — 사용자가 실제로
+push 후 새 세션에서 `/plugin marketplace add sodam-ai/ClaudeTower`를 실행했더니 즉시 실패:
+
+```
+Error: Marketplace file not found at
+C:\Users\PC\AppData\Roaming\claude-code\plugins\marketplaces\sodam-ai-ClaudeTower.claude-plugin\marketplace.json
+```
+
+이어서 `/plugin install`도 "마켓플레이스를 찾을 수 없음"으로 실패했고, 당연히
+`/claudetower:status`·`/claudetower:widgets`·`/claudetower:config` 전부 "Unknown command"였다.
+
+**재현**: 위 그대로 — 실사용자가 새 세션에서 두 명령을 순서대로 실행하면 100% 재현된다.
+
+**원인 분석(추측 아니라 실물 대조로 확정)**: `.claude-plugin/`·`commands/`를 `plugin/` 폴더
+안에 한 겹 더 넣어 만들었다(M65) — 이건 `.PRD/04_PROJECT_SPEC.md §261`이 애초에 그렇게
+지정해둔 경로였다(설계 문서 자체의 오류였지, M65 구현이 설계를 벗어난 게 아니다). 그런데
+이 컴퓨터에 이미 실제로 설치돼 작동 중인 `business-counselor` 플러그인의 진짜 캐시 폴더
+구조를 다시 열어 대조해보니, `.claude-plugin/`과 `commands/`가 **저장소 루트에 바로**
+있었다(`plugin/` 같은 중간 폴더 없음) — `/plugin marketplace add owner/repo`는 저장소
+루트에서 곧바로 `.claude-plugin/marketplace.json`을 찾는다는 뜻이다. M65 때도 이 실물을
+참고했었지만, "폴더 하나 더 감싸도 상대경로라 괜찮겠지"라고 잘못 판단한 게 결함의 직접
+원인이었다 — 로컬 테스트(M66)는 JSON 유효성·상대경로 자체의 내부 일관성만 확인했지, "Claude
+Code가 저장소의 어느 절대 위치에서 이 파일을 찾는지"는애초에 로컬에서 검증할 방법이 없었다
+(라이브 마켓플레이스 등록 없이는 확인 불가 — M65·M66이 스스로 남긴 "남은 위험"이 정확히
+이 부분이었고, 실제로 여기서 사고가 났다).
+
+**수정**: `git mv`로 이력 보존하며 이동 —
+- `plugin/.claude-plugin/` → `.claude-plugin/`(저장소 루트)
+- `plugin/commands/` → `commands/`(저장소 루트)
+- `plugin/README.md` → `PLUGIN.md`(저장소 루트, 내용 중 "이 폴더는" 표현을 구조 변경에 맞게
+  정정 + 이번 사고 경위를 인용문으로 추가)
+- `test/plugin/plugin-manifest.test.js`의 경로 상수(`PLUGIN_DIR` 제거, `CLAUDE_PLUGIN_DIR`/
+  `COMMANDS_DIR`를 저장소 루트 기준으로 재계산)와 상대경로 참조(`../README.md` →
+  `../PLUGIN.md`) 갱신.
+- `README.md`/`README.en.md`의 `plugin/README.md` 링크 → `PLUGIN.md`로 갱신.
+- `.PRD/03_PHASES.md`·`.PRD/04_PROJECT_SPEC.md §261`(애초에 잘못된 경로를 지정했던 원본
+  설계 문서)을 정정, 경위 인용.
+
+**재검증(전부 직접 실행)**: `plugin.json`/`marketplace.json` 새 위치에서 JSON 유효성 재확인,
+`npm run test:plugin` 18/18 재통과(경로 상수 갱신 후에도 전부 통과 — 테스트 자체가 새 위치를
+정확히 가리키는지까지 함께 검증됨), `npm run verify`(lint+lint:boundary+test:display+
+test:plugin) 전부 통과, `npm run test:accounts` 309/309 무영향 재확인. **다만 진짜 확정은
+사용자가 다시 push한 뒤 새 세션에서 `/plugin marketplace add`를 재시도해야 나온다** —
+로컬 검증만으로는 이번에도 "구조는 맞아 보인다"까지만 확인 가능하고, M65가 겪은 것과 같은
+종류의 착각이 반복되지 않았다고 100% 단언할 수는 없다(정직하게 명시).
+
+**별도로 관찰했지만 이번 범위에서 고치지 않은 것**: 같은 라이브 테스트 중 사용자가 대안으로
+기존 개인 스킬 `/claudetower-widgets`(콜론이 아니라 하이픈 — M65 이전부터 있던, `claudetower
+setup`이 설치하는 것과는 다른 스킬)를 시도했을 때, **이 프로젝트와 무관한 다른 플러그인**
+(`my-claude-code-asset/my-cc-harness`)의 훅(`failure-tracker.sh`)이 "연속 3회 이상 실패"
+경고와 함께 끼어들었고, 화면에 "표시 항목 ①/②"처럼 실제 위젯 이름이 아닌 자리표시자 문구가
+뜨는 것도 관찰됐다. 이건 (a) 이 저장소 소관이 아닌 제3의 플러그인의 훅이 관여돼 있고, (b)
+정확한 재현 조건을 아직 못 잡았고, (c) 오늘 범위(마켓플레이스 구조 결함)와는 다른 문제라
+**이번엔 손대지 않았다** — 사용자가 원하면 별도로 원인을 조사할 것.
+
+**남은 위험**: 위 재검증 문단에 명시한 대로, 로컬 검증은 끝났지만 실제 `/plugin marketplace
+add` 재성공 여부는 아직 미확인. `/claudetower-widgets` 스킬의 훅 간섭 현상도 미해결·원인
+미상으로 남아있음.
+
+- 상태: **완료(구조 수정), 라이브 재검증 대기** — `.claude-plugin/`·`commands/`·`PLUGIN.md`
+  (이동), `test/plugin/plugin-manifest.test.js`·`README.md`·`README.en.md`·
+  `.PRD/03_PHASES.md`·`.PRD/04_PROJECT_SPEC.md`·`CHECKPOINT.md`(수정). 로컬 커밋만
+  (재push는 사용자가 이후 결정).

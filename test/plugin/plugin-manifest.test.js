@@ -1,11 +1,16 @@
 'use strict';
 
-// plugin/(마켓플레이스 래퍼, M65)의 회귀 테스트. 이 폴더는 이 프로젝트의 다른 모든 기능과
-// 달리 M65 구현 당시 자동 테스트 없이 `node -e` 수동 확인만으로 커밋됐다 — 이 파일이 그
-// 빈틈을 메운다. 이 프로젝트가 이미 반복적으로 겪은 회귀(예: SKILL.md `name:` 프론트매터
-// 누락, M62)와 같은 부류의 문제를 여기서도 기계적으로 막는 것이 목적이다.
+// 마켓플레이스 래퍼(M65)의 회귀 테스트. 이 프로젝트의 다른 모든 기능과 달리 M65 구현 당시
+// 자동 테스트 없이 `node -e` 수동 확인만으로 커밋됐다 — 이 파일이 그 빈틈을 메운다. 이
+// 프로젝트가 이미 반복적으로 겪은 회귀(예: SKILL.md `name:` 프론트매터 누락, M62)와 같은
+// 부류의 문제를 여기서도 기계적으로 막는 것이 목적이다.
 //
-// plugin/은 Display 전용 명령만 감싼다(Account는 별도 opt-in 원칙 유지, M65 결정) — 그래서
+// 2026-09-01 M67: `.claude-plugin/`·`commands/`는 원래 `plugin/` 폴더 안에 한 겹 더
+// 들어가 있었으나, 실제 라이브 테스트에서 `/plugin marketplace add`가 marketplace.json을
+// 못 찾아 실패했다(Claude Code는 저장소 루트에서 바로 찾는다) — 저장소 루트로 옮긴 뒤
+// 이 테스트의 경로 상수도 함께 갱신했다.
+//
+// 이 명령들은 Display 전용 명령만 감싼다(Account는 별도 opt-in 원칙 유지, M65 결정) — 그래서
 // src/accounts/를 참조하지 않고, verify-display-standalone CI job(src/accounts/ 삭제 후
 // npm run verify)에서도 그대로 통과해야 한다.
 
@@ -15,9 +20,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.join(__dirname, '..', '..');
-const PLUGIN_DIR = path.join(ROOT, 'plugin');
-const CLAUDE_PLUGIN_DIR = path.join(PLUGIN_DIR, '.claude-plugin');
-const COMMANDS_DIR = path.join(PLUGIN_DIR, 'commands');
+const CLAUDE_PLUGIN_DIR = path.join(ROOT, '.claude-plugin');
+const COMMANDS_DIR = path.join(ROOT, 'commands');
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -119,15 +123,15 @@ for (const filename of EXPECTED_COMMANDS) {
 
 test('명령 파일 어디에도 이 컴퓨터의 실제 사용자 홈 경로가 하드코딩돼 있지 않다(마켓플레이스로 공개 배포되는 파일이라 개인정보 유출 방지가 특히 중요)', () => {
   const leakPattern = /C:\\Users\\[^"'\s]+|\/Users\/[^"'\s/]+|\/home\/[^"'\s/]+/;
-  for (const filename of [...EXPECTED_COMMANDS, '../.claude-plugin/plugin.json', '../.claude-plugin/marketplace.json', '../README.md']) {
+  for (const filename of [...EXPECTED_COMMANDS, '../.claude-plugin/plugin.json', '../.claude-plugin/marketplace.json', '../PLUGIN.md']) {
     const filePath = path.join(COMMANDS_DIR, filename);
     const content = readText(filePath);
     assert.doesNotMatch(content, leakPattern, `${filename}에 절대경로(개인정보 유출 가능)가 있습니다`);
   }
 });
 
-test('plugin/README.md가 존재하고 실제 마켓플레이스 설치 명령을 담고 있다', () => {
-  const content = readText(path.join(PLUGIN_DIR, 'README.md'));
+test('PLUGIN.md가 존재하고 실제 마켓플레이스 설치 명령을 담고 있다', () => {
+  const content = readText(path.join(ROOT, 'PLUGIN.md'));
   assert.match(content, /\/plugin marketplace add sodam-ai\/ClaudeTower/);
   assert.match(content, /\/plugin install claudetower@claudetower-marketplace/);
 });

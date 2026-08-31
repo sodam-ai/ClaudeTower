@@ -258,7 +258,13 @@ grep -r "require.*accounts" src/display && echo "FAIL: 모듈 경계 위반" || 
 1. GitHub Actions 매트릭스 빌드(linux/macos/windows)로 SEA 바이너리 생성
 2. **1순위 채널(독립 CLI)**: `npm install -g claudetower`(Node.js 있는 사용자, 패키지명은 `claudetower-cli`가 아니라 실제 package.json 기준 `claudetower`) 또는 curl(`curl -fsSL .../install.sh | sh`)·PowerShell(`irm .../install.ps1 | iex`) 설치 스크립트로 SEA 바이너리 직접 배치 — teamclaude·claude-swap·caam 등 리서치된 대다수 CLI 도구와 동일한 설치 UX
 3. `claudetower setup` 실행 → Display 즉시 활성화, Account 모듈은 `claudetower accounts enable` 실행 전까지 비활성
-4. **3순위 채널(선택적, Phase 3)**: `plugin/.claude-plugin/`의 얇은 래퍼를 마켓플레이스로 배포 — `/claudetower:*` 슬래시 명령이 내부적으로 설치된 CLI를 호출하는 방식. 마켓플레이스 발견성을 원하는 사용자를 위한 보조 경로일 뿐, 핵심 기능은 CLI 단독으로 완결됨
+4. **3순위 채널(선택적, Phase 3)**: 저장소 루트 `.claude-plugin/`(**2026-09-01 정정**: 원래
+   이 문서가 `plugin/.claude-plugin/`로 지정했으나, 실제 라이브 테스트에서 `/plugin
+   marketplace add`가 이 위치의 marketplace.json을 못 찾아 실패했다 — Claude Code는
+   저장소 루트에서 바로 찾으므로 `plugin/` 한 겹을 없애고 루트로 옮겼다. 상세는
+   `CHECKPOINT.md` M67 참고)의 얇은 래퍼를 마켓플레이스로 배포 — `/claudetower:*` 슬래시
+   명령이 내부적으로 설치된 CLI를 호출하는 방식. 마켓플레이스 발견성을 원하는 사용자를
+   위한 보조 경로일 뿐, 핵심 기능은 CLI 단독으로 완결됨
 
 ### 배포 현황 (2026-07-04 실측)
 

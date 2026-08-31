@@ -105,7 +105,7 @@ Sonnet 5  📁 my-project  🌿 main  컨텍스트 ██░░░ 45%  💰 $1.
 | `curl`/`PowerShell` 원라이너 (`install.sh`/`install.ps1`) | ✅ 지금 가능(2026-07-04부터, `main` 브랜치 개설로 해결) | Node.js 불필요, 아래 명령 참고. **터미널이 낯설면 위 5단계 직접 다운로드 방법을 권장합니다** |
 | 소스에서 직접 빌드 | ✅ 지금 가능 | 개발자용, Node.js 22+ 필요 — 아래 "개발자용" 참고 |
 | `npm install -g` | ⏸️ 의도적으로 보류 | "ClaudeTower/claudetower"의 상표 저촉 여부 법률 검토는 2026-07-15에 끝났고, 낮은 우선순위 잔존 리스크를 감수하고 이 이름을 유지하기로 결정했습니다(`.PRD/01_PRD.md` §7). 다만 완전히 영구 확정된 상태는 아니라서, 사실상 영구 점유되는 자원인 npm 패키지 이름은 이름이 완전히 확정되기 전까지 발행하지 않습니다 |
-| Claude Code 마켓플레이스 플러그인 | ✅ 지금 가능(2026-09-01부터, **보조 채널**) | CLI 본체를 대신 설치해주지는 않는 **얇은 래퍼**입니다 — 위 방법으로 CLI를 먼저 설치한 뒤 플러그인을 추가하면, `/claudetower:status`·`/claudetower:widgets`·`/claudetower:config` 3개 슬래시 명령을 쓸 수 있습니다(대화형 설정 `setup`은 아직 슬래시 명령이 아니라 터미널에서 한 번 실행해야 합니다). 상세는 [`plugin/README.md`](./plugin/README.md) 참고 |
+| Claude Code 마켓플레이스 플러그인 | ✅ 지금 가능(2026-09-01부터, **보조 채널**) | CLI 본체를 대신 설치해주지는 않는 **얇은 래퍼**입니다 — 위 방법으로 CLI를 먼저 설치한 뒤 플러그인을 추가하면, `/claudetower:status`·`/claudetower:widgets`·`/claudetower:config` 3개 슬래시 명령을 쓸 수 있습니다(대화형 설정 `setup`은 아직 슬래시 명령이 아니라 터미널에서 한 번 실행해야 합니다). 상세는 [`PLUGIN.md`](./PLUGIN.md) 참고 |
 
 macOS/Linux:
 ```bash
