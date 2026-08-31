@@ -142,7 +142,7 @@ irm https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.ps1 | ie
   ```
 - `claudetower widgets` — 지금 어떤 항목이 켜져 있는지 확인
 - `claudetower widgets off <항목...>` / `claudetower widgets on <항목...>` — 지정한 항목만 켜고 끄기(나머지는 그대로, `setup`처럼 질문 전부에 다시 답할 필요 없음). 항목 이름: `model`, `location`, `git`, `context`, `cost`, `rate_limit`
-- `claudetower config statusline-refresh <초>` — 상태표시줄 갱신 주기를 조절합니다(기본 3초, 세션을 여러 개 띄워두는 경우 5초 이상으로 늘리면 컴퓨터 부담이 더 줄어듭니다). `setup`을 다시 실행해도 이 값은 유지됩니다. 터미널 없이 클로드코드 채팅창에서 "상태표시줄 갱신을 느리게 해줘"처럼 말해도 됩니다
+- `claudetower config statusline-refresh <초>` — 상태표시줄 갱신 주기를 조절합니다(기본 3초, <strong>권장값은 5초</strong>입니다 — 실행 시간을 실측한 결과 1초 주기는 컴퓨터 부담이 약 7.6%, 3초는 약 2.5%, 5초는 약 1.5%로 줄어듭니다. 세션을 여러 개 동시에 띄워두면 이 절감 효과가 세션 수만큼 커집니다. 제품 자체가 권장하는 범위도 2~5초입니다). `setup`을 다시 실행해도 이 값은 유지됩니다. 터미널 없이 클로드코드 채팅창에서 "상태표시줄 갱신을 느리게 해줘"처럼 말해도 됩니다
 - `claudetower config powerline <on|off>` — 위젯 사이 구분자를 공백 2칸에서 Powerline 스타일 화살표로 바꿉니다(색상 테마 없이 구분 기호만, 기본은 꺼짐). Nerd Font가 설치돼 있지 않은 터미널에서는 화살표가 깨져 보일 수 있으니 켜본 뒤 확인하세요
 - `claudetower config padding <n>` — Claude Code 공식 상태표시줄 기능인 좌우 여백(문자 수)을 조절합니다(기본값 0). 예: `claudetower config padding 2`
 - `claudetower uninstall` — 등록된 상태표시줄 설정만 안전하게 제거(다른 Claude Code 설정은 그대로 둠). Claude Code에 등록된 상태표시줄 설정만 깔끔하게 지워지며, 여러분이 따로 설정해두신 다른 Claude Code 설정은 전혀 건드리지 않습니다
@@ -216,7 +216,7 @@ ClaudeTower/
 
 실제로 화면 한 줄이 만들어지기까지 컴퓨터 안에서 벌어지는 순서를 그대로 적으면 이렇습니다(모두 여러분 컴퓨터 안에서만 일어나며, 보통 1초도 안 걸립니다).
 
-1. Claude Code와 대화를 주고받는 동안, Claude Code가 정해둔 주기마다(기본 3초, `config statusline-refresh`로 조절 가능) 자동으로 이 프로그램을 실행합니다.
+1. Claude Code는 메시지를 주고받는 등 <strong>화면이 바뀔 만한 일이 생길 때마다</strong> 곧바로 이 프로그램을 실행해 갱신합니다. 여기에 더해 아무 일도 없이 가만히 있는 동안에도 정보가 오래되지 않도록 일정 주기(기본 3초, `config statusline-refresh`로 조절 가능)로 한 번씩 더 실행합니다 — 이 주기는 "이 시간마다만 갱신된다"는 뜻이 아니라 <strong>유휴 상태를 위한 보조 타이머</strong>입니다. 짧게 줄인다고 반응이 빨라지지 않으니, 굳이 낮추지 말고 위 명령어 목록의 권장값(5초)을 그대로 쓰시길 권합니다.
 2. Claude Code가 "지금 상황"(작업 폴더 경로, 사용 모델, 컨텍스트 사용량, 비용, 사용률)을 이 프로그램에 짧은 텍스트(JSON)로 전달합니다.
 3. 이 프로그램은 켜져 있는 항목(모델/위치/Git/컨텍스트/비용/사용률)을 하나씩 확인합니다 — 값이 없거나 표시할 수 없는 항목은 조용히 건너뜁니다(예: git 저장소가 아니면 Git 항목은 건너뜀).
 4. Git 항목은 컴퓨터에 설치된 `git` 프로그램에게 브랜치명·변경사항 개수를 직접 물어봅니다. 같은 대화 세션 안에서 5초 이내에 다시 물어보면, 다시 조회하지 않고 방금 확인한 값을 그대로 재사용합니다(컴퓨터 부담을 줄이기 위한 임시 저장, 아래 "보안·데이터 흐름" 참고).
