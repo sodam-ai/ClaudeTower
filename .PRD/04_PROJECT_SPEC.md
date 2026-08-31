@@ -70,13 +70,15 @@ claudetower-cli/
 │   │   └── audit/
 │   └── shared/
 │       └── active-account-handle.js   # ActiveAccountHandle 파일 읽기/쓰기 — Account는 쓰기 함수만, Display는 읽기 함수만 import
-├── plugin/                        # Phase 3, 선택적 보조 채널 — CLI를 그대로 호출하는 얇은 래퍼
-│   └── .claude-plugin/
-│       ├── plugin.json
-│       └── marketplace.json
+├── .claude-plugin/                # Phase 3, 선택적 보조 채널(마켓플레이스 래퍼) — 저장소 루트
+│   ├── plugin.json               # (2026-09-01 M67 정정: 원래 plugin/.claude-plugin/이었으나
+│   └── marketplace.json          #  Claude Code가 저장소 루트에서만 찾아 이동, CHECKPOINT.md M67 참고)
+├── commands/                      # 마켓플레이스 슬래시 명령 3개(status/widgets/config) — CLI를 그대로 호출하는 얇은 래퍼
+├── PLUGIN.md                      # 위 래퍼 설명 문서(구 plugin/README.md, M67에서 이름 변경·이동)
 ├── test/
 │   ├── display/                 # Account 모듈 없이도 통과해야 함
-│   └── accounts/
+│   ├── accounts/
+│   └── plugin/                   # 마켓플레이스 래퍼 회귀 테스트(M66 신설)
 ├── README.md                     # 최상단에 "Account 모듈 = 선택 사항 + 리스크 고지" 명시
 └── package.json
 ```
@@ -273,7 +275,7 @@ grep -r "require.*accounts" src/display && echo "FAIL: 모듈 경계 위반" || 
 | GitHub Release 직접 다운로드 | ✅ 가능 | `github.com/sodam-ai/ClaudeTower/releases`, 최신 `v0.1.9` |
 | curl/PowerShell 원라이너 | ✅ 가능 | `main` 브랜치 개설(이전엔 브랜치 부재로 raw URL 404) + v0.1.9 릴리스. `irm .../main/install.ps1 \| iex`를 격리 환경에서 실행해 다운로드→설치→`--version` 응답까지 실측 |
 | `npm install -g` | ⏸️ 의도적 보류 | 프로젝트명("claudetower")이 아직 가제이고 상표 저촉 여부가 `01_PRD.md §7` 기준 [법무 검토 필요] 상태. npm 패키지명은 사실상 영구 점유라 이름 확정 전 발행 안 함 |
-| 마켓플레이스(Phase 3) | 1차 완료(2026-09-01, M65) | `plugin/` 폴더 — status·widgets·config 3개 슬래시 명령, `setup`은 의도적으로 제외(대화형이라 위험 검토 후 별도 착수) |
+| 마켓플레이스(Phase 3) | 구조 완료·라이브 재검증 대기(2026-09-01, M65+M67) | 저장소 루트 `.claude-plugin/`+`commands/` — status·widgets·config 3개 슬래시 명령, `setup`은 의도적으로 제외(대화형이라 위험 검토 후 별도 착수). M65 최초 구현이 실사용자 라이브 테스트에서 실패해 M67로 경로 수정(자동 테스트 18개·구조 대조로 로컬 검증 완료) — 실제 `/plugin marketplace add` 재시도 결과는 아직 미확인, 사용자가 push 후 새 세션에서 재시도 예정 |
 | 기본 브랜치 | `main`(2026-07-04부터, 이전엔 `feat/phase1-mvp-skeleton`이 기본) |  |
 
 ---
