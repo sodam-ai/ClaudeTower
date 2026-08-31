@@ -2365,3 +2365,81 @@ README.en.html이 README.md/README.en.md보다 뒤처진 상태(M61이 만든 pa
 
 - 상태: **완료** — `.PRD/01_PRD.md`·`.PRD/03_PHASES.md`·`CHECKPOINT.md` 변경, 코드 변경
   없음. 로컬 커밋만(push는 사용자가 이후 결정).
+
+---
+
+## M65: 2026-09-01 — 마켓플레이스 래퍼 1차 구현 (`plugin/` 신설, Phase 3 "선택적 보조 채널")
+
+**착수 전 확인**: `git fetch` + `git rev-list --left-right --count origin/docs-and-fixes/2026-07-06...HEAD`
+→ `0 4`(origin에만 있는 커밋 0개, HEAD에만 4개 = M62~M64 그대로) — 동시 세션 없음.
+
+**배경**: 사용자가 "AI에 설치하는 마켓플레이스+플러그인을 원했는데, GitHub 저장소에도 올려야
+하는 거 아니냐"고 직접 질문했다. 확인해보니 GitHub 저장소 자체는 이미 PUBLIC이지만(현재 설치
+방법이 바로 그 저장소의 Release), Claude Code 안에서 `/plugin marketplace add`로 찾아 설치할
+수 있게 해주는 `plugin.json`/`marketplace.json`은 저장소에 전혀 없었다 — 2026-07-04에 이미
+"마켓플레이스 플러그인 → 독립 CLI"로 1순위 배포 방식을 사용자 요청으로 전환했고, 마켓플레이스는
+그 이후 "선택적 보조 채널"(`03_PHASES.md`, `04_PROJECT_SPEC.md §261/270`)로만 남아 실제로
+만들어진 적이 없었다.
+
+**설계 근거(추측 없이 실물 레퍼런스로 확인)**: 이 PC에 이미 설치돼 실제로 작동 중인
+`business-counselor`(같은 저자 "SoDam AI Studio")의 `plugin.json`/`.claude-plugin/
+marketplace.json`/`commands/*.md` 구조를 실물로 직접 열어 스키마를 확인한 뒤 그대로 따랐다
+(추측·가정 없이 검증된 실제 스키마 사용). 이 구조는 `04_PROJECT_SPEC.md §261`이 이미 지정해둔
+`plugin/.claude-plugin/plugin.json`+`marketplace.json` 경로와도 정확히 일치한다.
+
+**만든 것**:
+- [x] `plugin/.claude-plugin/plugin.json` — 메타데이터(name/version/description/author/license),
+  `commands: ["./commands/"]`. 버전은 `package.json`과 동일하게 0.5.0으로 맞춤.
+- [x] `plugin/.claude-plugin/marketplace.json` — 단일 플러그인 자기참조 카탈로그(`source: "./"`),
+  `$schema` 포함(공식 스키마 URL, business-counselor 실물에서 확인).
+- [x] `plugin/commands/status.md`·`widgets.md`·`config.md` — 각각 정확히 그 CLI 서브명령
+  1개에만 `allowed-tools`를 제한(`Bash(claudetower status:*)` 등, 최소 권한 원칙 — 이 프로젝트
+  자신의 `skill-file.js` 생성 패턴을 그대로 재사용). 셋 다 frontmatter 첫 줄이 `name:`인지
+  직접 확인(M62에서 이 필드 누락이 실제 회귀 버그였던 걸 재확인한 뒤 재발 방지 차원에서 검증).
+- [x] `plugin/README.md` — 설치 순서, `setup`을 왜 뺐는지 설명.
+- [x] `README.md`/`README.en.md` 설치 방법 표에 새 행 추가 + 설치 명령어 블록 추가.
+- [x] `.PRD/03_PHASES.md`·`.PRD/04_PROJECT_SPEC.md` 상태 갱신.
+
+**리스크 검토 후 의도적으로 뺀 것(범위를 좁힌 이유)**:
+1. **`/claudetower:setup` 제외**: 이 명령은 위젯마다 Y/n으로 묻는 대화형 흐름이다. 슬래시
+   명령(단발성 Bash 실행)이 이 왕복을 안전하게 흉내 내려면 몇 개 질문이 있는지 미리 알고
+   답을 전부 stdin으로 파이프해야 하는데, 잘못 흉내 내면 사용자 의도와 다른 값으로 조용히
+   설정될 위험이 있다 — 검증 없이 만들지 않기로 했다. 대신 각 명령의 실패 안내에 "터미널에서
+   `claudetower setup`을 먼저 실행하라"는 경로를 남겼다.
+2. **CLI 자동 설치(예: `/claudetower:install`) 제외**: 플러그인이 스스로 `curl`/`irm` 설치
+   스크립트를 실행하게 만들 수도 있었으나, 이번 라운드는 "이미 설치된 CLI를 호출만 하는 얇은
+   래퍼"라는 PRD 원 설계(§261 "핵심 기능은 CLI 단독으로 완결됨")를 그대로 지키기로 했다 —
+   설치 자동화는 별개의 더 큰 결정이라 범위를 넓히지 않았다.
+3. **Account 관련 명령(`accounts enable` 등) 제외**: M62(active_account 위젯)와 같은 이유 —
+   Account는 별도 opt-in·동의 절차가 있는 모듈이라, 지금 단계에서 Display용 마켓플레이스
+   명령에 섞지 않았다.
+
+**검증(전부 직접 실행)**:
+- `plugin.json`/`marketplace.json` 둘 다 `node -e "JSON.parse(...)"`로 문법 유효성 확인.
+- `grep -rniE "C:\\Users|/Users/PC|/home/PC" plugin/` — 개인정보·절대경로 노출 0건(duyet
+  마켓플레이스 저장소의 "환경 특정 정보 금지" 컨벤션을 참고해 추가로 확인).
+- `commands/*.md` 3개 전부 frontmatter 2번째 줄이 `name: claudetower:X`인지 직접 확인.
+- 코드(`src/`, `bin/`)는 전혀 안 건드렸으므로 `npm run verify`(259/259)·`test:accounts`
+  (309/309) 재실행해 무관함을 재확인.
+- `npm run lint` 클린(JS 파일 변경 없음, 재확인 목적).
+
+**의도적으로 검증하지 못한 것(정직하게 명시)**: 실제로 `/plugin marketplace add
+sodam-ai/ClaudeTower`를 이 컴퓨터의 살아있는 Claude Code 세션에서 실행해 설치·슬래시 명령
+호출까지 라이브로 확인하지는 않았다 — 그러려면 이 저장소를 실제로 push한 뒤 새 세션에서
+설치를 시도해야 하는데, push는 이 프로젝트 원칙상 항상 사용자 직접 실행이라 이번 세션
+범위에서 할 수 없었다. **다음에 push한 뒤에는 반드시 새 세션에서 라이브 설치 테스트를 한
+번 거칠 것**(claudetower-widgets 스킬 CT-W1 사고처럼 "파일 구조는 맞는데 실제 인식 여부는
+확인 안 됨" 부류의 위험이 남아있음을 숨기지 않는다).
+
+**남은 위험**:
+- 위 라이브 설치 미검증(가장 중요, push 이후 새 세션에서 최우선 확인 필요).
+- `setup`을 안전하게 슬래시 명령화하는 방법은 여전히 미해결(다음 후보로 남김, 임의로 만들지
+  않기로 한 결정 유지).
+- `plugin.json`의 `version`을 앞으로 `package.json`과 수동으로 계속 맞춰야 한다(자동 동기화
+  없음) — 다음에 CLI 버전을 올릴 때 이 파일도 함께 갱신할 것을 잊지 말 것.
+
+- 상태: **완료(1차, 라이브 설치 미검증)** — `plugin/.claude-plugin/plugin.json`·
+  `plugin/.claude-plugin/marketplace.json`·`plugin/commands/status.md`·`widgets.md`·
+  `config.md`·`plugin/README.md`(전부 신규), `README.md`·`README.en.md`·`.PRD/03_PHASES.md`·
+  `.PRD/04_PROJECT_SPEC.md`·`CHECKPOINT.md`(수정). 코드(`src/`,`bin/`) 변경 없음. 로컬 커밋만
+  (push는 사용자가 이후 결정 — push 후 새 세션 라이브 설치 테스트 필요).

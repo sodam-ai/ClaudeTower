@@ -267,7 +267,7 @@ grep -r "require.*accounts" src/display && echo "FAIL: 모듈 경계 위반" || 
 | GitHub Release 직접 다운로드 | ✅ 가능 | `github.com/sodam-ai/ClaudeTower/releases`, 최신 `v0.1.9` |
 | curl/PowerShell 원라이너 | ✅ 가능 | `main` 브랜치 개설(이전엔 브랜치 부재로 raw URL 404) + v0.1.9 릴리스. `irm .../main/install.ps1 \| iex`를 격리 환경에서 실행해 다운로드→설치→`--version` 응답까지 실측 |
 | `npm install -g` | ⏸️ 의도적 보류 | 프로젝트명("claudetower")이 아직 가제이고 상표 저촉 여부가 `01_PRD.md §7` 기준 [법무 검토 필요] 상태. npm 패키지명은 사실상 영구 점유라 이름 확정 전 발행 안 함 |
-| 마켓플레이스(Phase 3) | 미착수 | 원 계획대로 Phase 3까지 보류 |
+| 마켓플레이스(Phase 3) | 1차 완료(2026-09-01, M65) | `plugin/` 폴더 — status·widgets·config 3개 슬래시 명령, `setup`은 의도적으로 제외(대화형이라 위험 검토 후 별도 착수) |
 | 기본 브랜치 | `main`(2026-07-04부터, 이전엔 `feat/phase1-mvp-skeleton`이 기본) |  |
 
 ---

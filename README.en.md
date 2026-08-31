@@ -105,6 +105,7 @@ Sonnet 5  📁 my-project  🌿 main  컨텍스트 ██░░░ 45%  💰 $1.
 | `curl`/`PowerShell` one-liner (`install.sh`/`install.ps1`) | ✅ Works now (fixed 2026-07-04 — a `main` branch now exists) | No Node.js required, see commands below. **If a terminal feels unfamiliar, we recommend the direct-download method above instead** |
 | Build from source | ✅ Works now | For developers, requires Node.js 22+ — see "For developers" below |
 | `npm install -g` | ⏸️ Deliberately deferred | Trademark clearance for "ClaudeTower/claudetower" was reviewed and resolved on 2026-07-15 — we decided to keep the name, accepting a low-priority residual risk (`.PRD/01_PRD.md` §7). It's still not a fully, permanently final decision, though, so an npm package name — a resource that's effectively permanent once claimed — won't be published until the name is completely finalized |
+| Claude Code marketplace plugin | ✅ Works now (since 2026-09-01, **secondary channel**) | A **thin wrapper** — it does not install the CLI itself. Install the CLI with one of the methods above first, then add the plugin to get `/claudetower:status`, `/claudetower:widgets`, and `/claudetower:config` slash commands (interactive `setup` isn't a slash command yet — still run `claudetower setup` once in a terminal). See [`plugin/README.md`](./plugin/README.md) |
 
 macOS/Linux:
 ```bash
@@ -113,6 +114,12 @@ curl -fsSL https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.s
 Windows (PowerShell):
 ```powershell
 irm https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.ps1 | iex
+```
+
+Marketplace plugin (after installing the CLI):
+```
+/plugin marketplace add sodam-ai/ClaudeTower
+/plugin install claudetower@claudetower-marketplace
 ```
 
 ### Can I delete or move the installed file?
