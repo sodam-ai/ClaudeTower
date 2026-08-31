@@ -2610,3 +2610,40 @@ M67에서도 반복된 것.
 
 - 상태: **완료** — `.PRD/04_PROJECT_SPEC.md`(수정), `CHECKPOINT.md`(이 항목). 로컬 커밋만
   (push는 사용자가 이후 결정).
+
+---
+
+## M69: 2026-09-01 — `04_PROJECT_SPEC.md` 구조 다이어그램에 실존 폴더 2곳(`oauth/`·`quota/`) 누락분 추가
+
+**왜**: 사용자가 같은 "PRD 전수 재정독 후 제안" 요청을 문자 그대로 반복해, 텍스트 재독 대신
+"문서 주장 vs 실제 코드/파일 대조" 검증 각도로 전환했다(반복 지시 = 더 꼼꼼히 파라는 신호).
+`find src/accounts -type d`로 실제 하위 폴더를 전수 대조한 결과, `04_PROJECT_SPEC.md`의
+구조 다이어그램(M68에서 방금 편집한 바로 그 구간)이 여전히 5개 폴더만 나열하고 있었다 —
+실제로는 `oauth/`(M24, OAuth state/PKCE)와 `quota/`(M41·M44, quota 캐시·전환 판단)까지
+포함해 7개가 존재한다. M68이 마켓플레이스 경로만 고치고 accounts 하위 목록 자체는 재검증
+없이 지나쳤던 게 이번 대조로 드러남 — 같은 파일, 같은 절 안에서 또 발견된 두 번째 drift.
+
+**같이 재확인한 안전장치(신규 발견은 아니지만 이번 대조에서 재검증)**: `bin/claudetower.js`에
+`startProxyServer`/`active-account-provider`/`createRequestForwarder` 참조 0건 재확인,
+`node --test test/accounts/live-wiring-gate.test.js` 1/1 재통과 — 🛑 실거래 배선 게이트는
+그대로 안전하게 닫혀 있음. `bin/claudetower.js`의 `accounts` 서브커맨드가 status/config/
+enable/add/list/remove/rename/switch/disable/diagnose-quota까지 실제로 전부 배선돼 있음도
+직접 확인(문서 대조 목적, 이번 라운드에서 코드 변경 없음).
+
+**검토했지만 제외한 것**: `README.md`의 폴더 구조 그림도 같은 방식으로 대조했으나, 그
+문서는 스스로 "일반 사용자는 안 보셔도 됩니다 — 주요 구성만"이라 명시한 요약본이라
+`.claude-plugin/`·`commands/`·`test/plugin/` 등을 안 보여주는 게 오류가 아니라 의도된
+축약임을 확인 — 정정 대상에서 제외.
+
+**수정**: `.PRD/04_PROJECT_SPEC.md`의 accounts 하위 구조 목록에 `oauth/`·`quota/` 2줄 추가,
+각 줄에 어느 M항목에서 만들어졌는지와 여전히 배선 게이트로 미배선 상태임을 각주로 남김.
+
+**검증**: `git diff`로 의도한 2줄(+2/-0)만 반영됐음을 확인, `find src/accounts -type d`
+결과(7개)와 문서 목록(7개)이 이제 정확히 일치. 코드·테스트 무변경(문서 전용 변경이라
+자동 테스트 재실행 대상 아님).
+
+**남은 위험**: 없음(신규, 문서 전용). 마켓플레이스 라이브 재검증 미완료는 M67·M68과 동일하게
+여전히 유효한 유일한 실질적 미해결 항목.
+
+- 상태: **완료** — `.PRD/04_PROJECT_SPEC.md`(수정), `CHECKPOINT.md`(이 항목). 로컬 커밋만
+  (push는 사용자가 이후 결정).

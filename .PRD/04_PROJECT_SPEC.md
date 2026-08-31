@@ -67,6 +67,8 @@ claudetower-cli/
 │   │   ├── accounts/
 │   │   ├── rotation/
 │   │   ├── credential-store/
+│   │   ├── oauth/                # state/PKCE(M24) — 실거래 배선 게이트로 미배선 상태 유지
+│   │   ├── quota/                 # quota 캐시·전환 판단(M41·M44) — 실거래 배선 게이트로 미배선 상태 유지
 │   │   └── audit/
 │   └── shared/
 │       └── active-account-handle.js   # ActiveAccountHandle 파일 읽기/쓰기 — Account는 쓰기 함수만, Display는 읽기 함수만 import
