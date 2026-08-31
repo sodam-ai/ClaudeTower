@@ -112,7 +112,8 @@ Display 모듈과 Account 모듈이 "현재 활성 계정 표시"로 자연스�
 
 ### 기능 (2026-07-04 CLI 전환 반영)
 - [x] Display: Powerline **구분자 스타일**(색상 테마 없이 위젯 사이 구분 기호만 전환, `claudetower config powerline <on|off>`, 기본 꺼짐) — 2026-07-18 구현·테스트(179개)·커밋 완료(`5c81c3a`). Account 모듈에 의존하지 않는다는 게 확인되어 Phase 2 완료 전에 선구현함. **단, 작업 브랜치(`docs-and-fixes/2026-07-06`)에만 있고 아직 main 미병합·릴리스 미발행**
-- [ ] Display: Powerline **색상 테마**, Git/PR 위젯 — 색상 테마·Git 위젯은 구조적으로는 독립 착수 가능하나 아직 미착수
+- [x] Display: **Git 위젯**(브랜치+staged/modified) — **2026-08-03 완료**, `test/display/git-widget.test.js`(12건)로 검증됨. **PR 상태는 범위에서 영구 제외**됐다(`src/display/widgets/git.js` 헤더 주석 — gh CLI 설치·로그인 여부 등 완전히 새로운 외부 의존성이 필요해 실패 모드가 크게 늘어남, Simplicity First 판단, 사용자 사전고지 후 결정). 재론하려면 사용자가 다시 명시적으로 요청해야 한다 — 이 항목을 "미착수"로 다시 검토하는 걸 막기 위한 기록(2026-09-01, 같은 세션에서 이 항목을 3번 다시 검토하는 헛수고를 겪은 뒤 정정).
+- [ ] Display: Powerline **색상 테마** — 구조적으로는 독립 착수 가능하나 아직 미착수. 색 배합·적용 범위는 취향이 갈리는 결정이라 AI가 임의로 확정하지 않기로 함(2026-09-01 사용자에게 두 가지 안을 제시했고 "이번엔 보류" 선택)
 - [x] Display: `active_account` 위젯(ActiveAccountHandle 읽기) — **2026-08-31 완료**: M59(`accounts switch`)로 ActiveAccountHandle에 실제 값이 기록되기 시작한 뒤 착수. CHECKPOINT.md M62 참고.
 - [ ] Account: TUI 대시보드(계정 테이블·할당량 진행률·활동 로그, teamclaude 실측 키 조작 벤치마킹), **핫 리로드**(재시작 없이 계정 추가, teamclaude `R` 키 패턴), ~~수동 강제 전환~~, **영구 셸 별칭 등록(opt-in)** — `claude` 명령 자체를 `claudetower` 경유로 바꿔 `claudetower`이라 타이핑할 필요조차 없앰(기본 실행은 이미 Phase 2부터 `claudetower`이므로 이 단계는 "그마저도 생략"하는 선택 사항), sub-100ms 전환 최적화(caam 벤치마킹 — 토큰 파일 사전 준비 후 교체 방식) — **수동 강제 전환만 완료(M59, 2026-08-21)**: `claudetower accounts switch <라벨>` 신설, `applySwitch()`(M46)를 실제로 호출하는 첫 CLI 경로. 나머지 3개(TUI 대시보드·핫 리로드·영구 셸 별칭)는 여전히 미착수 — 셸 별칭은 `claudetower run` 진입점(🛑 실거래 배선 게이트) 의존이라 그 게이트 해제 전까지 착수 자체가 불가능
 - [ ] `subagentStatusLine` 커스터마이징(Display, 경쟁 도구 미제공 영역)
@@ -133,4 +134,4 @@ Display 모듈과 Account 모듈이 "현재 활성 계정 표시"로 자연스�
 |-------|----------|------|
 | Phase 1 (MVP) | Display 모듈 + 격리 구조 확정 | **완료(2026-07-18)** |
 | Phase 2 | Account 모듈(동의 기반 활성화, 하이브리드 OAuth+API키) | **재개 확정(2026-07-27)** — 문서 갱신 완료, 실동작 착수 전(다음 세션) |
-| Phase 3 | 고도화 + 계정 표시 연동 위젯 | **부분 착수** — Powerline 구분자(2026-07-18, 109행)·수동 강제 전환(M59)·`active_account` 위젯(2026-08-31, M62) 구현, 나머지(TUI 대시보드·핫 리로드·영구 셸 별칭·Powerline 색상 테마·Git/PR 위젯)는 미착수 |
+| Phase 3 | 고도화 + 계정 표시 연동 위젯 | **부분 착수** — Powerline 구분자(2026-07-18, 109행)·Git 위젯(2026-08-03, 브랜치+변경사항)·수동 강제 전환(M59)·`active_account` 위젯(2026-08-31, M62) 구현, 나머지(TUI 대시보드·핫 리로드·영구 셸 별칭·Powerline 색상 테마)는 미착수. **PR 위젯은 영구 제외**(`git.js` 주석 참고, 재론하려면 사용자 명시 요청 필요) |
