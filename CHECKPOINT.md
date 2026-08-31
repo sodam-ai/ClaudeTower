@@ -2647,3 +2647,51 @@ enable/add/list/remove/rename/switch/disable/diagnose-quota까지 실제로 전�
 
 - 상태: **완료** — `.PRD/04_PROJECT_SPEC.md`(수정), `CHECKPOINT.md`(이 항목). 로컬 커밋만
   (push는 사용자가 이후 결정).
+
+---
+
+## M70: 2026-09-01 — 마켓플레이스 실패의 진짜 원인 확정: `main` 미병합 (M67 진단은 필요했으나 불충분했음)
+
+**사건**: 사용자가 M67~M69(커밋 `1f01976`·`efda9c1`·`634a047`)를 실제로 push한 뒤 새 세션에서
+`/plugin marketplace add sodam-ai/ClaudeTower`를 재시도했다. **결과: M65 최초 실패 때와
+글자 하나 다르지 않은 완전히 동일한 오류**가 재현됐다:
+```
+Error: Marketplace file not found at
+C:\Users\PC\AppData\Roaming\claude-code\plugins\marketplaces\sodam-ai-ClaudeTower.claude-plugin\marketplace.json
+```
+이어서 `/plugin install`도 "마켓플레이스를 찾을 수 없음"으로 실패, `/claudetower:status`
+등 3개 명령 전부 "Unknown command" — M67 이전과 정확히 동일한 실패 양상.
+
+**진짜 원인 규명(추측 없이 명령어로 직접 확인)**:
+1. 로컬 마켓플레이스 캐시(`%APPDATA%\claude-code\plugins\marketplaces\`)를
+   `Get-ChildItem`으로 전수 확인 — `sodam-ai-ClaudeTower` 관련 폴더가 **아예 존재하지
+   않음**(클론이 시작조차 못 하고 실패해 흔적이 안 남음).
+2. `gh repo view sodam-ai/ClaudeTower --json defaultBranchRef` → 기본 브랜치는 `main`.
+3. `gh api repos/sodam-ai/ClaudeTower/contents/.claude-plugin?ref=main` → **404 Not
+   Found**. `main`에는 `.claude-plugin/`이 옛 버전(M65의 `plugin/.claude-plugin/`)도
+   새 버전(M67의 루트 `.claude-plugin/`)도 **둘 다 존재하지 않는다.**
+4. `gh pr list --head docs-and-fixes/2026-07-06 --state all` → 이 브랜치는 지금까지
+   **28번**(#1~#28) `main`으로 병합되는 방식으로 작업해왔는데, **마지막 병합(PR#28,
+   2026-08-20T18:56:27Z)이 M62(active_account 위젯)보다도 먼저 일어났다** — 즉
+   M62~M69(마켓플레이스 래퍼 전체 포함, 9개 커밋) 전부가 PR#28 이후 이 브랜치에만
+   쌓였고 `main`에는 한 번도 반영되지 않았다.
+
+**결론**: `/plugin marketplace add owner/repo`는 GitHub 저장소의 **기본 브랜치(main)만**
+읽는다. M67이 폴더 구조를 `business-counselor` 실물과 똑같이 고친 것 자체는 필요한
+작업이었지만(그 구조가 아니었다면 main에 병합돼도 여전히 실패했을 것), **main에 반영된
+적이 없었기 때문에 그 수정이 시험대에 오를 기회조차 없었다** — M67 CHECKPOINT가 "라이브
+재검증 대기"라고 정직하게 남겨둔 그 문장이 결과적으로 옳았지만, 실제 미확정 사유는
+"구조가 틀렸을 수도 있어서"가 아니라 "애초에 main에 없어서"였다는 게 이번에 새로 밝혀짐.
+
+**AI가 하지 않는 것(정책상 실행 금지, 제안만)**: `gh pr create`·`gh pr merge`는 이 환경의
+`permissions.deny`로 기계적으로 차단돼 있고, 사용자 전역 규칙("PR 생성·머지는 항상 사용자
+직접")에 따라 AI가 대신 실행하지 않는다. 사용자에게 `gh pr create --fill --base main --head
+docs-and-fixes/2026-07-06` 명령과 병합 방법을 채팅으로 안내만 했다.
+
+**남은 위험**: main 병합이 실제로 이뤄지고 나서도, 병합 시점의 GitHub 캐시 지연·
+`/plugin marketplace add`가 참조하는 캐시가 갱신되는 데 걸리는 시간 등 아직 관찰 못 한
+변수가 있을 수 있어 "병합하면 100% 된다"고 단정하지 않는다 — 병합 후 재시도까지 마쳐야
+최종 확정.
+
+- 상태: **원인 확정, 해결책은 사용자의 PR 병합 대기** — 코드·문서 변경 없음(순수 진단),
+  `CHECKPOINT.md`(이 항목)만 갱신. 로컬 커밋만(push는 사용자가 이후 결정).
