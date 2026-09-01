@@ -84,6 +84,13 @@ if (-not $nativeReplaced) {
     exit 1
 }
 
+# 2026-09-01(M81) 정정: 낡은 npm shim 자동 정리는 이미 M34(2026-08-18)에서
+# src/display/config/npm-shim-cleanup.js로 구현되어 `claudetower setup`/`uninstall`
+# 명령에 배선되어 있었다(bin/claudetower.js, 내용 검증+동적 npm prefix 해석 포함,
+# 이 스크립트의 하드코딩된 %APPDATA%\npm 추정보다 더 안전함). 여기 install.ps1에
+# 중복으로 추가했던 버전(M80)은 근거 확인 부족으로 인한 실수라 되돌린다 — 설치
+# 직후 안내하는 'claudetower setup' 실행 시 정리된다. 상세는 CHECKPOINT.md M81 참고.
+
 Write-Host ""
 Write-Host "설치 완료: $TargetPath"
 Write-Host "PATH에 추가하려면 다음 명령을 실행하세요(현재 사용자 PATH에 추가):"
