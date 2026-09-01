@@ -5,9 +5,8 @@
 
 const { ALL_WIDGET_TYPES, writeEnabledWidgets } = require('./config/widget-config');
 const { writeStatusLineConfig, readExistingStatusLineConfig } = require('./config/settings-writer');
-const { buildStatuslineCommand, resolveUsableExePath } = require('./config/statusline-command');
+const { buildStatuslineCommand } = require('./config/statusline-command');
 const { ensureInstalledAtTarget, resolveInstallDir } = require('./config/install-target');
-const { writeSkillFile } = require('./config/skill-file');
 const { addDirToUserPath } = require('./config/path-registration');
 
 const WIDGET_LABELS = {
@@ -131,7 +130,7 @@ async function runSetupWizard(
           log('이미 등록되어 있어서 따로 할 일이 없습니다.');
         }
       } catch (err) {
-        log(`PATH 등록에 실패했습니다: ${err.message} (터미널 없이 "/claudetower-widgets" 대화형 설정으로도 충분히 쓰실 수 있습니다)`);
+        log(`PATH 등록에 실패했습니다: ${err.message} (터미널을 열지 않아도 클로드코드 마켓플레이스의 "/claudetower:widgets" 명령으로 위젯을 켜고 끌 수 있습니다)`);
       }
     }
   }
@@ -162,35 +161,6 @@ async function runSetupWizard(
     log(`(기존 설정은 ${writeResult.filePath}.bak 으로 백업해뒀습니다)`);
   }
   log('다음 Claude Code 상호작용부터 상태표시줄이 표시됩니다.');
-
-  // 터미널을 열 줄 모르는 사용자도 클로드코드 채팅창에서 그냥 /claudetower-widgets라고
-  // 치면 위젯을 켜고 끌 수 있게, Personal Skill 파일을 함께 심어둔다(.PRD/01_PRD.md
-  // §3의 원래 P1 요구사항 "슬래시 명령 대화형 설정"). SEA로 실행 중일 때만 의미가
-  // 있다(개발 모드는 단일 실행 파일이 없어 스킬이 실행할 명령을 못 만듦) — 이 단계가
-  // 실패해도(권한 문제 등) setup 자체는 이미 끝난 상태이므로 조용히 건너뛰고
-  // 계속 진행한다(통계표시줄 핵심 기능과 무관한 부가 기능이 설치 전체를 막으면 안 됨).
-  const usableExePath = resolveUsableExePath();
-  if (usableExePath) {
-    try {
-      const skillResult = writeSkillFile(usableExePath);
-      // 원래는 "~/.claude/skills/ 폴더가 이미 있었으면 재시작 없이 바로 인식된다"는
-      // 공식 문서를 근거로 조건부 안내였다 — 그런데 실사용 테스트에서 폴더가 이미
-      // 있던 환경에서도 재시작 전까지는 인식되지 않는 게 2회 재현됐다(setup을 실행한
-      // 바로 그 세션에서 곧바로 "/claudetower-widgets"를 시도 → "No commands match").
-      // 문서의 조건과 실측 결과가 어긋난 이상, 조건부로 안내를 생략해 사용자가
-      // "왜 안 되지"에 갇히게 하는 것보다 매번 안내하는 쪽이 안전하다.
-      log(`\n클로드코드 채팅창에서 "/claudetower-widgets"라고 치면 위젯을 대화로 켜고 끌 수 있습니다.`);
-      log('(지금 이 창에서는 바로 안 될 수 있습니다 — 이 창을 완전히 닫고 클로드코드를 새로 시작한 뒤에 써보세요.)');
-      if (skillResult.cleanedStaleDirs.length > 0) {
-        // 과거 버전이 다른 위치(예: CLAUDE_CONFIG_DIR 미반영 시절의 ~/.claude/skills)에
-        // 남긴 낡은 스킬 파일이 새 파일과 공존하면 어느 쪽이 실제로 읽히는지 불확실해져
-        // "설치했는데도 안 됨"이 재현된다(2026-07-04 필드이슈 §4 → 2026-07-06 근본원인 확정).
-        log(`(이전 버전이 다른 위치에 남겨둔 낡은 설정을 정리했습니다: ${skillResult.cleanedStaleDirs.join(', ')})`);
-      }
-    } catch (err) {
-      log(`\n("/claudetower-widgets" 대화형 설정 등록은 건너뛰었습니다: ${err.message} — 상태표시줄 자체는 정상 작동합니다)`);
-    }
-  }
 
   return { enabled, command, settingsFilePath: writeResult.filePath };
 }

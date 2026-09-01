@@ -43,30 +43,22 @@ test('isPartialIsolation: 격리 변수가 하나도 없으면(실사용) false'
 
 test('isPartialIsolation: 자기 전용 변수가 설정돼 있으면 다른 변수와 무관하게 false(완전 격리)', () => {
   withCleanIsolationEnv(
-    { CLAUDETOWER_SKILLS_DIR: 'X:/t/skills', CLAUDETOWER_SETTINGS_PATH: 'X:/t/s.json' },
+    { CLAUDETOWER_INSTALL_DIR: 'X:/t/install', CLAUDETOWER_SETTINGS_PATH: 'X:/t/s.json' },
     () => {
-      assert.equal(isPartialIsolation('CLAUDETOWER_SKILLS_DIR'), false);
+      assert.equal(isPartialIsolation('CLAUDETOWER_INSTALL_DIR'), false);
       assert.equal(isPartialIsolation('CLAUDETOWER_SETTINGS_PATH'), false);
     }
   );
 });
 
 test('isPartialIsolation: 다른 격리 변수만 설정돼 있으면 true(부분 격리 — 실측 확정 결함 조합)', () => {
-  // 실사례 1(스킬 소실): 설정만 격리, 스킬 미격리
+  // 실측 사례(위젯 설정 소실): 설정만 격리, 위젯은 미격리
   withCleanIsolationEnv({ CLAUDETOWER_SETTINGS_PATH: 'X:/t/s.json' }, () => {
-    assert.equal(isPartialIsolation('CLAUDETOWER_SKILLS_DIR'), true);
-    // 실사례 2(위젯 설정 소실): 같은 조합에서 위젯도 미격리
     assert.equal(isPartialIsolation('CLAUDETOWER_WIDGET_CONFIG_PATH'), true);
   });
-  // 반대 방향: 스킬만 격리된 채 설정 미격리
-  withCleanIsolationEnv({ CLAUDETOWER_SKILLS_DIR: 'X:/t/skills' }, () => {
+  // 반대 방향: 다른 변수만 격리된 채 설정 미격리
+  withCleanIsolationEnv({ CLAUDETOWER_INSTALL_DIR: 'X:/t/install' }, () => {
     assert.equal(isPartialIsolation('CLAUDETOWER_SETTINGS_PATH'), true);
-  });
-});
-
-test('isPartialIsolation: CLAUDETOWER_DEFAULT_HOME_DIR은 트리거가 아니다(정리 테스트의 정당한 조합 보호)', () => {
-  withCleanIsolationEnv({ CLAUDETOWER_DEFAULT_HOME_DIR: 'X:/t/home' }, () => {
-    assert.equal(isPartialIsolation('CLAUDETOWER_SKILLS_DIR'), false);
   });
 });
 

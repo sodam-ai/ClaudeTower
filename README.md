@@ -137,8 +137,8 @@ irm https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.ps1 | ie
 ### 명령어 목록 (지금 실제로 있는 것만)
 
 > **참고**: 위 5단계까지만 하면 상태표시줄은 이미 완성입니다. 아래 명령어들은 나중에 표시 항목을 바꾸는 등 추가로 필요할 때만 쓰면 됩니다. `setup` 실행 중 "터미널에서 짧게 입력해도 실행되게 만들까요?"에 Y로 답하셨다면 새 터미널에서 `claudetower`라고 바로 쓸 수 있고, N으로 답했거나 예전 버전이라면 안 될 수 있습니다. 그래서:
-> - **제일 쉬운 방법(터미널 필요 없음)**: 클로드코드 채팅창에서 `/claudetower-widgets`라고 치거나 "상태표시줄에서 비용 표시 꺼줘"처럼 그냥 말하면 됩니다.
-> - 그래도 터미널에서 직접 치고 싶다면, `claudetower` 대신 전체 경로 `~/.claudetower/bin/claudetower.exe`(macOS/Linux는 `~/.claudetower/bin/claudetower`)를 쓰면 항상 됩니다.
+> - **터미널 필요 없음**: 위 "Claude Code 마켓플레이스 플러그인" 방법으로 추가하면, 채팅창에서 `/claudetower:widgets`·`/claudetower:status`·`/claudetower:config`로 바로 쓸 수 있습니다.
+> - 터미널에서 직접 치고 싶다면, `claudetower` 대신 전체 경로 `~/.claudetower/bin/claudetower.exe`(macOS/Linux는 `~/.claudetower/bin/claudetower`)를 쓰면 항상 됩니다.
 
 - `claudetower --version` / `--help`
 - `claudetower setup` — 상태표시줄 항목 선택 + Claude Code 설정 자동 등록(고정 위치로 자동 정착 포함). 표시 항목을 나중에 바꾸고 싶을 때도 이 명령을 다시 실행하면 됩니다(원하는 항목만 Y, 나머지는 n)
@@ -159,7 +159,13 @@ irm https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.ps1 | ie
 
 ### 터미널 없이, 클로드코드 채팅창에서 바로 켜고 끄기
 
-`setup`을 실행하면 `/claudetower-widgets`라는 대화형 명령도 함께 설치됩니다. 클로드코드 채팅창에 `/claudetower-widgets`라고 치거나 "상태표시줄에서 컨텍스트랑 비용 꺼줘", "갱신 속도를 느리게 해줘"처럼 말하면, AI가 지금 상태를 보여주고 대화하면서 대신 켜고 끄거나 속도를 조절해줍니다 — 터미널을 열거나 영어 명령어를 외울 필요가 없습니다. `/claudetower-widgets`만 딱 치고 아무 말도 안 하면, 무엇을 켜고 끌지 체크 메뉴(선택지에 마우스나 화살표로 체크)가 떠서 골라 고를 수도 있습니다(체크한 항목만 바뀌고, 체크 안 한 항목은 그대로 유지).
+클로드코드 마켓플레이스로 이 플러그인을 추가하면(위 "설치 방법" 표의 "Claude Code 마켓플레이스 플러그인" 참고), 터미널 없이 채팅창에서 바로 조절할 수 있습니다.
+- `/claudetower:widgets` — 지금 켜져 있는 항목만 확인
+- `/claudetower:widgets off <항목...>` / `/claudetower:widgets on <항목...>` — 지정한 항목만 켜고 끄기
+- `/claudetower:status` — 설치 상태 확인
+- `/claudetower:config` — 갱신 속도 등 조절
+
+항목 이름은 `model`, `location`, `git`, `context`, `cost`, `rate_limit` 중에서 고르면 됩니다.
 
 ### 개발자용 — 소스에서 직접 빌드 · 테스트
 
@@ -210,7 +216,6 @@ ClaudeTower/
 | `CLAUDETOWER_SETTINGS_PATH` | Claude Code `settings.json` 대신 사용할 경로 | 주로 테스트·격리 실행용. 지정하지 않으면 기본 위치(`~/.claude/settings.json`) 사용 |
 | `CLAUDETOWER_WIDGET_CONFIG_PATH` | 위젯 설정 파일(`config.json`) 대신 사용할 경로 | 위와 동일한 용도 |
 | `CLAUDETOWER_INSTALL_DIR` | 실행 파일 설치 위치를 바꿈 | 위와 동일한 용도 |
-| `CLAUDETOWER_SKILLS_DIR` / `CLAUDE_CONFIG_DIR` | `/claudetower-widgets` 채팅 명령 파일 설치 위치를 바꿈 | 위와 동일한 용도 |
 | `CLAUDETOWER_CACHE_DIR` | Git 정보 임시 저장 폴더 위치를 바꿈 | 위와 동일한 용도 |
 
 > 이 변수들은 주로 이 프로젝트 자신의 자동 테스트가 실제 사용자 파일을 건드리지 않도록 격리하는 용도로 만들어졌습니다. 직접 설정하실 필요는 거의 없지만, 문제 상황을 재현하거나 진단할 때 유용할 수 있어 정확한 이름을 여기 남겨둡니다.
@@ -400,7 +405,6 @@ ClaudeTower/
 | `claudetower status`에서 <strong>"등록은 되어 있으나 실행 파일을 찾을 수 없습니다(고장 상태)"</strong>가 떠요 | 설치 파일이 있던 자리를 지웠거나 옮긴 경우입니다. `claudetower setup`을 다시 실행하면 자동으로 복구됩니다. |
 | **`setup`으로 새 버전을 설치했는데 안 바뀌어요**(예: 버전 번호가 그대로) | v0.1.8부터 자동으로 몇 차례 재시도하도록 고쳐졌지만, 백신 프로그램 검사 등으로 그보다 오래 걸리면 여전히 실패할 수 있습니다. Claude Code를 잠깐 닫아둔 상태에서 `setup`을 다시 실행해보세요. |
 | **상태표시줄이 안 보여요** | 세 가지 원인이 있습니다. ① 설정은 다음 상호작용부터 반영됩니다 — Claude Code와 한 번 더 대화해보세요. ② 이 폴더(워크스페이스)의 신뢰(trust) 확인 창을 아직 수락하지 않았다면 상태표시줄 자체가 실행되지 않고, 화면에 `statusline skipped · restart to fix`라고 뜹니다 — 신뢰 확인 창을 수락한 뒤 Claude Code를 다시 시작하세요. ③ Claude Code 설정에서 `disableAllHooks`를 켜두면 상태표시줄도 함께 꺼집니다(Claude Code 공식 사양) — 필요 없다면 꺼주세요. |
-| **`/claudetower-widgets`(채팅으로 위젯 켜고 끄기)가 갑자기 안 돼요** | 근본 원인을 확정했습니다 — 이 프로그램 자신의 자동 검증 절차가 실수로 실제 설정 파일을 지우는 결함이었습니다(사용자 잘못이 아닙니다). 재발 방지 코드와 자가복구를 모두 적용했습니다(v0.2.0부터 포함됨). 그보다 이전 버전을 쓰고 계시다면 최신 버전으로 업데이트하시고, 지금 버전에서 겪으신다면 `claudetower setup`을 다시 실행하면 즉시 복구됩니다. |
 | **컨텍스트 퍼센트가 이상하거나 비어있어요** | 세션 초반이나 `/compact` 직후에는 값이 비어있을 수 있습니다(정상 동작, Claude Code 공식 동작 방식). |
 | **Windows에서 실행파일 실행 시 경고가 떠요** | 아직 디지털 서명이 없어 "알 수 없는 게시자" 경고가 뜰 수 있습니다. "추가 정보" → "실행"으로 진행하세요(정식 서명 배포 전까지는 정상입니다). |
 | 개발자용 — **`npm run build`가 실패해요** | `node --version`으로 22 이상인지 확인하세요. |

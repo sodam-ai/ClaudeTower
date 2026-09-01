@@ -201,12 +201,20 @@
 <td>⏸️ Deliberately deferred</td>
 <td>Trademark clearance for "ClaudeTower/claudetower" was reviewed and resolved on 2026-07-15 — we decided to keep the name, accepting a low-priority residual risk (<code>.PRD/01_PRD.md</code> §7). It's still not a fully, permanently final decision, though, so an npm package name — a resource that's effectively permanent once claimed — won't be published until the name is completely finalized</td>
 </tr>
+<tr>
+<td>Claude Code marketplace plugin</td>
+<td>✅ Works now (since 2026-09-01, <strong>secondary channel</strong>)</td>
+<td>A <strong>thin wrapper</strong> — it does not install the CLI itself. Install the CLI with one of the methods above first, then add the plugin to get <code>/claudetower:status</code>, <code>/claudetower:widgets</code>, and <code>/claudetower:config</code> slash commands (interactive <code>setup</code> isn't a slash command yet — still run <code>claudetower setup</code> once in a terminal). See <a href="./PLUGIN.md"><code>PLUGIN.md</code></a></td>
+</tr>
 </tbody>
 </table>
 <p>macOS/Linux:</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-fsSL</span> https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.sh <span class="kw">|</span> <span class="fu">sh</span></span></code></pre></div>
 <p>Windows (PowerShell):</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">irm</span> https<span class="op">://</span>raw<span class="op">.</span><span class="fu">githubusercontent</span><span class="op">.</span><span class="fu">com</span><span class="op">/</span>sodam-ai<span class="op">/</span>ClaudeTower<span class="op">/</span>main<span class="op">/</span>install<span class="op">.</span><span class="fu">ps1</span> <span class="op">|</span> <span class="fu">iex</span></span></code></pre></div>
+<p>Marketplace plugin (after installing the CLI):</p>
+<pre><code>/plugin marketplace add sodam-ai/ClaudeTower
+/plugin install claudetower@claudetower-marketplace</code></pre>
 <h3 id="can-i-delete-or-move-the-installed-file">Can I delete or move the installed file?</h3>
 <p><strong>Yes.</strong> The first time you run <code>setup</code>, the executable automatically copies itself to a fixed location on your computer (<code>~/.claudetower/bin/</code>) and settles there safely. After that, you're free to delete, rename, or move the file you originally downloaded — it no longer matters.</p>
 <p>If you accidentally delete that fixed-location copy too and the statusline stops showing up, just run <code>claudetower setup</code> again — it repairs itself automatically.</p>
@@ -217,7 +225,7 @@
 <blockquote>
 <p><strong>Note</strong>: The 5 steps above are already the complete statusline setup. The commands below are only for later, optional tweaks. If you answered Y to "make <code>claudetower</code> work as a short command in the terminal?" during <code>setup</code>, bare <code>claudetower</code> already works in new terminals; if you answered N (or installed an older version), it may not yet. So:</p>
 <ul>
-<li><strong>Easiest (no terminal needed)</strong>: in the Claude Code chat, type <code>/claudetower-widgets</code> or just say something like "turn off the cost widget".</li>
+<li><strong>No terminal needed</strong>: add this as a Claude Code marketplace plugin (see the "Claude Code marketplace plugin" row above), then use <code>/claudetower:widgets</code>, <code>/claudetower:status</code>, <code>/claudetower:config</code> right in the chat.</li>
 <li>If you still want to type it in a terminal, use the full path instead of bare <code>claudetower</code>: <code>~/.claudetower/bin/claudetower.exe</code> (macOS/Linux: <code>~/.claudetower/bin/claudetower</code>).</li>
 </ul>
 </blockquote>
@@ -239,12 +247,19 @@ Widgets shown: model, project location, git branch/changes, context usage, cost,
 <p><code>accounts</code> commands have already been included since v0.5.0, but are <strong>disabled by default</strong> — until you run <code>accounts enable</code> to consent, everything except <code>status</code>/<code>config</code> lookups is refused. This is a fully separate feature from the statusline; see "② Account switching" below for details. Commands actually included in v0.5.0: <code>accounts status</code> (check components) · <code>accounts config</code> (pre-set switch thresholds etc.) · <code>accounts enable</code> (opt in after reading consent) · <code>accounts add --api-key &lt;label&gt; &lt;key&gt;</code> (register an API-key account) · <code>accounts list</code> (view registered accounts) · <code>accounts remove &lt;label&gt;</code> (delete one account) · <code>accounts rename &lt;old-label&gt; &lt;new-label&gt;</code> (rename it) · <code>accounts disable</code> (turn back off) · <code>accounts diagnose-quota &lt;label&gt;</code> (check real usage). <code>accounts switch &lt;label&gt;</code> (manually switch between registered accounts) only exists in the latest development state, not yet in a release.</p>
 </blockquote>
 <h3 id="turn-widgets-onoff-right-from-the-claude-code-chat--no-terminal-needed">Turn widgets on/off right from the Claude Code chat — no terminal needed</h3>
-<p>Running <code>setup</code> also installs a conversational command, <code>/claudetower-widgets</code>. Type <code>/claudetower-widgets</code> in the Claude Code chat, or just say something like "turn off context and cost in the statusline" or "slow down the refresh rate," and the AI shows you the current state and toggles it (or adjusts the speed) for you — no terminal, no command syntax to remember. If you just type <code>/claudetower-widgets</code> with nothing after it, a check-box menu pops up so you can tick what to change (only the ticked items change — anything left unticked stays as-is).</p>
+<p>Add this plugin from the Claude Code marketplace (see the "Claude Code marketplace plugin" row in "Install methods" above), and you can adjust things directly from the chat, no terminal needed.</p>
+<ul>
+<li><code>/claudetower:widgets</code> — check which widgets are currently on</li>
+<li><code>/claudetower:widgets off &lt;widgets...&gt;</code> / <code>/claudetower:widgets on &lt;widgets...&gt;</code> — turn only the named widgets on/off</li>
+<li><code>/claudetower:status</code> — check install status</li>
+<li><code>/claudetower:config</code> — adjust the refresh interval and more</li>
+</ul>
+<p>Widget names: <code>model</code>, <code>location</code>, <code>git</code>, <code>context</code>, <code>cost</code>, <code>rate_limit</code>.</p>
 <h3 id="for-developers--building-from-source--testing">For developers — building from source &amp; testing</h3>
-<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/sodam-ai/ClaudeTower.git</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ClaudeTower</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">npm</span> install</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ex">npm</span> run build</span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/sodam-ai/ClaudeTower.git</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ClaudeTower</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="ex">npm</span> install</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="ex">npm</span> run build</span></code></pre></div>
 <p>This produces one executable in <code>dist/</code> matching your OS.</p>
 <table>
 <thead>
@@ -324,11 +339,6 @@ Widgets shown: model, project location, git branch/changes, context usage, cost,
 <tr>
 <td><code>CLAUDETOWER_INSTALL_DIR</code></td>
 <td>Overrides where the executable installs itself</td>
-<td>Same purpose as above</td>
-</tr>
-<tr>
-<td><code>CLAUDETOWER_SKILLS_DIR</code> / <code>CLAUDE_CONFIG_DIR</code></td>
-<td>Overrides where the <code>/claudetower-widgets</code> chat command file installs</td>
 <td>Same purpose as above</td>
 </tr>
 <tr>
@@ -567,10 +577,6 @@ Widgets shown: model, project location, git branch/changes, context usage, cost,
 <td>There are three possible causes. ① Settings don't apply instantly — try one more Claude Code interaction. ② You may not have accepted the workspace trust prompt for this folder yet — if so, the statusline never runs at all, and you'll see <code>statusline skipped · restart to fix</code>. Accept the trust prompt, then restart Claude Code. ③ If <code>disableAllHooks</code> is turned on in your Claude Code settings, the statusline is disabled along with everything else (official Claude Code behavior) — turn it off if you don't need it.</td>
 </tr>
 <tr>
-<td><strong><code>/claudetower-widgets</code> (chat-based toggle) suddenly stops working</strong></td>
-<td>Root cause confirmed — this program's own automated verification routine had a bug that could delete the real config files by mistake (not something you did). A guard against recurrence and a self-healing fix have both been applied, included since v0.2.0. If you're on an older version, update to the latest. If you hit this on the current version, run <code>claudetower setup</code> once more to fix it immediately.</td>
-</tr>
-<tr>
 <td><strong>The context percentage looks off or empty</strong></td>
 <td>It can be empty early in a session or right after <code>/compact</code> — that's expected, official Claude Code behavior.</td>
 </tr>
@@ -653,6 +659,4 @@ Widgets shown: model, project location, git branch/changes, context usage, cost,
 <p>For more background, see the "법률·저작권·라이선스·상업적 사용 요구사항" section in <a href="./.PRD/04_PROJECT_SPEC.md"><code>.PRD/04_PROJECT_SPEC.md</code></a>.</p>
 <h2 id="full-design-documentation">Full design documentation</h2>
 <p>The design rationale, decision history, and security requirements for this project are all in the <a href="./.PRD/"><code>.PRD/</code></a> folder.</p>
-
-</body>
-</html>
+</body></html>

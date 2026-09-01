@@ -137,7 +137,7 @@ If you accidentally delete that fixed-location copy too and the statusline stops
 ### Commands (only what actually exists right now)
 
 > **Note**: The 5 steps above are already the complete statusline setup. The commands below are only for later, optional tweaks. If you answered Y to "make `claudetower` work as a short command in the terminal?" during `setup`, bare `claudetower` already works in new terminals; if you answered N (or installed an older version), it may not yet. So:
-> - **Easiest (no terminal needed)**: in the Claude Code chat, type `/claudetower-widgets` or just say something like "turn off the cost widget".
+> - **No terminal needed**: add this as a Claude Code marketplace plugin (see the "Claude Code marketplace plugin" row above), then use `/claudetower:widgets`, `/claudetower:status`, `/claudetower:config` right in the chat.
 > - If you still want to type it in a terminal, use the full path instead of bare `claudetower`: `~/.claudetower/bin/claudetower.exe` (macOS/Linux: `~/.claudetower/bin/claudetower`).
 
 - `claudetower --version` / `--help`
@@ -159,7 +159,13 @@ If you accidentally delete that fixed-location copy too and the statusline stops
 
 ### Turn widgets on/off right from the Claude Code chat — no terminal needed
 
-Running `setup` also installs a conversational command, `/claudetower-widgets`. Type `/claudetower-widgets` in the Claude Code chat, or just say something like "turn off context and cost in the statusline" or "slow down the refresh rate," and the AI shows you the current state and toggles it (or adjusts the speed) for you — no terminal, no command syntax to remember. If you just type `/claudetower-widgets` with nothing after it, a check-box menu pops up so you can tick what to change (only the ticked items change — anything left unticked stays as-is).
+Add this plugin from the Claude Code marketplace (see the "Claude Code marketplace plugin" row in "Install methods" above), and you can adjust things directly from the chat, no terminal needed.
+- `/claudetower:widgets` — check which widgets are currently on
+- `/claudetower:widgets off <widgets...>` / `/claudetower:widgets on <widgets...>` — turn only the named widgets on/off
+- `/claudetower:status` — check install status
+- `/claudetower:config` — adjust the refresh interval and more
+
+Widget names: `model`, `location`, `git`, `context`, `cost`, `rate_limit`.
 
 ### For developers — building from source & testing
 
@@ -210,7 +216,6 @@ Regular users can skip this table entirely — all of these are optional, and th
 | `CLAUDETOWER_SETTINGS_PATH` | Path to use instead of Claude Code's `settings.json` | Mainly for testing/isolated runs. Defaults to `~/.claude/settings.json` if unset |
 | `CLAUDETOWER_WIDGET_CONFIG_PATH` | Path to use instead of the widget settings file (`config.json`) | Same purpose as above |
 | `CLAUDETOWER_INSTALL_DIR` | Overrides where the executable installs itself | Same purpose as above |
-| `CLAUDETOWER_SKILLS_DIR` / `CLAUDE_CONFIG_DIR` | Overrides where the `/claudetower-widgets` chat command file installs | Same purpose as above |
 | `CLAUDETOWER_CACHE_DIR` | Overrides where the Git-info cache is stored | Same purpose as above |
 
 > These variables mostly exist so this project's own automated tests can run in isolation without touching your real files. You'll rarely need to set them yourself, but they're documented here precisely in case you ever need to reproduce or diagnose an issue.
@@ -400,7 +405,6 @@ Initial release. Shows location, context, cost, and rate limits; `setup` install
 | `claudetower status` says **"registered but the executable can't be found (broken)"** | You've deleted or moved the file that was installed. Run `claudetower setup` again to repair it automatically. |
 | **Ran `setup` to install a new version, but nothing changed** (e.g. version number stays the same) | Since v0.1.8, this retries automatically a few times, but antivirus scanning or similar can occasionally take even longer. Close Claude Code briefly and run `setup` again. |
 | **The statusline doesn't show up** | There are three possible causes. ① Settings don't apply instantly — try one more Claude Code interaction. ② You may not have accepted the workspace trust prompt for this folder yet — if so, the statusline never runs at all, and you'll see `statusline skipped · restart to fix`. Accept the trust prompt, then restart Claude Code. ③ If `disableAllHooks` is turned on in your Claude Code settings, the statusline is disabled along with everything else (official Claude Code behavior) — turn it off if you don't need it. |
-| **`/claudetower-widgets` (chat-based toggle) suddenly stops working** | Root cause confirmed — this program's own automated verification routine had a bug that could delete the real config files by mistake (not something you did). A guard against recurrence and a self-healing fix have both been applied, included since v0.2.0. If you're on an older version, update to the latest. If you hit this on the current version, run `claudetower setup` once more to fix it immediately. |
 | **The context percentage looks off or empty** | It can be empty early in a session or right after `/compact` — that's expected, official Claude Code behavior. |
 | **Windows shows a warning when running the executable** | It isn't code-signed yet, so Windows may show an "unknown publisher" warning. Click "More info" then "Run anyway" — this is expected before an official signed release. |
 | For developers — **`npm run build` fails** | Check that `node --version` is 22 or later. |

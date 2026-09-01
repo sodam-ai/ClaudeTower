@@ -2,7 +2,12 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { readUserPath, isDirInPath, addDirToUserPath } = require('../../src/display/config/path-registration');
+const {
+  readUserPath,
+  isDirInPath,
+  addDirToUserPath,
+  broadcastEnvironmentChange,
+} = require('../../src/display/config/path-registration');
 
 // 실제 reg.exe를 절대 호출하지 않는다 — 이 값은 시스템 전역 PATH라 테스트가
 // 잘못 건드리면 실사용 환경이 망가진다. execFileImpl을 항상 가짜 함수로 주입해서
@@ -105,6 +110,55 @@ test('addDirToUserPath: 기존 PATH가 비어있으면 세미콜론 없이 그 �
     assert.equal(result.changed, true);
     assert.equal(result.next, 'C:\\Users\\PC\\.claudetower\\bin');
   });
+});
+
+test('addDirToUserPath: PATH를 실제로 추가했을 때만 환경변수 변경 신호(powershell.exe)를 방송한다', () => {
+  withWin32Platform(() => {
+    const impl = fakeExecFile((cmd, args) => {
+      if (args[0] === 'query') return '    Path    REG_EXPAND_SZ    C:\\a;C:\\b';
+      return '';
+    });
+    addDirToUserPath('C:\\Users\\PC\\.claudetower\\bin', impl);
+
+    const broadcastCall = impl.calls().find((c) => c.cmd === 'powershell.exe');
+    assert.ok(broadcastCall, 'reg.exe add 뒤에 powershell.exe로 방송해야 한다');
+    assert.match(broadcastCall.args.join(' '), /SendMessageTimeout/);
+    assert.match(broadcastCall.args.join(' '), /WM_SETTINGCHANGE|0x1a/i);
+  });
+});
+
+test('addDirToUserPath: 이미 PATH에 있으면(변경 없음) 방송하지 않는다', () => {
+  withWin32Platform(() => {
+    const impl = fakeExecFile((cmd, args) => {
+      if (args[0] === 'query') return '    Path    REG_EXPAND_SZ    C:\\Users\\PC\\.claudetower\\bin';
+      throw new Error('add/방송 모두 호출되면 안 됨');
+    });
+    addDirToUserPath('C:\\Users\\PC\\.claudetower\\bin', impl);
+    assert.equal(impl.calls().filter((c) => c.cmd === 'powershell.exe').length, 0);
+  });
+});
+
+test('broadcastEnvironmentChange: powershell.exe 호출이 실패해도 조용히 무시한다(레지스트리 값 자체는 이미 기록됐으므로 치명적이지 않음)', () => {
+  withWin32Platform(() => {
+    const impl = fakeExecFile(() => {
+      throw new Error('powershell.exe를 찾을 수 없음');
+    });
+    assert.doesNotThrow(() => broadcastEnvironmentChange(impl));
+  });
+});
+
+test('broadcastEnvironmentChange: Windows가 아니면 아무것도 호출하지 않는다', () => {
+  const originalPlatform = process.platform;
+  Object.defineProperty(process, 'platform', { value: 'linux' });
+  try {
+    const impl = fakeExecFile(() => {
+      throw new Error('win32가 아닌데 호출되면 안 됨');
+    });
+    broadcastEnvironmentChange(impl);
+    assert.equal(impl.calls().length, 0);
+  } finally {
+    Object.defineProperty(process, 'platform', { value: originalPlatform });
+  }
 });
 
 test('addDirToUserPath: Windows가 아니면 reg.exe를 호출하지 않고 즉시 changed=false를 반환한다', () => {
