@@ -3097,3 +3097,41 @@ M77+ 작업 시 매번 재확인 필요).
 **남은 위험**: 없음(1줄 수치 정정, 다른 서술 변경 없음).
 
 - 상태: **완료**.
+
+## M80: 2026-09-01 — install.ps1이 낡은 npm shim 잔재를 자동 정리하도록 추가
+
+**배경**: PRD 재대조에서 `.PRD/05_FIELD_ISSUES_2026-07-04.md` §8 표를 확인한 결과, P0·P1
+항목은 전부 취소선+완료 표시가 됐는데 `P2 | installer/uninstaller가 stale npm shim
+정리`만 유일하게 열려 있었다. `install.ps1`을 직접 grep해도 관련 로직이 0건이라 실제로
+미구현 상태임을 확인.
+
+**배경 결함(§2 기록, 실사용 재현됨)**: ClaudeTower는 npm에 정식 배포한 적이 없다
+(`01_PRD.md §7` — 이름 확정 전까지 의도적으로 npm 미발행). 그런데도 로컬 개발 중
+`npm link`/`npm install -g .`로 생긴 shim 3개(`claudetower`/`.cmd`/`.ps1`)가
+`%APPDATA%\npm`에 남아있으면, 그 경로가 PATH 우선순위상 `.claudetower\bin`보다 앞에
+와서 bare `claudetower` 명령이 방금 설치한 exe 대신 백킹 모듈이 이미 사라진 댕글링
+shim으로 해석돼 `MODULE_NOT_FOUND`로 깨진다.
+
+**수정**: `install.ps1`에 설치 완료 직전 단계로 정리 로직 추가 — `%APPDATA%\npm`에
+`node_modules\claudetower`(백킹 모듈)가 **없는데** `claudetower`/`.cmd`/`.ps1` 3개
+파일이 있으면(=댕글링 확정) 그 3개만 삭제한다. 백킹 모듈이 실제로 존재하면(=정상 npm
+설치가 있는 드문 경우) 절대 건드리지 않는다. 정리 자체가 실패해도 전체 설치를 막지
+않도록 try/catch로 감쌌다(M73 `broadcastEnvironmentChange`와 동일한 "부가 정리는
+핵심 흐름을 막지 않는다" 관례).
+
+**검증**: `install.ps1`은 curl/PowerShell 원라이너 부트스트랩 스크립트라 Node 테스트
+스위트 대상이 아니다(이 프로젝트 기존 관례 — P0 파일잠금 수정도 자동 테스트 대신
+로직 시뮬레이션으로 검증됐음). 동일 방식으로 정리 로직만 별도 PowerShell 스크립트로
+추출해 3가지 시나리오를 직접 시뮬레이션 검증: ① 댕글링 shim 3개+무관 파일 1개 →
+shim 3개만 삭제, 무관 파일 보존 확인 ② 백킹 모듈 존재(정상 설치 가정) → 아무것도
+안 지움 확인 ③ npm 디렉터리 자체 없음 → 에러 없이 no-op 확인. `npm run verify`
+재실행(Display 237·plugin 18 전부 통과 — 도중 `statusline-performance.test.js`의
+캐시 미스 타이밍 테스트 1건이 실패했으나 단독 재실행 시 3/3 전부 통과해 일시적
+타이밍 플레이크로 확인, install.ps1 변경과는 무관한 JS 파일이라 애초에 영향권 밖).
+
+**남은 위험**: 낮음. 이 정리는 실제 설치 프로세스에서 자동 실행되지만, 이번 세션에서
+"진짜 npm-g 설치 후 install.ps1 원라이너를 실행해 실제로 shim이 지워지는지"까지
+end-to-end로 재현한 것은 아니다 — 격리된 시뮬레이션 검증까지만 완료. 정직하게
+미실행으로 남긴다.
+
+- 상태: **완료(로직+시뮬레이션 검증), 실사용 end-to-end 재현은 미실행**.
