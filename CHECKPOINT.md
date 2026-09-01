@@ -2994,3 +2994,39 @@ M77+ 작업 시 매번 재확인 필요).
 
 - 상태: **코드 변경+로컬 검증 완료, main 병합 대기** — 사용자의 라이브 재시도로 최종 확인
   필요.
+
+## M77: 2026-09-01 — 메뉴가 여전히 안 뜸: `allowed-tools`에 `AskUserQuestion` 자체가 빠져있었음
+
+**배경**: M76(버전 0.5.2) 병합 후 사용자가 다시 `/plugin marketplace update`(이번엔
+"1 plugin bumped"로 실제 갱신 확인) → `/claudetower:widgets`를 재시도했으나 **여전히
+메뉴 없이 표만 출력**됐다.
+
+**진단 순서(추측 먼저 안 함)**: 이번엔 캐시가 진짜 갱신됐는지부터 확인했다 — 이 컴퓨터의
+플러그인 캐시(`.../claudetower/0.5.2/commands/widgets.md`)를 직접 열어보니 **M75의 메뉴
+지시문이 정확히 들어있었다**(내용은 최신). 즉 M76의 버전 문제는 실제로 해결됐고, 이번엔
+다른 원인이라는 뜻 — 다른 검증된 플러그인들의 `allowed-tools` 표기를 실제로 대조했다
+(`openai-codex` 플러그인의 `codex:setup`·`review` 등 여러 커맨드가 `Bash(...), AskUserQuestion`
+형태로 쓰는 걸 확인). **원인 확정**: `commands/widgets.md`의 `allowed-tools`에
+`AskUserQuestion`이 아예 없었다 — M75에서 메뉴 로직만 본문에 적어놓고, 그 도구를 실제로
+쓸 수 있는 권한(allowed-tools)은 부여하지 않은 것. Claude Code는 `allowed-tools`에 없는
+도구는 그 명령 실행 중 쓸 수 없어서, 지시문이 아무리 정확해도 조용히 CLI 패스스루로만
+동작했다(에러 없이 그냥 안 씀 — 그래서 겉보기엔 "명령이 실패한 게 아니라 그냥 메뉴가
+없는 것"처럼 보였다).
+
+**수정**: `commands/widgets.md`의 `allowed-tools`에 `AskUserQuestion` 추가(4번째 항목).
+`status.md`·`config.md`는 메뉴가 없어 그대로 3개 유지 — `plugin-manifest.test.js`의
+공용 검증 루프를 `widgets`만 예외로 처리하도록 갱신(`EXTRA_TOOLS` 맵). 버전
+0.5.2→0.5.3(M76에서 확인된 캐시 갱신 관례 그대로 적용).
+
+**검증**: `npm run verify` — Display 237·plugin 18 전부 통과(변경된 allowed-tools 검증
+포함).
+
+**남은 위험**: 낮음. 실제로 클로드코드가 이 명령 실행 중 `AskUserQuestion`을 호출했을 때
+사용자에게 추가 승인 요청이 뜨는지, 뜬다면 매번 뜨는지는 이번에도 라이브 재시도로만
+확인 가능 — 정직하게 미검증으로 남긴다. 만약 이번에도 안 되면, 다음 확인 순서는 (1)
+캐시 버전 폴더가 0.5.3으로 실제로 바뀌었는지 직접 대조 → (2) 그 파일의 allowed-tools
+줄에 AskUserQuestion이 실제로 들어갔는지 직접 대조 → (3) 그래도 안 되면 allowed-tools
+자체가 아닌 다른 층(예: 플러그인 명령에서 도구 호출 순서·타이밍 문제)을 의심.
+
+- 상태: **코드 변경+로컬 검증 완료, main 병합 대기** — 사용자의 라이브 재시도로 최종 확인
+  필요.

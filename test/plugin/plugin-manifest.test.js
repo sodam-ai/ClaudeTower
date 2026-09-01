@@ -113,7 +113,15 @@ for (const filename of EXPECTED_COMMANDS) {
   // 명령이 막히지 않도록, 자기 자신의 서브명령 하나 + 고정 설치 위치(항상 유효,
   // claudetower setup이 스스로 정착시키는 위치) 직접 호출 2가지(OS별 확장자)까지만
   // 딱 3개로 좁힌다 — 여전히 "이 CLI의 이 서브명령"으로만 한정된 최소 권한.
-  test(`commands/${filename} — allowed-tools가 자기 자신의 CLI 서브명령 + 고정 설치 경로(PATH 우회용) 3개로만 좁혀져 있다(최소 권한 원칙, 다른 서브명령이 몰래 섞이면 실패)`, () => {
+  //
+  // 2026-09-01 M77: widgets.md만 예외로 `AskUserQuestion`을 추가로 허용한다. M75에서
+  // 인자 없이 호출 시 켜고 끌 항목을 메뉴로 묻는 로직을 넣었는데, allowed-tools에
+  // AskUserQuestion이 빠져 있어 실제로는 그 도구를 쓸 권한이 없어 메뉴가 전혀 뜨지
+  // 않는 결함을 실사용 재현으로 발견했다(라이브 재시도 2회 연속 재현, 캐시 최신화
+  // 확인 후에도 동일 — allowed-tools 누락이 원인으로 확정). status.md·config.md는
+  // 메뉴가 없어 그대로 3개 유지.
+  const EXTRA_TOOLS = { widgets: ['AskUserQuestion'] };
+  test(`commands/${filename} — allowed-tools가 자기 자신의 CLI 서브명령 + 고정 설치 경로(PATH 우회용)${EXTRA_TOOLS[commandName] ? ' + 메뉴에 필요한 도구' : ''}로만 좁혀져 있다(최소 권한 원칙, 다른 서브명령이 몰래 섞이면 실패)`, () => {
     const content = readText(path.join(COMMANDS_DIR, filename));
     const allowedToolsLine = content.split('\n').find((line) => line.startsWith('allowed-tools:'));
     assert.ok(allowedToolsLine, `${filename}에서 allowed-tools 줄을 못 찾았습니다`);
@@ -121,11 +129,12 @@ for (const filename of EXPECTED_COMMANDS) {
       `Bash(claudetower ${commandName}:*)`,
       `Bash($HOME/.claudetower/bin/claudetower ${commandName}:*)`,
       `Bash($HOME/.claudetower/bin/claudetower.exe ${commandName}:*)`,
+      ...(EXTRA_TOOLS[commandName] ?? []),
     ].join(', ');
     assert.equal(
       allowedToolsLine.trim(),
       `allowed-tools: ${expected}`,
-      `${filename}의 allowed-tools가 claudetower ${commandName} 서브명령 + 고정 경로 3개로만 좁혀져 있지 않습니다`
+      `${filename}의 allowed-tools가 예상한 목록으로만 좁혀져 있지 않습니다`
     );
   });
 }
