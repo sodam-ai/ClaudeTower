@@ -277,7 +277,7 @@ grep -r "require.*accounts" src/display && echo "FAIL: 모듈 경계 위반" || 
 | GitHub Release 직접 다운로드 | ✅ 가능 | `github.com/sodam-ai/ClaudeTower/releases`, 최신 `v0.1.9` |
 | curl/PowerShell 원라이너 | ✅ 가능 | `main` 브랜치 개설(이전엔 브랜치 부재로 raw URL 404) + v0.1.9 릴리스. `irm .../main/install.ps1 \| iex`를 격리 환경에서 실행해 다운로드→설치→`--version` 응답까지 실측 |
 | `npm install -g` | ⏸️ 의도적 보류 | 프로젝트명("claudetower")이 아직 가제이고 상표 저촉 여부가 `01_PRD.md §7` 기준 [법무 검토 필요] 상태. npm 패키지명은 사실상 영구 점유라 이름 확정 전 발행 안 함 |
-| 마켓플레이스(Phase 3) | 구조 완료·라이브 재검증 대기(2026-09-01, M65+M67) | 저장소 루트 `.claude-plugin/`+`commands/` — status·widgets·config 3개 슬래시 명령, `setup`은 의도적으로 제외(대화형이라 위험 검토 후 별도 착수). M65 최초 구현이 실사용자 라이브 테스트에서 실패해 M67로 경로 수정(자동 테스트 18개·구조 대조로 로컬 검증 완료) — 실제 `/plugin marketplace add` 재시도 결과는 아직 미확인, 사용자가 push 후 새 세션에서 재시도 예정 |
+| 마켓플레이스(Phase 3) | **라이브 성공 확인됨(2026-09-01, M65~M73)** | 저장소 루트 `.claude-plugin/`+`commands/` — status·widgets·config 3개 슬래시 명령, `setup`은 의도적으로 제외(대화형이라 위험 검토 후 별도 착수). M65 최초 구현이 실사용자 라이브 테스트에서 실패해 M67로 경로 수정 → M70에서 진짜 원인(`main` 미병합)까지 확정·해소 → `/plugin marketplace add` 라이브 성공, 3개 명령 전부 실행 확인 → M71(Windows CRLF CI 결함 수정) → M72(혼동 유발하던 구식 개인 스킬 영구 제거) → M73(PATH 미등록 시에도 명령이 고정 설치 경로로 폴백하도록 보강) 순으로 완결. 상세는 `CHECKPOINT.md` M65·M67·M70~M73 참고 |
 | 기본 브랜치 | `main`(2026-07-04부터, 이전엔 `feat/phase1-mvp-skeleton`이 기본) |  |
 
 ---

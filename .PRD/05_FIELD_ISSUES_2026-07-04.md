@@ -19,7 +19,7 @@
 |---|------|--------|------|-------|
 | 1 | 설치 파일 잠금 경합 (self-collision) | **HIGH (P0)** | **2026-07-06 코드 수정 적용**(임시파일+원자적 교체+재시도), 로직 시뮬레이션 검증 완료 / 실사용 유세션 재현 검증은 아직 없음 | install.ps1이 실행 중인 exe를 직접 덮어써서, 자기 statusLine이 자기 설치를 막음 |
 | 2 | npm -g 깨진 shim 잔재 | MEDIUM (P2) | 이번 세션에 수동 제거 완료 | 폐기된 npm-g 방식의 shim 3개가 남아 bare `claudetower`가 MODULE_NOT_FOUND |
-| 3 | `.claudetower\bin` PATH 미등록 | MEDIUM (P2) | 미해결 | 설치 스크립트가 PATH를 "안내만" 함 → 비개발자는 bare 명령을 못 씀 |
+| 3 | `.claudetower\bin` PATH 미등록 | MEDIUM (P2) | **동의 하 자동 등록 기능 자체는 이미 구현돼 있었음(이 문서가 갱신을 놓침) + 2026-09-01(M73) 그 기능의 방송 버그 수정, 마켓플레이스 명령 3개는 PATH 무관 폴백 추가로 실질 해소** | `claudetower setup`의 PATH 질문(Y/n)은 이미 있었으나 Windows 환경변수 변경 신호(WM_SETTINGCHANGE)를 안 보내 등록해도 새 창이 못 받던 버그가 있었음(§3 갱신 참고) |
 | 4 | `/claudetower-widgets` 슬래시 명령 미등록 | **HIGH (P1)** | **2026-07-06 근본원인 확정·수정·실사용 검증 완료** | ClaudeTower가 setup 때 심는 공식 스킬이, exe만 교체하는 업데이트로는 갱신되지 않아 낡은 위치·낡은 내용으로 남아있었음 |
 | 5 | statusLine 스폰 모델(1초·83MB) 비효율 | MEDIUM (설계) | 관찰됨 | 매초 83MB 프로세스 스폰 = 이슈#1의 근본 토양 + 성능 부담 |
 | 6 | (환경요인) SoDamHarness 가드 오탐 | LOW | ClaudeTower 결함 아님 | 수정 적용을 반복 차단 — 교차 프로젝트 노트 |
@@ -125,6 +125,19 @@ because it is being used by another process.
 ---
 
 ## 3. [P2] `.claudetower\bin` PATH 미등록 — bare CLI 사용 불가
+
+> **2026-09-01 갱신(M73) `[확인됨]`**: 아래 §3.1~3.4는 2026-07-04 당시 조사 기록을 그대로
+> 보존한다. §3.4가 권고했던 "동의 하 User PATH 자동 등록"은 **이 문서가 갱신을 놓쳤을 뿐,
+> 이미 `claudetower setup`에 구현돼 있었다**(`src/display/config/path-registration.js`,
+> `setup-wizard.js`의 PATH 질문 — M73 이전부터 존재). 그런데 실사용 중 그 기능 자체의 진짜
+> 버그를 발견했다: `reg.exe`로 레지스트리는 갱신하면서도 Windows에 "환경변수가 바뀌었다"고
+> 알리는 `WM_SETTINGCHANGE` 방송을 안 보내서, 등록에 "성공"해도 로그오프 전까지 새로 여는
+> 창이 계속 옛 PATH를 물려받는 결함이었다(`broadcastEnvironmentChange()` 추가로 수정,
+> `CHECKPOINT.md` M73 참고). 추가로, 이 버그의 재발 가능성 자체를 없애기 위해
+> 마켓플레이스 명령 3개(`commands/status.md`·`widgets.md`·`config.md`)가 bare `claudetower`
+> 실패 시 고정 설치 경로(`$HOME/.claudetower/bin/claudetower[.exe]`)로 1회 폴백하도록 만들어
+> PATH 등록 상태와 무관하게 동작하게 했다. **남은 위험**: 없음(신규) — 위 두 수정 모두
+> `npm run verify`(신규 테스트 5개 포함) 통과, 이 컴퓨터에서 실사용 재현·해결까지 확인됨.
 
 ### 3.1 증상 `[확인됨]`
 - User PATH에 `.claudetower\bin` **없음**. shim 정리 후 bare `claudetower`는 **아무 것으로도 해석 안 됨**.
@@ -240,7 +253,7 @@ because it is being used by another process.
 | P0 | 업데이트 전 "창 닫기" 안내 명시(임시 완화) — 근본 수정이 적용됐으므로 필요성 재검토 | install 출력·README | 문서 |
 | ~~P1~~ ✅ | `/claudetower-widgets` 근본원인 확정 — **2026-07-06**: setup 재실행 없이는 스킬이 갱신 안 되는 구조적 결함으로 확정, `cleanupStaleSkillDirs()` 추가로 수정. **사용자가 실제 재시작 후 `/claudetower-widgets`·자연어 양쪽 모두 정상 동작 확인함.** 잔여 리스크(스킬 파일 원인불명 반복 소실)는 §4 갱신 참고 | CC 설정 / ClaudeTower 제품결정 | 조사→코드 |
 | P2 | installer/uninstaller가 stale npm shim 정리 | ClaudeTower 레포 | 코드 |
-| P2 | install/`setup`이 `.claudetower\bin` PATH 자동 등록(동의 하) | ClaudeTower 레포 | 코드 |
+| ~~P2~~ ✅ | install/`setup`이 `.claudetower\bin` PATH 자동 등록(동의 하) — **이미 구현돼 있었음(문서 갱신 누락) + 2026-09-01(M73) 방송 버그 수정, 마켓플레이스 명령 PATH 무관 폴백 추가** | ClaudeTower 레포 | 코드 |
 | P3 | statusLine 스폰 모델 재평가(refreshInterval↑ / 데몬 / 바이너리 경량화) | ClaudeTower 설계 | 설계 |
 | — | (이관) guard.mjs `.claudetower` 오탐 조사 | SoDamHarness | 교차 |
 
