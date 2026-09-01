@@ -2,7 +2,7 @@
 name: claudetower:widgets
 description: ClaudeTower 상태표시줄 위젯(사용 모델·프로젝트 위치·Git·컨텍스트·비용·사용률·활성 계정)을 켜고 끕니다.
 argument-hint: [on|off <항목...>]
-allowed-tools: Bash(claudetower widgets:*)
+allowed-tools: Bash(claudetower widgets:*), Bash($HOME/.claudetower/bin/claudetower widgets:*), Bash($HOME/.claudetower/bin/claudetower.exe widgets:*)
 ---
 
 # /claudetower:widgets
@@ -10,6 +10,18 @@ allowed-tools: Bash(claudetower widgets:*)
 사용자가 `$ARGUMENTS`를 함께 줬으면 `claudetower widgets $ARGUMENTS`를, 아무것도 안 줬으면
 `claudetower widgets`(인자 없음 — 지금 상태만 보여줌, 아무것도 바꾸지 않음)를 그대로 실행하고
 출력을 사용자에게 보여준다.
+
+## "command not found"류 오류가 나면 — 재시도하지 말고 바로 고정 설치 경로로 1회만 다시 시도
+
+`claudetower`가 PATH에 없다는 오류(command not found 등)가 나면, 곧바로 아래처럼 **고정 설치
+위치의 실행파일을 직접 호출해서 딱 1번만** 다시 시도한다(이 경로는 `claudetower setup`이
+항상 자기 자신을 설치해두는 고정 위치라 PATH 등록 상태와 무관하게 항상 유효하다):
+
+- Windows: `"$HOME/.claudetower/bin/claudetower.exe" widgets $ARGUMENTS`
+- macOS/Linux: `"$HOME/.claudetower/bin/claudetower" widgets $ARGUMENTS`
+
+이 재시도도 실패하면(파일 자체가 없음) 그때 비로소 아래 "실행 결과가 실패한 경우" 안내로
+넘어간다. 재시도는 이 1회만 — 그 이상 다른 경로를 추측해서 시도하지 말 것.
 
 ## 사용법 안내(사용자가 헷갈려 하면 이대로 알려줄 것)
 

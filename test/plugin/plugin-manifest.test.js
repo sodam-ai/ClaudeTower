@@ -109,14 +109,23 @@ for (const filename of EXPECTED_COMMANDS) {
     assert.match(frontmatter, /^allowed-tools: .+$/m, `${filename}에 allowed-tools 필드가 없습니다`);
   });
 
-  test(`commands/${filename} — allowed-tools가 자기 자신의 CLI 서브명령 하나로만 좁혀져 있다(최소 권한 원칙, 다른 서브명령이 몰래 섞이면 실패)`, () => {
+  // 2026-09-01 M73: PATH 미등록/미반영(WM_SETTINGCHANGE 전파 지연 등) 상황에서도
+  // 명령이 막히지 않도록, 자기 자신의 서브명령 하나 + 고정 설치 위치(항상 유효,
+  // claudetower setup이 스스로 정착시키는 위치) 직접 호출 2가지(OS별 확장자)까지만
+  // 딱 3개로 좁힌다 — 여전히 "이 CLI의 이 서브명령"으로만 한정된 최소 권한.
+  test(`commands/${filename} — allowed-tools가 자기 자신의 CLI 서브명령 + 고정 설치 경로(PATH 우회용) 3개로만 좁혀져 있다(최소 권한 원칙, 다른 서브명령이 몰래 섞이면 실패)`, () => {
     const content = readText(path.join(COMMANDS_DIR, filename));
     const allowedToolsLine = content.split('\n').find((line) => line.startsWith('allowed-tools:'));
     assert.ok(allowedToolsLine, `${filename}에서 allowed-tools 줄을 못 찾았습니다`);
+    const expected = [
+      `Bash(claudetower ${commandName}:*)`,
+      `Bash($HOME/.claudetower/bin/claudetower ${commandName}:*)`,
+      `Bash($HOME/.claudetower/bin/claudetower.exe ${commandName}:*)`,
+    ].join(', ');
     assert.equal(
       allowedToolsLine.trim(),
-      `allowed-tools: Bash(claudetower ${commandName}:*)`,
-      `${filename}의 allowed-tools가 claudetower ${commandName} 서브명령 하나로만 좁혀져 있지 않습니다`
+      `allowed-tools: ${expected}`,
+      `${filename}의 allowed-tools가 claudetower ${commandName} 서브명령 + 고정 경로 3개로만 좁혀져 있지 않습니다`
     );
   });
 }
