@@ -2743,3 +2743,78 @@ Windows CI 러너가 저장소를 새로 체크아웃할 때 git 기본 동작�
 
 - 상태: **완료(로컬 검증), CI 재확인 대기** — `.gitattributes`(신규), `CHECKPOINT.md`(이 항목).
   로컬 커밋만(push는 사용자가 이후 결정).
+
+---
+
+## M72: 2026-09-01 — `/claudetower-widgets` 개인 스킬 기능 영구 제거 (사용자 명시 결정)
+
+**배경**: M70~M71로 마켓플레이스가 실제로 작동하기 시작하면서, 사용자가 새 마켓플레이스
+명령(`/claudetower:widgets`, 콜론)과 훨씬 예전부터 있던 개인 스킬(`/claudetower-widgets`,
+하이픈)을 반복적으로 혼동했다(자동완성에 둘 다 뜸). 원인을 설명한 뒤, 사용자가 명시적으로
+"정리하기"를 요청했고, 후속 질문(AskUserQuestion)에서 두 범위 — ①이 컴퓨터만 정리 ②
+프로그램 소스 자체에서 영구 제거 — 중 **②를 선택**했다. **트레이드오프를 사전에 명시**했음:
+"AI가 대신 대화하며 설정을 바꿔주는" 대화형 UX(체크 메뉴, 자연어 인식) 자체가 영구히
+사라지고, 마켓플레이스 명령은 더 단순한 직접 CLI 패스스루(자연어 인식 없음, `on`/`off`+
+항목명 인자 필요)라는 것 — 사용자가 이 차이를 인지한 채로 승인.
+
+**제거한 것(소스)**:
+- `src/display/config/skill-file.js` 파일 자체 삭제(개인 스킬 SKILL.md 생성/삭제/자동복구
+  로직 전부).
+- `bin/claudetower.js` — `statusline` 커맨드의 `ensureSkillFileExists` 자동복구 호출(매
+  렌더링마다 실행되던 코드), `uninstall` 커맨드의 `removeSkillFile` 정리 호출 둘 다 제거.
+- `src/display/setup-wizard.js` — `writeSkillFile` import·호출·관련 안내 로그 전부 제거,
+  더는 안 쓰는 `resolveUsableExePath` import도 함께 정리. PATH 등록 실패 시 안내 문구를
+  "터미널 없이도 /claudetower:widgets로 쓸 수 있다"로 갱신(사라진 대안을 언급하던 걸
+  살아있는 대안으로 교체).
+- `src/display/config/test-isolation.js` — `ISOLATION_VARS`에서 `CLAUDETOWER_SKILLS_DIR`
+  제거(이 변수를 읽는 코드가 이제 없음), 관련 주석 정리.
+- `src/display/cache/file-cache.js` — 삭제된 파일을 가리키던 주석 한 줄 정정.
+- **의도적으로 손대지 않은 것**: `src/accounts/*` 6개 파일이 각자의 `ACCOUNTS_ISOLATION_VARS`에
+  여전히 `CLAUDETOWER_SKILLS_DIR`을 갖고 있다(M36의 "대칭 방어" 원칙으로 추가된 것) — 이 값이
+  남아있어도 최악의 경우 불필요하게 "부분 격리"로 더 방어적으로 동작할 뿐 실제 피해가
+  없고, Account 모듈은 이번 세션의 작업 범위가 아니라(Minimal Impact) 건드리지 않았다.
+
+**제거한 것(테스트)**:
+- `test/display/skill-file.test.js` 파일 자체 삭제.
+- `test/display/test-isolation.test.js` — `CLAUDETOWER_SKILLS_DIR`·`CLAUDETOWER_DEFAULT_HOME_DIR`에
+  의존하던 시나리오를 살아있는 다른 격리 변수(`CLAUDETOWER_INSTALL_DIR` 등)로 치환해 같은
+  검증 의도를 유지. `CLAUDETOWER_DEFAULT_HOME_DIR` 테스트는 완전히 죽은 시나리오라 삭제.
+- `test/display/npm-shim-cleanup.test.js` — "다른 격리 변수만 설정된 부분격리" 시나리오가
+  쓰던 `CLAUDETOWER_SKILLS_DIR`을 `CLAUDETOWER_INSTALL_DIR`로 치환.
+
+**제거한 것(문서)**: `README.md`/`README.en.md` — "채팅으로 위젯 켜고 끄기" 안내 3곳을
+마켓플레이스 명령 사용법으로 교체, 환경변수 표에서 `CLAUDETOWER_SKILLS_DIR` 행 삭제,
+FAQ의 "채팅 명령이 갑자기 안 돼요" 항목(이제 존재하지 않는 기능에 대한 낡은 트러블슈팅)
+삭제. `README.html`/`README.en.html`은 M63과 동일한 방식(pandoc + 기존 CSS 헤드 보존
++ 자기참조 링크를 `.html`로 후처리)으로 재생성. **손대지 않은 것**: v0.2.0 등 과거
+버전의 changelog 항목(역사 기록이라 원문 그대로 보존 — 이 프로젝트의 기존 관례).
+`.PRD/05_FIELD_ISSUES_2026-07-04.md`·`06_FIELD_ISSUE_SPAWN_STORM_2026-07-04.md`(당시의
+상세 조사 기록 자체는 보존)에는 "이 기능은 이후 영구 제거됐다"는 정정 블록만 상단에 추가.
+
+**이 컴퓨터에서 실제로 겪은 복잡한 사정(정직하게 기록)**: 소스에서 지운 뒤 실제 설치된
+스킬 파일(`SKILL.md`)을 삭제했는데, **몇 초 뒤 다시 생겨났다.** 원인 확인 결과, 이 PC에
+실제 설치된 `claudetower.exe`가 **v0.3.0(7월 25일 빌드)** — 지금 소스(v0.5.0)보다 몇 달
+뒤처진 아주 오래된 실행 파일이었고, 그 exe 안에는 옛 자동복구 로직이 그대로 남아 있어
+매 상태표시줄 렌더링(초 단위)마다 스스로 파일을 되살리고 있었다. 이건 이번 정리보다 범위가
+큰 별개 사안(이 컴퓨터의 설치본이 몇 달째 갱신 안 됨)이라 사용자에게 별도로 물어봤고,
+**"지금 최신으로 다시 설치"를 승인받아** `npm run build`(→ v0.5.0) 후 새 exe의 `setup`을
+현재 위젯 설정(`사용 모델·컨텍스트·사용률`만 켬)과 정확히 같은 답으로 실행해 재설치했다
+(PATH 등록 질문은 기존과 동일하게 "아니오"로 답해 그 부분은 건드리지 않음, `settings.json`은
+자동 `.bak` 백업됨). 재설치 후 `statusline`을 두 차례 더 실행해 파일이 더는 재생성되지
+않음을 실측 확인한 뒤, 남은 낡은 파일을 최종 삭제했다. 안 지워지는 빈 폴더 하나만 남았는데
+(가드가 빈 폴더 삭제도 막음 — M67과 동일한 현상), 내용물이 없어 무해하다.
+
+**검증(전부 직접 실행)**: `npm run verify`(lint+lint:boundary+test:display+test:plugin) —
+Display **233/233**(skill-file.test.js 제거로 기존보다 감소, 의도된 감소), plugin
+**18/18** 무변경. `npm run test:accounts` **309/309** 무변경(Account 모듈 코드는 실제로
+안 건드렸음을 재확인). 재설치된 exe로 `statusline` 반복 실행 → 스킬 파일 재생성 없음
+직접 확인.
+
+**남은 위험**: 없음(신규). 이 컴퓨터의 exe가 이번에 v0.3.0→v0.5.0으로 크게 갱신되면서
+M35~M71의 모든 신규 기능(Account CLI 전체, 마켓플레이스 등)이 이 컴퓨터에서도 처음으로
+"설치된 채" 존재하게 됐다는 부수 효과가 있음 — Account 모듈은 여전히 기본 비활성화
+상태라 위험 없음(`accounts status`로 재확인 가능).
+
+- 상태: **완료(소스+로컬 설치 둘 다 실제 검증됨)** — 소스는 로컬 커밋만(push는 사용자가
+  이후 결정), 로컬 설치 갱신은 이 컴퓨터에만 적용된 별도 조치(git과 무관, 되돌릴 필요
+  없으면 그대로 둠).

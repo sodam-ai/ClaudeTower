@@ -63,21 +63,6 @@ async function run(args) {
     const { render, readStdinJson } = require('../src/display/statusline');
     const session = readStdinJson();
     process.stdout.write(render(session));
-    // 실사용 중 스킬 파일(/claudetower-widgets)이 원인불명으로 반복 소실되는 현상을
-    // 관찰했다(.PRD/05_FIELD_ISSUES_2026-07-04.md §4). statusline은 refreshInterval마다
-    // 어차피 계속 호출되므로, 매번 조용히 존재만 확인하고 없으면 즉시 재생성해
-    // 스스로 복구되게 한다. 반드시 조용히 실패해야 한다 — 여기서 뭘 출력하면
-    // 상태표시줄 텍스트 자체가 오염되므로, 어떤 에러가 나도 절대 콘솔에 안 쓴다.
-    try {
-      const { resolveUsableExePath } = require('../src/display/config/statusline-command');
-      const { ensureSkillFileExists } = require('../src/display/config/skill-file');
-      const usableExePath = resolveUsableExePath();
-      if (usableExePath) {
-        ensureSkillFileExists(usableExePath);
-      }
-    } catch {
-      // 조용히 무시 — 상태표시줄은 이미 위에서 정상 출력됐다.
-    }
     return 0;
   }
 
@@ -293,17 +278,6 @@ async function run(args) {
       console.log(
         '(위젯 설정 파일은 건너뛰었습니다 — 테스트 격리 변수가 일부만 설정되어 실제 파일을 건드리지 않습니다. 테스트라면 CLAUDETOWER_WIDGET_CONFIG_PATH도 함께 지정하세요.)'
       );
-    }
-
-    // setup이 심어둔 "/claudetower-widgets" 대화형 설정도 같이 정리한다 — 안 지우면
-    // 실행 파일이 사라진 뒤에도 스킬만 고아 상태로 남아 사용자가 호출 시 에러를 보게 됨.
-    const { removeSkillFile } = require('../src/display/config/skill-file');
-    const skillRemoveResult = removeSkillFile();
-    if (skillRemoveResult.removed) {
-      console.log(`"/claudetower-widgets" 대화형 설정도 삭제했습니다: ${skillRemoveResult.skillDir}`);
-    }
-    if (skillRemoveResult.cleanedStaleDirs.length > 0) {
-      console.log(`이전 버전이 다른 위치에 남겨둔 낡은 설정도 함께 정리했습니다: ${skillRemoveResult.cleanedStaleDirs.join(', ')}`);
     }
 
     // 과거 npm-global 설치가 남긴 댕글링 shim(.PRD/05_FIELD_ISSUES_2026-07-04.md §2)도

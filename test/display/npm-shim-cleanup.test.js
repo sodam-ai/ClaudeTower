@@ -102,7 +102,7 @@ test('cleanupStaleNpmShims: 다른 격리 변수만 설정된 부분 격리 상�
   // NPM_PREFIX_ISOLATION_VAR는 설정하지 않고, 다른 CLAUDETOWER_* 변수만 설정 —
   // "테스트인데 이 변수만 격리를 깜빡함" 시나리오. 이 경우 진짜 npm prefix를
   // 물어보게 되므로(resolveNpmPrefixDir 폴백), skip으로 그친다는 것만 확인.
-  withCleanIsolationEnv({ CLAUDETOWER_SKILLS_DIR: 'X:/fake/skills' }, () => {
+  withCleanIsolationEnv({ CLAUDETOWER_INSTALL_DIR: 'X:/fake/install' }, () => {
     const result = cleanupStaleNpmShims();
     assert.equal(result.skipped, 'partial-test-isolation');
     assert.deepEqual(result.cleaned, []);

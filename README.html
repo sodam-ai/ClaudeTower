@@ -201,12 +201,20 @@
 <td>⏸️ 의도적으로 보류</td>
 <td>"ClaudeTower/claudetower"의 상표 저촉 여부 법률 검토는 2026-07-15에 끝났고, 낮은 우선순위 잔존 리스크를 감수하고 이 이름을 유지하기로 결정했습니다(<code>.PRD/01_PRD.md</code> §7). 다만 완전히 영구 확정된 상태는 아니라서, 사실상 영구 점유되는 자원인 npm 패키지 이름은 이름이 완전히 확정되기 전까지 발행하지 않습니다</td>
 </tr>
+<tr>
+<td>Claude Code 마켓플레이스 플러그인</td>
+<td>✅ 지금 가능(2026-09-01부터, <strong>보조 채널</strong>)</td>
+<td>CLI 본체를 대신 설치해주지는 않는 <strong>얇은 래퍼</strong>입니다 — 위 방법으로 CLI를 먼저 설치한 뒤 플러그인을 추가하면, <code>/claudetower:status</code>·<code>/claudetower:widgets</code>·<code>/claudetower:config</code> 3개 슬래시 명령을 쓸 수 있습니다(대화형 설정 <code>setup</code>은 아직 슬래시 명령이 아니라 터미널에서 한 번 실행해야 합니다). 상세는 <a href="./PLUGIN.md"><code>PLUGIN.md</code></a> 참고</td>
+</tr>
 </tbody>
 </table>
 <p>macOS/Linux:</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-fsSL</span> https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.sh <span class="kw">|</span> <span class="fu">sh</span></span></code></pre></div>
 <p>Windows(PowerShell):</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">irm</span> https<span class="op">://</span>raw<span class="op">.</span><span class="fu">githubusercontent</span><span class="op">.</span><span class="fu">com</span><span class="op">/</span>sodam-ai<span class="op">/</span>ClaudeTower<span class="op">/</span>main<span class="op">/</span>install<span class="op">.</span><span class="fu">ps1</span> <span class="op">|</span> <span class="fu">iex</span></span></code></pre></div>
+<p>마켓플레이스 플러그인(CLI 설치 후):</p>
+<pre><code>/plugin marketplace add sodam-ai/ClaudeTower
+/plugin install claudetower@claudetower-marketplace</code></pre>
 <h3 id="설치-파일을-지우거나-옮겨도-되나요">설치 파일을 지우거나 옮겨도 되나요?</h3>
 <p><strong>네, 그래도 됩니다.</strong> <code>setup</code>을 한 번 실행하면 그 실행 파일은 자동으로 컴퓨터 안의 고정 위치(<code>~/.claudetower/bin/</code>)로 복사되어 안전하게 정착합니다. 그 이후로는 원래 다운로드하신 파일을 지우거나, 이름을 바꾸거나, 다른 폴더로 옮기셔도 전혀 문제없습니다.</p>
 <p>혹시 실수로 그 고정 위치의 파일까지 지워서 상태표시줄이 안 보이게 되더라도, <code>claudetower setup</code>을 다시 한 번 실행하면 자동으로 복구됩니다.</p>
@@ -217,8 +225,8 @@
 <blockquote>
 <p><strong>참고</strong>: 위 5단계까지만 하면 상태표시줄은 이미 완성입니다. 아래 명령어들은 나중에 표시 항목을 바꾸는 등 추가로 필요할 때만 쓰면 됩니다. <code>setup</code> 실행 중 "터미널에서 짧게 입력해도 실행되게 만들까요?"에 Y로 답하셨다면 새 터미널에서 <code>claudetower</code>라고 바로 쓸 수 있고, N으로 답했거나 예전 버전이라면 안 될 수 있습니다. 그래서:</p>
 <ul>
-<li><strong>제일 쉬운 방법(터미널 필요 없음)</strong>: 클로드코드 채팅창에서 <code>/claudetower-widgets</code>라고 치거나 "상태표시줄에서 비용 표시 꺼줘"처럼 그냥 말하면 됩니다.</li>
-<li>그래도 터미널에서 직접 치고 싶다면, <code>claudetower</code> 대신 전체 경로 <code>~/.claudetower/bin/claudetower.exe</code>(macOS/Linux는 <code>~/.claudetower/bin/claudetower</code>)를 쓰면 항상 됩니다.</li>
+<li><strong>터미널 필요 없음</strong>: 위 "Claude Code 마켓플레이스 플러그인" 방법으로 추가하면, 채팅창에서 <code>/claudetower:widgets</code>·<code>/claudetower:status</code>·<code>/claudetower:config</code>로 바로 쓸 수 있습니다.</li>
+<li>터미널에서 직접 치고 싶다면, <code>claudetower</code> 대신 전체 경로 <code>~/.claudetower/bin/claudetower.exe</code>(macOS/Linux는 <code>~/.claudetower/bin/claudetower</code>)를 쓰면 항상 됩니다.</li>
 </ul>
 </blockquote>
 <ul>
@@ -239,12 +247,19 @@
 <p><code>accounts</code> 명령은 v0.5.0부터 이미 포함되어 있지만 <strong>기본값이 꺼짐(disabled)</strong>이라 <code>accounts enable</code>로 동의하기 전까지는 <code>status</code>/<code>config</code> 조회 외엔 전부 거부됩니다 — 상태표시줄과는 완전히 분리된 별도 기능이며 자세한 내용은 아래 "② 계정 자동전환" 참고. v0.5.0에 실제로 포함된 명령: <code>accounts status</code>(구성요소 확인) · <code>accounts config</code>(전환 임계값 등 사전 설정) · <code>accounts enable</code>(동의 후 켜기) · <code>accounts add --api-key &lt;라벨&gt; &lt;키값&gt;</code>(API 키 계정 등록) · <code>accounts list</code>(등록된 계정 확인) · <code>accounts remove &lt;라벨&gt;</code>(계정 1개 삭제) · <code>accounts rename &lt;기존라벨&gt; &lt;새라벨&gt;</code>(이름 변경) · <code>accounts disable</code>(끄기) · <code>accounts diagnose-quota &lt;라벨&gt;</code>(실사용량 확인 진단). <code>accounts switch &lt;라벨&gt;</code>(등록된 계정 사이를 직접 전환)은 아직 정식 릴리스 전 최신 개발 상태에만 있습니다(v0.5.0에는 없음).</p>
 </blockquote>
 <h3 id="터미널-없이-클로드코드-채팅창에서-바로-켜고-끄기">터미널 없이, 클로드코드 채팅창에서 바로 켜고 끄기</h3>
-<p><code>setup</code>을 실행하면 <code>/claudetower-widgets</code>라는 대화형 명령도 함께 설치됩니다. 클로드코드 채팅창에 <code>/claudetower-widgets</code>라고 치거나 "상태표시줄에서 컨텍스트랑 비용 꺼줘", "갱신 속도를 느리게 해줘"처럼 말하면, AI가 지금 상태를 보여주고 대화하면서 대신 켜고 끄거나 속도를 조절해줍니다 — 터미널을 열거나 영어 명령어를 외울 필요가 없습니다. <code>/claudetower-widgets</code>만 딱 치고 아무 말도 안 하면, 무엇을 켜고 끌지 체크 메뉴(선택지에 마우스나 화살표로 체크)가 떠서 골라 고를 수도 있습니다(체크한 항목만 바뀌고, 체크 안 한 항목은 그대로 유지).</p>
+<p>클로드코드 마켓플레이스로 이 플러그인을 추가하면(위 "설치 방법" 표의 "Claude Code 마켓플레이스 플러그인" 참고), 터미널 없이 채팅창에서 바로 조절할 수 있습니다.</p>
+<ul>
+<li><code>/claudetower:widgets</code> — 지금 켜져 있는 항목만 확인</li>
+<li><code>/claudetower:widgets off &lt;항목...&gt;</code> / <code>/claudetower:widgets on &lt;항목...&gt;</code> — 지정한 항목만 켜고 끄기</li>
+<li><code>/claudetower:status</code> — 설치 상태 확인</li>
+<li><code>/claudetower:config</code> — 갱신 속도 등 조절</li>
+</ul>
+<p>항목 이름은 <code>model</code>, <code>location</code>, <code>git</code>, <code>context</code>, <code>cost</code>, <code>rate_limit</code> 중에서 고르면 됩니다.</p>
 <h3 id="개발자용--소스에서-직접-빌드--테스트">개발자용 — 소스에서 직접 빌드 · 테스트</h3>
-<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/sodam-ai/ClaudeTower.git</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ClaudeTower</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">npm</span> install</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ex">npm</span> run build</span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/sodam-ai/ClaudeTower.git</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ClaudeTower</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="ex">npm</span> install</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="ex">npm</span> run build</span></code></pre></div>
 <p><code>dist/</code> 폴더에 여러분 운영체제에 맞는 실행파일이 생깁니다.</p>
 <table>
 <thead>
@@ -324,11 +339,6 @@
 <tr>
 <td><code>CLAUDETOWER_INSTALL_DIR</code></td>
 <td>실행 파일 설치 위치를 바꿈</td>
-<td>위와 동일한 용도</td>
-</tr>
-<tr>
-<td><code>CLAUDETOWER_SKILLS_DIR</code> / <code>CLAUDE_CONFIG_DIR</code></td>
-<td><code>/claudetower-widgets</code> 채팅 명령 파일 설치 위치를 바꿈</td>
 <td>위와 동일한 용도</td>
 </tr>
 <tr>
@@ -567,10 +577,6 @@
 <td>세 가지 원인이 있습니다. ① 설정은 다음 상호작용부터 반영됩니다 — Claude Code와 한 번 더 대화해보세요. ② 이 폴더(워크스페이스)의 신뢰(trust) 확인 창을 아직 수락하지 않았다면 상태표시줄 자체가 실행되지 않고, 화면에 <code>statusline skipped · restart to fix</code>라고 뜹니다 — 신뢰 확인 창을 수락한 뒤 Claude Code를 다시 시작하세요. ③ Claude Code 설정에서 <code>disableAllHooks</code>를 켜두면 상태표시줄도 함께 꺼집니다(Claude Code 공식 사양) — 필요 없다면 꺼주세요.</td>
 </tr>
 <tr>
-<td><strong><code>/claudetower-widgets</code>(채팅으로 위젯 켜고 끄기)가 갑자기 안 돼요</strong></td>
-<td>근본 원인을 확정했습니다 — 이 프로그램 자신의 자동 검증 절차가 실수로 실제 설정 파일을 지우는 결함이었습니다(사용자 잘못이 아닙니다). 재발 방지 코드와 자가복구를 모두 적용했습니다(v0.2.0부터 포함됨). 그보다 이전 버전을 쓰고 계시다면 최신 버전으로 업데이트하시고, 지금 버전에서 겪으신다면 <code>claudetower setup</code>을 다시 실행하면 즉시 복구됩니다.</td>
-</tr>
-<tr>
 <td><strong>컨텍스트 퍼센트가 이상하거나 비어있어요</strong></td>
 <td>세션 초반이나 <code>/compact</code> 직후에는 값이 비어있을 수 있습니다(정상 동작, Claude Code 공식 동작 방식).</td>
 </tr>
@@ -653,6 +659,4 @@
 <p>자세한 배경은 <a href="./.PRD/04_PROJECT_SPEC.md"><code>.PRD/04_PROJECT_SPEC.md</code></a>의 "법률·저작권·라이선스·상업적 사용 요구사항" 참고.</p>
 <h2 id="더-자세한-설계-문서">더 자세한 설계 문서</h2>
 <p>이 프로젝트의 설계 배경·의사결정 근거·보안 요구사항은 <a href="./.PRD/"><code>.PRD/</code></a> 폴더에 전부 정리되어 있습니다.</p>
-
-</body>
-</html>
+</body></html>

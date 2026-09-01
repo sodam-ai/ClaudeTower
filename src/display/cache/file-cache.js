@@ -58,7 +58,7 @@ function readCachedValue({ sessionId, key, cacheDir = resolveCacheDir() }) {
 
 // 명시적 cacheDir 인자는 방어막을 우회한다(단위테스트가 임시 경로를 넘기는 경우).
 // 인자 없이 실제 기본 경로로 폴백할 때만 부분 격리 상태면 실제 파일 쓰기를 거부한다
-// (widget-config.js/skill-file.js와 동일한 2026-07-06 실측 확정 결함 부류 방어).
+// (widget-config.js와 동일한 2026-07-06 실측 확정 결함 부류 방어).
 //
 // 2026-08-03 실측 발견·수정: 이 함수는 "캐시 쓰기 실패는 기능을 막지 않는다"고
 // 스스로 약속하지만, assertNotPartialIsolation()이 try 블록 "밖"에서 던지고 있어
