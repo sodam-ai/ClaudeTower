@@ -10,7 +10,7 @@
       "name": "claudetower",
       "source": "./",
       "description": "ClaudeTower 상태표시줄·계정 관리 CLI를 Claude Code 채팅에서 슬래시 명령으로 바로 쓸 수 있게 해주는 얇은 래퍼",
-      "version": "0.5.1",
+      "version": "0.5.2",
       "author": {
         "name": "SoDam AI Studio"
       },
