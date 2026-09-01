@@ -7,6 +7,7 @@ const { renderGit } = require('./widgets/git');
 const { renderContext } = require('./widgets/context');
 const { renderCost } = require('./widgets/cost');
 const { renderRateLimit } = require('./widgets/rate-limit');
+const { renderActiveAccount } = require('./widgets/active-account');
 const { readEnabledWidgets, readPowerlineSeparator } = require('./config/widget-config');
 const { stripControlChars } = require('./config/text-safety');
 
@@ -27,6 +28,7 @@ const WIDGETS = [
   { type: 'context', render: renderContext },
   { type: 'cost', render: renderCost },
   { type: 'rate_limit', render: renderRateLimit },
+  { type: 'active_account', render: renderActiveAccount },
 ];
 
 // 2026-08-03 실사용 발견("10칸이 깨져서 보임" 라이브 리포트): 개별 위젯 텍스트는
@@ -37,11 +39,15 @@ const WIDGETS = [
 // 상태표시줄은 한 줄이어야 한다는 전제가 깨진 것 — 개별 위젯 값 자체는 정상이므로
 // "잘라서라도 최소한의 정보는 유지한다"(text-safety.js와 동일 철학)를 위젯 단위로 적용한다.
 //
-// 낮은 우선순위 위젯부터 뺀다. git이 최우선으로 빠지는 이유: PulseLine 원본 설계(01_PRD.md
-// §3)에 없던 Phase 3 신규 위젯이라 "본래 구현 목적"의 핵심이 아니고, git 저장소가 아닌
-// 프로젝트에서는 애초에 항상 숨겨지는 부가 정보다. 나머지는 원본 5개 위젯 중 "지금 당장
-// 조치가 필요한 정보"가 아닌 순서 — model/location은 세션 정체성 자체라 최후까지 유지한다.
-const WIDGET_DROP_PRIORITY = ['git', 'rate_limit', 'cost', 'context', 'location', 'model'];
+// 낮은 우선순위 위젯부터 뺀다. active_account가 git보다도 먼저 빠지는 이유: git과 같은
+// 부가 정보 성격이면서(세션 정체성이 아님, CHECKPOINT.md "다음 세션 작업 계획"의 권고
+// 그대로 채택) Account 모듈을 쓰는 사용자 자체가 소수라 실제로 이 우선순위가 작동할
+// 상황(줄이 넘치는데 active_account까지 켜져 있는 경우)이 git보다도 드물다. git이 그
+// 다음으로 빠지는 이유: PulseLine 원본 설계(01_PRD.md §3)에 없던 Phase 3 신규 위젯이라
+// "본래 구현 목적"의 핵심이 아니고, git 저장소가 아닌 프로젝트에서는 애초에 항상
+// 숨겨지는 부가 정보다. 나머지는 원본 5개 위젯 중 "지금 당장 조치가 필요한 정보"가
+// 아닌 순서 — model/location은 세션 정체성 자체라 최후까지 유지한다.
+const WIDGET_DROP_PRIORITY = ['active_account', 'git', 'rate_limit', 'cost', 'context', 'location', 'model'];
 
 function visibleLength(text) {
   return stripControlChars(text).length;

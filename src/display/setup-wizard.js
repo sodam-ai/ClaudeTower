@@ -17,7 +17,18 @@ const WIDGET_LABELS = {
   context: '컨텍스트 사용량',
   cost: '비용',
   rate_limit: '사용률(5시간/7일)',
+  active_account: '활성 계정',
 };
+
+// active_account는 아래 대화형 질문 목록(runSetupWizard)에서 의도적으로 제외한다 —
+// Account 모듈은 Display 설치와 완전히 분리된 별도 opt-in 절차(claudetower accounts
+// enable, 이용약관 리스크 고지 동의 필요)를 이미 갖고 있는데, Display 설치 단계에서
+// "활성 계정 표시할까요?"라고 물으면 절대다수인 Display 전용 사용자에게 아직 알지도
+// 못하는 기능을 낯설게 소개하는 셈이 된다(01_PRD.md의 "① Display=즉시 안전, ② Account=
+// 별도 opt-in" 두 단계 분리 원칙과 직결). widgets-command.js는 이 목록과 무관하게
+// ALL_WIDGET_TYPES 전체를 다루므로 `claudetower widgets on active_account`로는 여전히
+// 켜고 끌 수 있다 — 여기서 빠지는 건 "초기 설치 질문"뿐이다.
+const PROMPTED_WIDGET_TYPES = ALL_WIDGET_TYPES.filter((type) => type !== 'active_account');
 
 // rl.question()을 연속으로 여러 번 호출하면 파이프 입력이 EOF에 도달한 뒤
 // 두 번째 호출부터 콜백이 영영 오지 않고 프로세스가 조용히 종료되는 실제 버그를
@@ -42,7 +53,7 @@ async function runSetupWizard(
 
   const lineIterator = rl[Symbol.asyncIterator]();
   const enabled = [];
-  for (const type of ALL_WIDGET_TYPES) {
+  for (const type of PROMPTED_WIDGET_TYPES) {
     const answer = await askQuestion(rl, lineIterator, `${WIDGET_LABELS[type]} 표시할까요? (Y/n): `);
     const normalized = answer.trim().toLowerCase();
     if (normalized !== 'n' && normalized !== 'no') {
@@ -50,9 +61,25 @@ async function runSetupWizard(
     }
   }
 
+  // "설정 완료" 로그에 보여줄 목록 — 기본값은 방금 사용자가 실제로 답한 항목만
+  // (아래에서 조용히 추가하는 active_account는 물어본 적이 없으므로 제외). 반드시
+  // 얕은 복사([...enabled])여야 한다 — 그냥 대입하면 같은 배열을 참조하게 되어,
+  // 아래 enabled.push('active_account')가 displayEnabled도 함께 오염시킨다(실제로
+  // 이렇게 짰다가 테스트로 발견한 버그 — "설정 완료" 로그에 물어본 적 없는 "활성 계정"이
+  // 그대로 노출되고 있었다).
+  let displayEnabled = [...enabled];
+
   if (enabled.length === 0) {
     log('\n하나도 선택하지 않으셨습니다 — 최소 1개는 켜야 해서 기본값(전체)으로 진행합니다.');
-    enabled.push(...ALL_WIDGET_TYPES);
+    enabled.push(...ALL_WIDGET_TYPES); // active_account 포함 — 이 분기는 이미 "전체"라고 명시했으므로 그대로 둔다.
+    displayEnabled = enabled;
+  } else {
+    // active_account는 위 PROMPTED_WIDGET_TYPES 목록 정의부 주석 참고 — 항상 조용히
+    // 켠 채로 저장한다. readActiveAccountHandle은 ActiveAccountHandle 파일이 없으면
+    // (Account 미사용자, 절대다수) 항상 null을 반환해 렌더링되지 않으므로 기본으로
+    // 켜둬도 안전하다. 나중에 Account를 실제로 쓰기 시작하면(accounts switch) 별도
+    // 설정 변경 없이 바로 나타난다.
+    enabled.push('active_account');
   }
 
   writeEnabledWidgets(enabled, widgetConfigPath);
@@ -129,7 +156,7 @@ async function runSetupWizard(
       : DEFAULT_REFRESH_INTERVAL_SECONDS;
   const writeResult = writeStatusLineConfig({ type: 'command', command, refreshInterval }, settingsPath);
 
-  log(`\n설정 완료: ${enabled.map((t) => WIDGET_LABELS[t]).join(', ')}`);
+  log(`\n설정 완료: ${displayEnabled.map((t) => WIDGET_LABELS[t]).join(', ')}`);
   log(`상태표시줄 명령이 Claude Code 설정에 등록됐습니다: ${writeResult.filePath}`);
   if (writeResult.backedUp) {
     log(`(기존 설정은 ${writeResult.filePath}.bak 으로 백업해뒀습니다)`);

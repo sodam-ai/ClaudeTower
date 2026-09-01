@@ -67,16 +67,20 @@ claudetower-cli/
 │   │   ├── accounts/
 │   │   ├── rotation/
 │   │   ├── credential-store/
+│   │   ├── oauth/                # state/PKCE(M24) — 실거래 배선 게이트로 미배선 상태 유지
+│   │   ├── quota/                 # quota 캐시·전환 판단(M41·M44) — 실거래 배선 게이트로 미배선 상태 유지
 │   │   └── audit/
 │   └── shared/
 │       └── active-account-handle.js   # ActiveAccountHandle 파일 읽기/쓰기 — Account는 쓰기 함수만, Display는 읽기 함수만 import
-├── plugin/                        # Phase 3, 선택적 보조 채널 — CLI를 그대로 호출하는 얇은 래퍼
-│   └── .claude-plugin/
-│       ├── plugin.json
-│       └── marketplace.json
+├── .claude-plugin/                # Phase 3, 선택적 보조 채널(마켓플레이스 래퍼) — 저장소 루트
+│   ├── plugin.json               # (2026-09-01 M67 정정: 원래 plugin/.claude-plugin/이었으나
+│   └── marketplace.json          #  Claude Code가 저장소 루트에서만 찾아 이동, CHECKPOINT.md M67 참고)
+├── commands/                      # 마켓플레이스 슬래시 명령 3개(status/widgets/config) — CLI를 그대로 호출하는 얇은 래퍼
+├── PLUGIN.md                      # 위 래퍼 설명 문서(구 plugin/README.md, M67에서 이름 변경·이동)
 ├── test/
 │   ├── display/                 # Account 모듈 없이도 통과해야 함
-│   └── accounts/
+│   ├── accounts/
+│   └── plugin/                   # 마켓플레이스 래퍼 회귀 테스트(M66 신설)
 ├── README.md                     # 최상단에 "Account 모듈 = 선택 사항 + 리스크 고지" 명시
 └── package.json
 ```
@@ -258,7 +262,13 @@ grep -r "require.*accounts" src/display && echo "FAIL: 모듈 경계 위반" || 
 1. GitHub Actions 매트릭스 빌드(linux/macos/windows)로 SEA 바이너리 생성
 2. **1순위 채널(독립 CLI)**: `npm install -g claudetower`(Node.js 있는 사용자, 패키지명은 `claudetower-cli`가 아니라 실제 package.json 기준 `claudetower`) 또는 curl(`curl -fsSL .../install.sh | sh`)·PowerShell(`irm .../install.ps1 | iex`) 설치 스크립트로 SEA 바이너리 직접 배치 — teamclaude·claude-swap·caam 등 리서치된 대다수 CLI 도구와 동일한 설치 UX
 3. `claudetower setup` 실행 → Display 즉시 활성화, Account 모듈은 `claudetower accounts enable` 실행 전까지 비활성
-4. **3순위 채널(선택적, Phase 3)**: `plugin/.claude-plugin/`의 얇은 래퍼를 마켓플레이스로 배포 — `/claudetower:*` 슬래시 명령이 내부적으로 설치된 CLI를 호출하는 방식. 마켓플레이스 발견성을 원하는 사용자를 위한 보조 경로일 뿐, 핵심 기능은 CLI 단독으로 완결됨
+4. **3순위 채널(선택적, Phase 3)**: 저장소 루트 `.claude-plugin/`(**2026-09-01 정정**: 원래
+   이 문서가 `plugin/.claude-plugin/`로 지정했으나, 실제 라이브 테스트에서 `/plugin
+   marketplace add`가 이 위치의 marketplace.json을 못 찾아 실패했다 — Claude Code는
+   저장소 루트에서 바로 찾으므로 `plugin/` 한 겹을 없애고 루트로 옮겼다. 상세는
+   `CHECKPOINT.md` M67 참고)의 얇은 래퍼를 마켓플레이스로 배포 — `/claudetower:*` 슬래시
+   명령이 내부적으로 설치된 CLI를 호출하는 방식. 마켓플레이스 발견성을 원하는 사용자를
+   위한 보조 경로일 뿐, 핵심 기능은 CLI 단독으로 완결됨
 
 ### 배포 현황 (2026-07-04 실측)
 
@@ -267,7 +277,7 @@ grep -r "require.*accounts" src/display && echo "FAIL: 모듈 경계 위반" || 
 | GitHub Release 직접 다운로드 | ✅ 가능 | `github.com/sodam-ai/ClaudeTower/releases`, 최신 `v0.1.9` |
 | curl/PowerShell 원라이너 | ✅ 가능 | `main` 브랜치 개설(이전엔 브랜치 부재로 raw URL 404) + v0.1.9 릴리스. `irm .../main/install.ps1 \| iex`를 격리 환경에서 실행해 다운로드→설치→`--version` 응답까지 실측 |
 | `npm install -g` | ⏸️ 의도적 보류 | 프로젝트명("claudetower")이 아직 가제이고 상표 저촉 여부가 `01_PRD.md §7` 기준 [법무 검토 필요] 상태. npm 패키지명은 사실상 영구 점유라 이름 확정 전 발행 안 함 |
-| 마켓플레이스(Phase 3) | 미착수 | 원 계획대로 Phase 3까지 보류 |
+| 마켓플레이스(Phase 3) | 구조 완료·라이브 재검증 대기(2026-09-01, M65+M67) | 저장소 루트 `.claude-plugin/`+`commands/` — status·widgets·config 3개 슬래시 명령, `setup`은 의도적으로 제외(대화형이라 위험 검토 후 별도 착수). M65 최초 구현이 실사용자 라이브 테스트에서 실패해 M67로 경로 수정(자동 테스트 18개·구조 대조로 로컬 검증 완료) — 실제 `/plugin marketplace add` 재시도 결과는 아직 미확인, 사용자가 push 후 새 세션에서 재시도 예정 |
 | 기본 브랜치 | `main`(2026-07-04부터, 이전엔 `feat/phase1-mvp-skeleton`이 기본) |  |
 
 ---

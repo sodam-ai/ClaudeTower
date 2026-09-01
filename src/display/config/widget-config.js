@@ -17,7 +17,13 @@ const { isPartialIsolation, assertNotPartialIsolation } = require('./test-isolat
 // git은 2026-08-03 Phase 3 신규(.PRD/01_PRD.md §3 "Git/PR 위젯 + 캐싱", PR 상태는 제외).
 // location 바로 뒤에 둔 이유: 둘 다 "지금 어디서 작업 중인지"를 알려주는 같은 성격의
 // 위젯이라 나란히 있는 게 자연스럽다는 판단(다른 강한 근거는 없음, 명시적으로 밝혀둠).
-const ALL_WIDGET_TYPES = ['model', 'location', 'git', 'context', 'cost', 'rate_limit'];
+// active_account는 2026-08-31 신규(CHECKPOINT.md "다음 세션 작업 계획", .PRD/02_DATA_MODEL.md
+// ActiveAccountHandle) — Account 모듈이 활성 계정을 실제로 기록하기 시작한(M59 accounts
+// switch) 뒤에야 의미가 생기는 값이라 맨 뒤에 둔다. 렌더는 src/shared/active-account-handle/
+// read.js를 통해서만 이뤄지며(Account 미사용자에겐 항상 null=비표시), setup-wizard.js는
+// 이 항목을 대화형 질문 목록에서 의도적으로 제외한다(별도 opt-in 절차인 Account 모듈에 대해
+// Display 설치 시점에 묻지 않기 위함 — setup-wizard.js 주석 참고).
+const ALL_WIDGET_TYPES = ['model', 'location', 'git', 'context', 'cost', 'rate_limit', 'active_account'];
 
 function resolveWidgetConfigPath() {
   return (

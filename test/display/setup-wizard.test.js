@@ -63,33 +63,68 @@ async function withPlatform(value, fn) {
 // 어긋나는 결함이 있었다(재확인 중 직접 발견 — 겉보기엔 그대로 통과하지만 다른 이유로
 // 통과하고 있었음). 그래서 모든 답변 문자열을 6개 위젯 기준으로 다시 맞춘다.
 
-test('6개 질문에 y/y/y/y/n/y로 답하면 cost만 제외된 위젯 목록이 저장된다', async () => {
+// 2026-08-31: active_account 위젯 추가 후 답변 개수는 그대로 6개다(PROMPTED_WIDGET_TYPES가
+// ALL_WIDGET_TYPES에서 active_account만 뺀 목록이라 질문 순서·개수가 이전과 동일) — 이
+// 사실 자체가 "설치 질문에서 제외됐다"는 회귀 방지 검증이기도 하다(질문이 7개로 늘었다면
+// 아래 6개 답변 시퀀스로는 PATH 질문(win32 전용) 답변이 밀려 들어가 다른 테스트가 깨졌을 것).
+// 다만 result.enabled/written.enabled_widgets에는 물어보지 않았어도 active_account가
+// 항상 조용히 포함된다(아래 별도 전용 테스트 참고) — 그래서 기존 기대값 끝에 추가했다.
+test('6개 질문에 y/y/y/y/n/y로 답하면 cost만 제외되고 active_account는 조용히 포함된 위젯 목록이 저장된다', async () => {
   const { widgetConfigPath, settingsPath } = tempPaths();
   const rl = fakeInteractiveSession('y\ny\ny\ny\nn\ny\n'); // model/location/git/context/cost(n)/rate_limit
 
   const result = await runSetupWizard(rl, { widgetConfigPath, settingsPath, registerPath: fakeRegisterPath() });
 
-  assert.deepEqual(result.enabled, ['model', 'location', 'git', 'context', 'rate_limit']);
+  assert.deepEqual(result.enabled, ['model', 'location', 'git', 'context', 'rate_limit', 'active_account']);
   const written = JSON.parse(fs.readFileSync(widgetConfigPath, 'utf8'));
-  assert.deepEqual(written.enabled_widgets, ['model', 'location', 'git', 'context', 'rate_limit']);
+  assert.deepEqual(written.enabled_widgets, ['model', 'location', 'git', 'context', 'rate_limit', 'active_account']);
 });
 
-test('전부 n으로 답하면 최소 1개 보장을 위해 기본값(전체)으로 폴백한다', async () => {
+test('전부 n으로 답하면 최소 1개 보장을 위해 기본값(전체, active_account 포함)으로 폴백한다', async () => {
   const { widgetConfigPath, settingsPath } = tempPaths();
   const rl = fakeInteractiveSession('n\nn\nn\nn\nn\nn\n');
 
   const result = await runSetupWizard(rl, { widgetConfigPath, settingsPath, registerPath: fakeRegisterPath() });
 
-  assert.deepEqual(result.enabled, ['model', 'location', 'git', 'context', 'cost', 'rate_limit']);
+  assert.deepEqual(result.enabled, ['model', 'location', 'git', 'context', 'cost', 'rate_limit', 'active_account']);
 });
 
-test('엔터만 치면(빈 답변) 기본값 Y로 처리된다', async () => {
+test('엔터만 치면(빈 답변) 기본값 Y로 처리되고 active_account도 조용히 포함된다', async () => {
   const { widgetConfigPath, settingsPath } = tempPaths();
   const rl = fakeInteractiveSession('\n\n\n\n\n\n');
 
   const result = await runSetupWizard(rl, { widgetConfigPath, settingsPath, registerPath: fakeRegisterPath() });
 
-  assert.deepEqual(result.enabled, ['model', 'location', 'git', 'context', 'cost', 'rate_limit']);
+  assert.deepEqual(result.enabled, ['model', 'location', 'git', 'context', 'cost', 'rate_limit', 'active_account']);
+});
+
+// 2026-08-31 신설 — active_account 위젯 도입 시 내린 설계 결정(setup-wizard.js 상단
+// PROMPTED_WIDGET_TYPES 주석 참고)에 대한 전용 회귀 테스트.
+test('active_account는 대화형 질문으로 물어보지 않지만 항상 활성 목록에 조용히 포함된다', async () => {
+  const { widgetConfigPath, settingsPath } = tempPaths();
+  // 6개 답변만으로 완주 가능해야 한다 — active_account 질문이 끼어 있었다면 7번째
+  // 답변이 필요해 PATH 질문(non-win32에서는 아예 없음)과 답이 어긋났을 것.
+  const rl = fakeInteractiveSession('y\ny\ny\ny\ny\ny\n');
+
+  const result = await withPlatform('linux', () =>
+    runSetupWizard(rl, { widgetConfigPath, settingsPath, registerPath: fakeRegisterPath() })
+  );
+
+  assert.ok(result.enabled.includes('active_account'), 'active_account가 활성 목록에 포함돼야 한다');
+});
+
+test('"설정 완료" 로그에는 active_account(물어본 적 없는 항목)가 나타나지 않는다', async () => {
+  const { widgetConfigPath, settingsPath } = tempPaths();
+  const rl = fakeInteractiveSession('y\ny\ny\ny\ny\ny\n');
+  const logs = [];
+
+  await withPlatform('linux', () =>
+    runSetupWizard(rl, { widgetConfigPath, settingsPath, log: (msg) => logs.push(msg), registerPath: fakeRegisterPath() })
+  );
+
+  const summaryLine = logs.find((l) => l.includes('설정 완료'));
+  assert.ok(summaryLine, '"설정 완료" 로그 줄이 있어야 한다');
+  assert.doesNotMatch(summaryLine, /활성 계정/);
 });
 
 test('settings.json에 statusLine.command가 기록된다', async () => {
@@ -177,7 +212,7 @@ test('Windows가 아니면 PATH 등록 질문 자체를 하지 않는다(질문 
 
     const result = await runSetupWizard(rl, { widgetConfigPath, settingsPath, registerPath });
 
-    assert.deepEqual(result.enabled, ['model', 'location', 'git', 'context', 'cost', 'rate_limit']);
+    assert.deepEqual(result.enabled, ['model', 'location', 'git', 'context', 'cost', 'rate_limit', 'active_account']);
     assert.deepEqual(registerPath.calls(), []);
   });
 });

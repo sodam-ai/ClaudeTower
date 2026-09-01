@@ -45,7 +45,7 @@ Example:
 ```
 Sonnet 5  📁 my-project  🌿 main  컨텍스트 ██░░░ 45%  💰 $1.50  5시간 ████░ 78%·1:41  7일 ███░░ 71%·일06:00
 ```
-(The reset countdown is always shown alongside the percentage, regardless of usage level. If your terminal window is 120 columns or wider, the gauge bars automatically become more detailed — from 5 segments to 10 — with nothing to configure. The Git branch/changes item only appears automatically when the current folder is a git repository, and is hidden automatically otherwise. Conversely, if your screen is too narrow for every item to fit on one line, relatively lower-priority items [in this order, from the back: Git → rate limits → cost → context] are automatically dropped so the line never wraps and breaks the display — this also requires no configuration.)
+(The reset countdown is always shown alongside the percentage, regardless of usage level. If your terminal window is 120 columns or wider, the gauge bars automatically become more detailed — from 5 segments to 10 — with nothing to configure. The Git branch/changes item only appears automatically when the current folder is a git repository, and is hidden automatically otherwise. If you've actually turned on the "②" account auto-switching feature below and switched accounts at least once, an "Active account" item also appears — for the vast majority of users who only use ① (never turned the account feature on), it stays completely invisible. Conversely, if your screen is too narrow for every item to fit on one line, relatively lower-priority items [in this order, from the back: active account → Git → rate limits → cost → context] are automatically dropped so the line never wraps and breaks the display — this also requires no configuration.)
 
 ### Before you start
 
@@ -105,6 +105,7 @@ Sonnet 5  📁 my-project  🌿 main  컨텍스트 ██░░░ 45%  💰 $1.
 | `curl`/`PowerShell` one-liner (`install.sh`/`install.ps1`) | ✅ Works now (fixed 2026-07-04 — a `main` branch now exists) | No Node.js required, see commands below. **If a terminal feels unfamiliar, we recommend the direct-download method above instead** |
 | Build from source | ✅ Works now | For developers, requires Node.js 22+ — see "For developers" below |
 | `npm install -g` | ⏸️ Deliberately deferred | Trademark clearance for "ClaudeTower/claudetower" was reviewed and resolved on 2026-07-15 — we decided to keep the name, accepting a low-priority residual risk (`.PRD/01_PRD.md` §7). It's still not a fully, permanently final decision, though, so an npm package name — a resource that's effectively permanent once claimed — won't be published until the name is completely finalized |
+| Claude Code marketplace plugin | ✅ Works now (since 2026-09-01, **secondary channel**) | A **thin wrapper** — it does not install the CLI itself. Install the CLI with one of the methods above first, then add the plugin to get `/claudetower:status`, `/claudetower:widgets`, and `/claudetower:config` slash commands (interactive `setup` isn't a slash command yet — still run `claudetower setup` once in a terminal). See [`PLUGIN.md`](./PLUGIN.md) |
 
 macOS/Linux:
 ```bash
@@ -113,6 +114,12 @@ curl -fsSL https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.s
 Windows (PowerShell):
 ```powershell
 irm https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.ps1 | iex
+```
+
+Marketplace plugin (after installing the CLI):
+```
+/plugin marketplace add sodam-ai/ClaudeTower
+/plugin install claudetower@claudetower-marketplace
 ```
 
 ### Can I delete or move the installed file?
@@ -138,11 +145,11 @@ If you accidentally delete that fixed-location copy too and the statusline stops
 - `claudetower status` — check whether it's currently installed and which widgets are enabled
   ```
   Install status: installed (claudetower's statusline is registered with Claude Code)
-  Widgets shown: model, project location, git branch/changes, context usage, cost, rate limits (5h/7d)
+  Widgets shown: model, project location, git branch/changes, context usage, cost, rate limits (5h/7d), active account
   ```
 - `claudetower widgets` — check which widgets are currently on
 - `claudetower widgets off <widgets...>` / `claudetower widgets on <widgets...>` — turn only the named widgets on/off (everything else stays as-is — no need to re-answer every `setup` question). Widget names: `model`, `location`, `git`, `context`, `cost`, `rate_limit`
-- `claudetower config statusline-refresh <seconds>` — adjusts how often the statusline refreshes (default 3s; if you keep several sessions open at once, raising it to 5s or more reduces load on your computer further). This value is kept even if you run `setup` again. You can also just say "slow down the statusline refresh" in the Claude Code chat instead of using a terminal
+- `claudetower config statusline-refresh <seconds>` — adjusts how often the statusline refreshes (default 3s; <strong>the recommended value is 5s</strong> — measured runs show CPU load drops to roughly 7.6% at a 1s interval, about 2.5% at 3s, and about 1.5% at 5s. This saving multiplies with each extra session you keep open at once. The project's own recommended range is 2-5s). This value is kept even if you run `setup` again. You can also just say "slow down the statusline refresh" in the Claude Code chat instead of using a terminal
 - `claudetower config powerline <on|off>` — switches the separator between widgets from two spaces to Powerline-style arrows (just the divider glyphs, no color theme; off by default). If your terminal doesn't have a Nerd Font installed, the arrows may render as broken glyphs, so check after turning it on
 - `claudetower config padding <n>` — adjusts the official Claude Code statusLine's left/right padding (character count, default 0). Example: `claudetower config padding 2`
 - `claudetower uninstall` — safely removes only the statusline registration (leaves your other Claude Code settings untouched)
@@ -216,7 +223,7 @@ In plain terms: every time you interact with Claude Code, it briefly shares your
 
 Here's the actual sequence of what happens inside your computer to produce one line on screen (all of it happens locally, and it usually takes well under a second).
 
-1. While you're chatting with Claude Code, it automatically runs this program on a set interval (default 3 seconds, adjustable via `config statusline-refresh`).
+1. Claude Code runs this program immediately whenever something happens that could change what's on screen — for example, while you're chatting. On top of that, even while you're sitting idle, it also runs the program once every so often (default 3 seconds, adjustable via `config statusline-refresh`) so nothing goes stale — this interval is an <strong>idle-time backup timer</strong>, not "the only time it refreshes." Lowering it doesn't make the display more responsive, so we recommend leaving it at the recommended value (5s) from the command list above rather than lowering it.
 2. Claude Code sends this program a short block of text (JSON) describing "the current situation" — your working folder path, the model in use, context usage, cost, and rate limits.
 3. This program checks each enabled widget (model/location/git/context/cost/rate limits) one by one — any item with no value or nothing to show is silently skipped (for example, the Git item is skipped if the folder isn't a git repository).
 4. For the Git item, it asks the `git` program installed on your computer for the branch name and change count. If it's asked again within 5 seconds in the same session, it reuses the value it just checked instead of asking again (a small local cache to reduce load — see "Security & data flow" below).

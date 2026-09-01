@@ -90,7 +90,7 @@ Claude Code 상태표시줄(컨텍스트·비용·프로젝트 위치 표시)과
 | **계정별 세션(5h)·주간(7d) 사용량**(재확인, MVP로 재분류) | Account | `accounts` 기본 표시 — teamclaude의 `session (5h) quota`/`weekly (7d) quota` 용어 채택, 공식 API 값이라 추가 조회 불필요(2026-07-04 재확인: 이전엔 로컬 집계로 오버엔지니어링했으나 이미 있던 QuotaState 필드로 충분함을 확인) | P1 (MVP) | 간단 |
 | 과거 사용 이력 참고 리포트(격하) | Account | `accounts --history` — ccusage 벤치마킹, 로컬 집계 부가 기능 | P3 | 보통 |
 | **계정별 프로젝트 경로 표시**(신규) | Account | CLI 실행 시점 cwd를 즉시 사용 — Display 모듈을 거치지 않아 모듈 격리 원칙 유지(QuotaSwitch 02_DATA_MODEL.md 참고) | P2 | 간단 |
-| Git/PR 위젯 + 캐싱 | Display | 브랜치·PR 상태, session_id 캐싱 | P3 | 보통 |
+| Git/PR 위젯 + 캐싱 | Display | 브랜치·PR 상태, session_id 캐싱 — **2026-09-01 정정**: Git 부분(브랜치+staged/modified)은 2026-08-03 완료·검증됨, **PR 부분은 영구 제외**(`src/display/widgets/git.js` 헤더 주석 — gh CLI 등 새 외부 의존성 필요, Simplicity First 판단, 사용자 사전고지 후 결정). 현재 상태는 `03_PHASES.md` 참고 | P3 | 보통 |
 | Powerline 위젯 시스템 + 테마 | Display | 위젯 커스터마이징 | P3 | 복잡 |
 | TUI 대시보드·수동 전환·셸 wrapper | Account | teamclaude/claude-swap 벤치마킹 | P3 | 보통 |
 

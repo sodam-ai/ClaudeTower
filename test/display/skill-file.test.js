@@ -44,6 +44,19 @@ function withSkillsDirOverride(dir, fn) {
   }
 }
 
+// 2026-08-31: 2026-08-23 /doctor 진단으로 실사용 중 발견된 결함의 근본 수정에 대한
+// 회귀 테스트 — frontmatter에 name:이 없으면 Claude Code가 description/argument-hint/
+// allowed-tools를 전부 드롭해, 이 스킬이 조용히(에러 없이) 자연어 트리거를 못 받는
+// 상태가 된다. name:이 반드시 있어야 하고, 정확히 SKILL_NAME과 일치해야 하며,
+// frontmatter의 첫 줄(`---` 바로 다음)이어야 한다(순서가 파싱에 영향을 줄 가능성을
+// 배제하기 위해 위치까지 검증).
+test('buildSkillFileContent: frontmatter 첫 줄이 name: <SKILL_NAME>이다(2026-08-23 발견된 실사용 결함 회귀 방지)', () => {
+  const content = buildSkillFileContent('C:/Users/Someone/.claudetower/bin/claudetower.exe');
+  const lines = content.split('\n');
+  assert.equal(lines[0], '---');
+  assert.equal(lines[1], `name: ${SKILL_NAME}`);
+});
+
 test('buildSkillFileContent: allowed-tools가 정확한 exe 경로로만 좁혀져 있다(넓은 Bash 권한 금지)', () => {
   const content = buildSkillFileContent('C:/Users/Someone/.claudetower/bin/claudetower.exe');
   assert.match(content, /allowed-tools: Bash\("C:\/Users\/Someone\/\.claudetower\/bin\/claudetower\.exe" widgets \*\)/);
