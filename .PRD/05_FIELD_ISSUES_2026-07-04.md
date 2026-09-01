@@ -18,7 +18,7 @@
 | # | 이슈 | 심각도 | 상태 | 한 줄 |
 |---|------|--------|------|-------|
 | 1 | 설치 파일 잠금 경합 (self-collision) | **HIGH (P0)** | **2026-07-06 코드 수정 적용**(임시파일+원자적 교체+재시도), 로직 시뮬레이션 검증 완료 / 실사용 유세션 재현 검증은 아직 없음 | install.ps1이 실행 중인 exe를 직접 덮어써서, 자기 statusLine이 자기 설치를 막음 |
-| 2 | npm -g 깨진 shim 잔재 | MEDIUM (P2) | **2026-09-01(M80) 근본 수정**: install.ps1이 매 설치마다 댕글링 shim을 자동 정리(§2.5 참고), 수동 제거는 더 이상 필요 없음 | 폐기된 npm-g 방식의 shim 3개가 남아 bare `claudetower`가 MODULE_NOT_FOUND |
+| 2 | npm -g 깨진 shim 잔재 | MEDIUM (P2) | **2026-08-18(M34) 근본 수정**(2026-09-01 M81에서 이 표를 정확한 날짜·주체로 재정정): `claudetower setup`/`uninstall` 실행마다 댕글링 shim을 자동 정리(§2.5 참고), 수동 제거는 더 이상 필요 없음 | 폐기된 npm-g 방식의 shim 3개가 남아 bare `claudetower`가 MODULE_NOT_FOUND |
 | 3 | `.claudetower\bin` PATH 미등록 | MEDIUM (P2) | **동의 하 자동 등록 기능 자체는 이미 구현돼 있었음(이 문서가 갱신을 놓침) + 2026-09-01(M73) 그 기능의 방송 버그 수정, 마켓플레이스 명령 3개는 PATH 무관 폴백 추가로 실질 해소** | `claudetower setup`의 PATH 질문(Y/n)은 이미 있었으나 Windows 환경변수 변경 신호(WM_SETTINGCHANGE)를 안 보내 등록해도 새 창이 못 받던 버그가 있었음(§3 갱신 참고) |
 | 4 | `/claudetower-widgets` 슬래시 명령 미등록 | **HIGH (P1)** | **2026-07-06 근본원인 확정·수정·실사용 검증 완료** | ClaudeTower가 setup 때 심는 공식 스킬이, exe만 교체하는 업데이트로는 갱신되지 않아 낡은 위치·낡은 내용으로 남아있었음 |
 | 5 | statusLine 스폰 모델(1초·83MB) 비효율 | MEDIUM (설계) | 관찰됨 | 매초 83MB 프로세스 스폰 = 이슈#1의 근본 토양 + 성능 부담 |
@@ -118,16 +118,26 @@ because it is being used by another process.
 ### 2.4 이번 세션 조치 `[확인됨]`
 - shim 3개 수동 삭제(단일 파일 삭제로 가드 통과). 삭제 후 잔재 0 확인. `claudetower.exe`(절대경로) `--version` = `0.1.10` 정상.
 
-### 2.5 권고 수정 → **2026-09-01(M80) 적용 완료**
-- **installer가 stale npm shim을 탐지·정리**하도록 추가 완료: `install.ps1`이 매 설치
-  실행마다 `%APPDATA%\npm`에 `claudetower`/`.cmd`/`.ps1` 3개가 있으면서 백킹 모듈
-  (`node_modules\claudetower`)이 없는 "댕글링" 상태일 때만 자동 삭제. 정상적인 npm
-  설치가 실제로 존재하는 경우(백킹 모듈 있음)는 절대 건드리지 않도록 방어 로직 포함.
-  3가지 시나리오(댕글링 삭제/정상설치 보존/npm 미설치 no-op) PowerShell 시뮬레이션으로
-  직접 검증(install.ps1 자체는 Node 테스트 스위트 대상이 아니라 이 프로젝트 기존
-  관례대로 수동 시뮬레이션 검증). 상세는 `CHECKPOINT.md` M80 참고.
+### 2.5 권고 수정 → **2026-08-18(M34) 적용 완료** (2026-09-01 M81 정정: 날짜·주체 재확인)
+- **setup/uninstall이 stale npm shim을 탐지·정리**하도록 이미 M34(2026-08-18)에 구현
+  완료: `src/display/config/npm-shim-cleanup.js`(`cleanupStaleNpmShims()`)가
+  `claudetower setup`·`claudetower uninstall` 양쪽에 배선돼(`bin/claudetower.js`)
+  매 실행마다 자동 정리한다. npm 전역 prefix는 하드코딩하지 않고
+  `npm config get prefix`로 동적 해석(NVM·커스텀 prefix 대응), Windows는
+  `claudetower`/`.cmd`/`.ps1` 3종+백킹 모듈 부재 확인, POSIX는 끊어진 심볼릭 링크
+  감지까지 지원. 오삭제 방지를 위해 **파일 내용에 실제 패키지 참조가 있는지까지**
+  확인한 뒤에만 삭제(이름만 같은 무관 파일 보호). 전용 테스트
+  `test/display/npm-shim-cleanup.test.js` 존재, `CHECKPOINT.md` M34 참고.
 - npm-g가 공식 폐기라면 릴리스 노트/README에 **정리 원라이너** 제공 — 위 자동 정리로
   대체됐으므로 별도 원라이너는 불필요 판단.
+
+> **2026-09-01(M81) 정정 경위**: 이 표·섹션이 M34 완료 후에도 갱신되지 않아 "여전히
+> 미해결"로 보였고, 그걸 근거로 M80에서 `install.ps1`에 동일 기능을 하드코딩 경로
+> 기반으로 중복 재구현했다(내용 검증 단계 없음 — M34보다 방어 수준이 낮음). 이후
+> 보안 재점검 과정에서 `bin/claudetower.js`를 직접 열어보고서야 M34의 존재를 발견해
+> `install.ps1`의 중복 추가를 되돌렸다(`CHECKPOINT.md` M81). 이 문서 표만 보고
+> "미해결"로 단정한 게 원인 — 앞으로는 이 문서 상태와 CHECKPOINT.md·실제 코드를
+> 함께 대조하는 걸 습관화해야 한다.
 
 ---
 
@@ -259,7 +269,7 @@ because it is being used by another process.
 | ~~P0~~ ✅ | install.ps1/install.sh 임시파일→원자적 교체+재시도 — **2026-07-06 적용·시뮬레이션 검증 완료**(버전드 파일명/런처, 실사용 유세션 재현은 후속 과제로 보류) | ClaudeTower 레포 | 코드 |
 | P0 | 업데이트 전 "창 닫기" 안내 명시(임시 완화) — 근본 수정이 적용됐으므로 필요성 재검토 | install 출력·README | 문서 |
 | ~~P1~~ ✅ | `/claudetower-widgets` 근본원인 확정 — **2026-07-06**: setup 재실행 없이는 스킬이 갱신 안 되는 구조적 결함으로 확정, `cleanupStaleSkillDirs()` 추가로 수정. **사용자가 실제 재시작 후 `/claudetower-widgets`·자연어 양쪽 모두 정상 동작 확인함.** 잔여 리스크(스킬 파일 원인불명 반복 소실)는 §4 갱신 참고 | CC 설정 / ClaudeTower 제품결정 | 조사→코드 |
-| ~~P2~~ ✅ | installer가 stale npm shim 정리 — **2026-09-01(M80) 적용 완료**(install.ps1 댕글링 shim 자동 삭제, §2.5 참고) | ClaudeTower 레포 | 코드 |
+| ~~P2~~ ✅ | setup/uninstall이 stale npm shim 정리 — **2026-08-18(M34) 적용 완료**(npm-shim-cleanup.js, §2.5 참고), 2026-09-01 M81에서 표 주체·날짜 정정 | ClaudeTower 레포 | 코드 |
 | ~~P2~~ ✅ | install/`setup`이 `.claudetower\bin` PATH 자동 등록(동의 하) — **이미 구현돼 있었음(문서 갱신 누락) + 2026-09-01(M73) 방송 버그 수정, 마켓플레이스 명령 PATH 무관 폴백 추가** | ClaudeTower 레포 | 코드 |
 | P3 | statusLine 스폰 모델 재평가(refreshInterval↑ / 데몬 / 바이너리 경량화) | ClaudeTower 설계 | 설계 |
 | — | (이관) guard.mjs `.claudetower` 오탐 조사 | SoDamHarness | 교차 |

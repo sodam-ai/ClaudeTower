@@ -84,35 +84,12 @@ if (-not $nativeReplaced) {
     exit 1
 }
 
-# .PRD/05_FIELD_ISSUES_2026-07-04.md 이슈#2(P2): 이 프로젝트는 npm에 정식 배포한 적이
-# 없다(01_PRD.md §7 — 이름 확정 전까지 의도적으로 npm 미발행). 그런데도 로컬 개발 중
-# `npm link`/`npm install -g .`로 남은 shim(claudetower/.cmd/.ps1)이 npm 전역 bin
-# 경로(대개 이 설치 경로보다 PATH 우선순위가 앞섬)에 남아있으면, 그 백킹 모듈이 이미
-# 지워진 뒤에도 bare `claudetower` 명령이 방금 설치한 exe 대신 그 댕글링 shim으로
-# 해석되어 MODULE_NOT_FOUND로 깨진다(실사용 재현·수동 정리로 확인된 실제 결함).
-# 백킹 모듈(node_modules\claudetower)이 이미 없는 "댕글링" 상태일 때만 지운다 — 혹시
-# 정상적인 npm 설치가 실제로 존재하는 경우는 건드리지 않는다. 정리 실패는 설치 자체를
-# 막지 않도록 무시한다(부가 정리이지 핵심 기능이 아님, broadcastEnvironmentChange와
-# 동일한 관례).
-try {
-    if ($env:APPDATA) {
-        $NpmGlobalDir = Join-Path $env:APPDATA 'npm'
-        $NpmBackingModule = Join-Path $NpmGlobalDir 'node_modules\claudetower'
-        if ((Test-Path $NpmGlobalDir) -and -not (Test-Path $NpmBackingModule)) {
-            $staleShims = @('claudetower', 'claudetower.cmd', 'claudetower.ps1') |
-                ForEach-Object { Join-Path $NpmGlobalDir $_ } |
-                Where-Object { Test-Path $_ -PathType Leaf }
-            if ($staleShims.Count -gt 0) {
-                Write-Host "낡은 npm shim 잔재를 정리합니다: $($staleShims -join ', ')"
-                foreach ($shim in $staleShims) {
-                    Remove-Item -LiteralPath $shim -Force -ErrorAction SilentlyContinue
-                }
-            }
-        }
-    }
-} catch {
-    # 부가 정리 실패는 무시한다.
-}
+# 2026-09-01(M81) 정정: 낡은 npm shim 자동 정리는 이미 M34(2026-08-18)에서
+# src/display/config/npm-shim-cleanup.js로 구현되어 `claudetower setup`/`uninstall`
+# 명령에 배선되어 있었다(bin/claudetower.js, 내용 검증+동적 npm prefix 해석 포함,
+# 이 스크립트의 하드코딩된 %APPDATA%\npm 추정보다 더 안전함). 여기 install.ps1에
+# 중복으로 추가했던 버전(M80)은 근거 확인 부족으로 인한 실수라 되돌린다 — 설치
+# 직후 안내하는 'claudetower setup' 실행 시 정리된다. 상세는 CHECKPOINT.md M81 참고.
 
 Write-Host ""
 Write-Host "설치 완료: $TargetPath"
