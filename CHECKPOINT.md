@@ -2695,3 +2695,51 @@ docs-and-fixes/2026-07-06` 명령과 병합 방법을 채팅으로 안내만 했
 
 - 상태: **원인 확정, 해결책은 사용자의 PR 병합 대기** — 코드·문서 변경 없음(순수 진단),
   `CHECKPOINT.md`(이 항목)만 갱신. 로컬 커밋만(push는 사용자가 이후 결정).
+
+---
+
+## M71: 2026-09-01 — main 병합 직후 CI 재확인에서 Windows 전용 CRLF 결함 발견·수정
+
+**배경**: 사용자가 M70 안내대로 `!git push` → `!gh pr create --fill` → GitHub 웹에서 직접
+Merge 클릭까지 전부 실행해 **PR#29가 실제로 main에 병합됐다**(`gh pr view 29` → `state:
+MERGED`, `main`에 `.claude-plugin/marketplace.json`·`plugin.json` 실존 확인). 마켓플레이스
+재시도를 안내하기 전, "예상되는 문제를 먼저 검토"하는 차원에서 병합 커밋의 CI 결과를
+선제적으로 확인했다.
+
+**발견(추측 아니라 CI 로그 직접 확인)**: 병합 커밋(`f47f4f2`)의 4개 빌드 job 중
+`build (windows-latest, claudetower-win-x64.exe, ...)`만 **실패**(Linux·macOS·
+`verify-display-standalone`은 전부 success). 실패 로그:
+```
+commands/widgets.md의 첫 줄이 frontmatter 시작(---)이 아닙니다
+'---\r' !== '---'
+```
+`test/plugin/plugin-manifest.test.js`가 통과 18개 중 실패 3개로 보고(로그에 표시된 건
+widgets.md 1건이지만 status.md·config.md도 같은 부류로 추정).
+
+**원인(직접 확인)**: 이 저장소에 `.gitattributes`가 아예 없었다(`cat .gitattributes` →
+파일 없음). 로컬 이 컴퓨터의 `commands/*.md` 원본은 전부 LF만 있는 정상 상태로 확인됐으나,
+Windows CI 러너가 저장소를 새로 체크아웃할 때 git 기본 동작으로 LF→CRLF 자동 변환이
+일어나 frontmatter 첫 줄이 `---\r`이 되면서 엄격 일치 검사(`===`)가 깨진 것.
+
+**왜 즉시 조치했나(단순 CI 빨간불이 아니라 실사용 리스크)**: 이 개발 PC도 Windows다.
+`/plugin marketplace add`가 내부적으로 GitHub Actions와 유사한 방식(git clone 등)으로
+저장소를 내려받는다면, 사용자가 재시도할 때 **실제 슬래시 명령 인식이 CI와 똑같은 이유로
+실패할 가능성**이 있었다(100% 확정은 아니고 가능성으로 판단 — Claude Code의 정확한 내려받기
+메커니즘은 확인 안 됨). 재시도 전에 선제 수정하는 게 "실패를 또 겪게 하는 것"보다 낫다고
+판단해 사용자에게 제안 → 승인받고 진행.
+
+**수정**: `.gitattributes`(신규, 저장소 루트) — `commands/*.md`·`.claude-plugin/*.json`·
+`PLUGIN.md` 3개 패턴만 `text eol=lf`로 명시 고정. 저장소 전체가 아니라 이번에 실제로
+깨졌던 마켓플레이스 관련 파일로만 범위를 좁혔다(과잉 대응 방지, Minimal Impact).
+
+**검증**: 관련 파일 6개(`commands/status.md`·`widgets.md`·`config.md`,
+`.claude-plugin/plugin.json`·`marketplace.json`, `PLUGIN.md`) 전부 로컬에서 CRLF 없음
+재확인(이미 정상이었으므로 blob 자체를 다시 손댈 필요 없음, `.gitattributes`는 향후
+체크아웃 시점의 변환만 막는 용도). `npm run test:plugin` 18/18 재통과(무변경 확인).
+
+**남은 위험**: `.gitattributes`가 Windows 체크아웃 시 LF를 실제로 보존하는지는 **다음 CI
+실행 결과로만 최종 확정**된다 — 로컬 검증만으로는 "설정이 맞아 보인다"까지만 확인 가능.
+`/plugin marketplace add`가 정말 git clone 경로로 동작하는지도 여전히 미확인(가능성 판단).
+
+- 상태: **완료(로컬 검증), CI 재확인 대기** — `.gitattributes`(신규), `CHECKPOINT.md`(이 항목).
+  로컬 커밋만(push는 사용자가 이후 결정).
