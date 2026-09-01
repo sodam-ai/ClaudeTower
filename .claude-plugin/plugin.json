@@ -1,6 +1,6 @@
 {
   "name": "claudetower",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "ClaudeTower 상태표시줄 CLI를 Claude Code 채팅에서 슬래시 명령으로 바로 쓸 수 있게 해주는 얇은 래퍼입니다. 핵심 로직은 전부 독립 CLI(claudetower)에 있고, 이 플러그인은 그것을 호출만 합니다 — 먼저 CLI를 설치해야 합니다(README 설치 안내 참고).",
   "author": {
     "name": "SoDam AI Studio"

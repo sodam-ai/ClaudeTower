@@ -2818,3 +2818,57 @@ M35~M71의 모든 신규 기능(Account CLI 전체, 마켓플레이스 등)이 �
 - 상태: **완료(소스+로컬 설치 둘 다 실제 검증됨)** — 소스는 로컬 커밋만(push는 사용자가
   이후 결정), 로컬 설치 갱신은 이 컴퓨터에만 적용된 별도 조치(git과 무관, 되돌릴 필요
   없으면 그대로 둠).
+
+## M73: 2026-09-01 — PATH 등록이 "성공"해도 실제로는 안 먹히던 버그 근본 수정 (WM_SETTINGCHANGE 방송 누락)
+
+**배경**: M72 직후 사용자가 이 컴퓨터에 PATH 등록(`claudetower setup` → PATH 질문에 "예")을
+직접 요청해 대행 실행했고, `등록했습니다`(성공 로그) + 레지스트리 직접 조회로도 실제
+기록된 것까지 확인했다. 그런데 사용자가 안내대로 **클로드코드 창을 전부 완전히 닫고
+새로 켠 뒤** `/claudetower:widgets`를 실행해도 "PATH에 claudetower가 없다"는 **똑같은
+오류**가 재현됐다 — 안내를 잘못 따른 게 아니라 코드 자체의 결함이었다.
+
+**원인(코드로 확인)**: `src/display/config/path-registration.js`의 `addDirToUserPath`가
+`reg.exe add`로 `HKCU\Environment` 레지스트리 값은 정상적으로 갱신했지만, Windows에
+"환경변수가 바뀌었다"고 알리는 `WM_SETTINGCHANGE` 브로드캐스트를 전혀 보내지 않았다.
+이 신호가 없으면 이미 떠 있는 프로세스(특히 바탕화면 아이콘 실행의 부모인 `explorer.exe`)는
+로그오프(로그아웃/재부팅) 전까지 자신의 환경변수 캐시를 갱신하지 않는다 — 그래서 그 이후
+`explorer.exe`가 새로 띄우는 어떤 창도 계속 옛 PATH를 물려받는다. `setx.exe`나 제어판의
+"환경 변수" 대화상자는 내부적으로 이 신호를 함께 보내기 때문에 문제없이 작동하는 것과
+대조된다.
+
+**수정**: `broadcastEnvironmentChange()` 함수를 새로 추가 — PowerShell을 통해
+`user32.dll`의 `SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, ..., "Environment", ...)`를
+호출해 이 신호를 실제로 방송한다. `addDirToUserPath`가 레지스트리를 **실제로 변경했을 때만**
+(이미 등록돼 있던 경우는 제외) 이 함수를 호출하도록 연결했다. 방송 자체가 실패해도(예:
+`powershell.exe`를 못 찾는 극히 드문 환경) 레지스트리 값은 이미 정상 기록된 뒤이므로
+`try/catch`로 조용히 무시하고 함수 전체를 실패로 처리하지 않는다(부가 신호일 뿐, 핵심
+동작이 아님).
+
+**이 컴퓨터의 당장 막힌 상황에 대한 즉시 조치**: 코드 수정과 별개로, 같은
+`SendMessageTimeout` 호출을 PowerShell로 **지금 이 자리에서 직접 실행**해 반환값(성공=1)까지
+확인했다 — 사용자가 재부팅 없이 바로 다음에 새로 여는 클로드코드 창부터 정상 작동하도록
+즉시 조치. 이어서 `npm run build`(→ v0.5.1)로 수정된 코드를 반영한 exe를 다시 빌드하고,
+`claudetower setup`을 기존과 동일한 위젯 설정 답변으로 재실행해 고정 설치 위치
+(`~/.claudetower/bin/claudetower.exe`)에 재설치했다(PATH는 이미 등록돼 있어 이번 실행에서는
+"할 일 없음"으로 스킵됐고, 방송도 그 분기에서는 다시 호출되지 않음 — 앞서 수동으로 이미
+1회 보냈으므로 문제 없음). 버전은 `package.json`·`.claude-plugin/plugin.json`·
+`.claude-plugin/marketplace.json` 세 곳 모두 0.5.0→0.5.1로 동기화(plugin/marketplace 버전
+불일치를 잡는 기존 회귀 테스트가 그대로 통과함으로써 자동 검증됨).
+
+**검증(전부 직접 실행)**: `path-registration.test.js`에 신규 테스트 5개 추가(실제
+변경이 있을 때만 방송 호출 / 이미 등록돼 있으면 방송 안 함 / 방송 자체가 실패해도
+조용히 무시 / Windows가 아니면 아무것도 안 함 등) — **12/12 통과**. `npm run
+verify`(lint+lint:boundary+test:display+test:plugin) — Display **237/237**(233+신규5),
+plugin **18/18**, 전부 무결함. 방송 함수의 Win32 API 호출 자체도 PowerShell로 별도 실행해
+반환값(성공)까지 실측 확인(단위 테스트는 실제 `powershell.exe`를 호출하지 않고 모킹하므로,
+API 호출 성공 여부는 이렇게 별도로 실측했다).
+
+**남은 위험**: 없음(신규). 이번 수정은 macOS/Linux 분기(`process.platform !== 'win32'`에서
+즉시 반환)에는 영향 없음 — Windows 전용 기능의 Windows 전용 결함이었다. `broadcastEnvironmentChange`가
+내부적으로 `powershell.exe`를 새로 실행하는 비용이 추가되지만, PATH를 실제로 처음 등록하는
+"딱 1회"에만 발생하고(멱등 설계 유지) 이후 매 `setup` 재실행에서는 스킵된다.
+
+- 상태: **완료(소스 수정+로컬 즉시 조치+재빌드 재설치 전부 실제 검증됨)** — 커밋은
+  로컬까지 완료 예정, push는 M70~M72와 마찬가지로 사용자가 이후 결정. 이 컴퓨터가
+  실제로 이 문제를 겪고 있었으므로, 사용자의 다음 라이브 재시도 결과로 최종 확인이
+  남아 있다(가이드 갱신·안내 완료).

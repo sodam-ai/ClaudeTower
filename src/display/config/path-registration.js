@@ -44,6 +44,38 @@ function isDirInPath(dir, pathValue) {
     .includes(target);
 }
 
+// reg.exe로 레지스트리 값을 바꾸는 것만으로는 부족하다 — Windows는 이미 떠 있는
+// 프로그램(특히 탐색기 explorer.exe, 모든 바탕화면 아이콘 실행의 부모 프로세스)에게
+// "환경변수가 바뀌었다"고 알려주는 WM_SETTINGCHANGE 브로드캐스트를 받기 전까지는
+// 자기 환경변수 캐시를 갱신하지 않는다. 이 신호 없이는 로그오프(로그아웃/재부팅) 전까지
+// 새로 여는 창도 전부 옛 PATH를 물려받는다 — `setx.exe`·Windows 제어판의 "환경 변수"
+// 대화상자가 내부적으로 이 신호를 보내는 것과 동일한 이유다. 2026-09-01 실사용 중 발견:
+// PATH 등록(reg.exe add)까지는 성공했는데도 클로드코드 창을 완전히 재시작해도
+// "PATH에 claudetower가 없다" 오류가 계속 재현됐다 — 이 신호 누락이 근본 원인이었다.
+// Node에는 Win32 SendMessageTimeout을 직접 호출할 내장 API가 없어 PowerShell을 통해
+// 호출한다. 실패해도(예: powershell.exe 자체가 없는 극히 드문 환경) 레지스트리 값은
+// 이미 정상 기록된 뒤이므로 다음 로그오프 때 결국 반영된다 — 그래서 여기서 던지지 않고
+// 조용히 무시한다(치명적이지 않은 부가 신호일 뿐).
+function broadcastEnvironmentChange(execFileImpl = execFileSync) {
+  if (process.platform !== 'win32') {
+    return;
+  }
+  const script = [
+    'Add-Type -Namespace Win32 -Name NativeMethods -MemberDefinition ',
+    "'[DllImport(\"user32.dll\", SetLastError = true, CharSet = CharSet.Auto)] ",
+    'public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, UIntPtr wParam, ',
+    "string lParam, uint fuFlags, uint uTimeout, out UIntPtr lpdwResult);'; ",
+    '$out = [UIntPtr]::Zero; ',
+    '[Win32.NativeMethods]::SendMessageTimeout([IntPtr]0xffff, 0x1a, [UIntPtr]::Zero, ',
+    "'Environment', 0x2, 5000, [ref]$out) | Out-Null",
+  ].join('');
+  try {
+    execFileImpl('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { encoding: 'utf8' });
+  } catch {
+    // 위 주석 참고 — 부가 신호 실패는 무시한다.
+  }
+}
+
 // 이미 들어있으면 아무것도 안 하고 즉시 반환(멱등) — setup을 여러 번 실행해도
 // PATH에 같은 경로가 중복으로 쌓이는 일이 없어야 한다.
 function addDirToUserPath(dir, execFileImpl = execFileSync) {
@@ -58,7 +90,8 @@ function addDirToUserPath(dir, execFileImpl = execFileSync) {
   execFileImpl('reg.exe', ['add', REGISTRY_KEY, '/v', 'Path', '/t', 'REG_EXPAND_SZ', '/d', next, '/f'], {
     encoding: 'utf8',
   });
+  broadcastEnvironmentChange(execFileImpl);
   return { changed: true, previous: current, next };
 }
 
-module.exports = { readUserPath, isDirInPath, addDirToUserPath };
+module.exports = { readUserPath, isDirInPath, addDirToUserPath, broadcastEnvironmentChange };
