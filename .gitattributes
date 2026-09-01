@@ -1,0 +1,10 @@
+# 마켓플레이스 래퍼 파일은 항상 LF로 고정한다.
+# Windows에서 이 저장소를 새로 내려받을 때(GitHub Actions windows-latest, 또는
+# Claude Code가 /plugin marketplace add로 직접 clone하는 경우) git의 기본 동작이
+# LF를 CRLF로 자동 변환할 수 있다. commands/*.md의 frontmatter 첫 줄("---")이
+# "---\r"로 바뀌면 test/plugin/plugin-manifest.test.js의 정확 일치 검사와
+# Claude Code 자신의 슬래시 명령 인식이 둘 다 깨질 수 있어(2026-09-01, M71,
+# CHECKPOINT.md 참고), 이 파일들만 명시적으로 eol=lf로 고정한다.
+commands/*.md text eol=lf
+.claude-plugin/*.json text eol=lf
+PLUGIN.md text eol=lf
