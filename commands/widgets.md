@@ -2,7 +2,7 @@
 name: claudetower:widgets
 description: ClaudeTower 상태표시줄 위젯(사용 모델·프로젝트 위치·Git·컨텍스트·비용·사용률·활성 계정)을 켜고 끕니다.
 argument-hint: [on|off <항목...>]
-allowed-tools: Bash(claudetower widgets:*), Bash($HOME/.claudetower/bin/claudetower widgets:*), Bash($HOME/.claudetower/bin/claudetower.exe widgets:*)
+allowed-tools: Bash(claudetower widgets:*), Bash($HOME/.claudetower/bin/claudetower widgets:*), Bash($HOME/.claudetower/bin/claudetower.exe widgets:*), AskUserQuestion
 ---
 
 # /claudetower:widgets
