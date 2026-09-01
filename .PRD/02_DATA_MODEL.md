@@ -67,8 +67,11 @@
 
 - **`Widget.type`의 `pr` 값은 코드에 없다** — `src/display/config/widget-config.js:17`
   주석이 "git은 2026-08-03 Phase 3 신규(.PRD/01_PRD.md §3 'Git/PR 위젯 + 캐싱', PR 상태는
-  제외)"라고 명시. 실제 `ALL_WIDGET_TYPES`는 `['model','location','git','context','cost',
-  'rate_limit']` 6종뿐이다.
+  제외)"라고 명시. **2026-09-01 정정**: 실제 `ALL_WIDGET_TYPES`(`widget-config.js:26`)는
+  `['model','location','git','context','cost','rate_limit','active_account']` 7종이다
+  — "6종뿐"이었던 이전 수치는 이 문단 바로 아래(2026-08-31, M62)에서 추가된
+  `active_account`를 반영하지 못한 채 남아있던 오기. `pr` 값이 없다는 서술 자체는
+  여전히 정확하다.
 - ~~`active_account` 위젯은 아직 미구현이다~~ → **2026-08-31 구현 완료**: `src/display/widgets/
   active-account.js`(신규) — `src/shared/active-account-handle/read.js`를 통해서만
   `ActiveAccountHandle`을 읽는다(모듈 경계 규칙 그대로 준수, Account 엔티티 직접 참조 없음).
