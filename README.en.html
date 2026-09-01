@@ -249,8 +249,8 @@ Widgets shown: model, project location, git branch/changes, context usage, cost,
 <h3 id="turn-widgets-onoff-right-from-the-claude-code-chat--no-terminal-needed">Turn widgets on/off right from the Claude Code chat — no terminal needed</h3>
 <p>Add this plugin from the Claude Code marketplace (see the "Claude Code marketplace plugin" row in "Install methods" above), and you can adjust things directly from the chat, no terminal needed.</p>
 <ul>
-<li><code>/claudetower:widgets</code> — check which widgets are currently on</li>
-<li><code>/claudetower:widgets off &lt;widgets...&gt;</code> / <code>/claudetower:widgets on &lt;widgets...&gt;</code> — turn only the named widgets on/off</li>
+<li><code>/claudetower:widgets</code> — <strong>run it with no arguments</strong> and it shows the current state first, then a selection menu for turning widgets on/off. Pick whichever items you want and their state flips (on→off, off→on) — pick nothing and it ends with "no changes." No need to type widget names, so you can adjust things with just clicks in the chat</li>
+<li><code>/claudetower:widgets off &lt;widgets...&gt;</code> / <code>/claudetower:widgets on &lt;widgets...&gt;</code> — type the names directly to turn only those widgets on/off in one shot (skips the menu)</li>
 <li><code>/claudetower:status</code> — check install status</li>
 <li><code>/claudetower:config</code> — adjust the refresh interval and more</li>
 </ul>

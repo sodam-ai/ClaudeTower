@@ -160,8 +160,8 @@ If you accidentally delete that fixed-location copy too and the statusline stops
 ### Turn widgets on/off right from the Claude Code chat — no terminal needed
 
 Add this plugin from the Claude Code marketplace (see the "Claude Code marketplace plugin" row in "Install methods" above), and you can adjust things directly from the chat, no terminal needed.
-- `/claudetower:widgets` — check which widgets are currently on
-- `/claudetower:widgets off <widgets...>` / `/claudetower:widgets on <widgets...>` — turn only the named widgets on/off
+- `/claudetower:widgets` — **run it with no arguments** and it shows the current state first, then a selection menu for turning widgets on/off. Pick whichever items you want and their state flips (on→off, off→on) — pick nothing and it ends with "no changes." No need to type widget names, so you can adjust things with just clicks in the chat
+- `/claudetower:widgets off <widgets...>` / `/claudetower:widgets on <widgets...>` — type the names directly to turn only those widgets on/off in one shot (skips the menu)
 - `/claudetower:status` — check install status
 - `/claudetower:config` — adjust the refresh interval and more
 

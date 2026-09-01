@@ -160,8 +160,8 @@ irm https://raw.githubusercontent.com/sodam-ai/ClaudeTower/main/install.ps1 | ie
 ### 터미널 없이, 클로드코드 채팅창에서 바로 켜고 끄기
 
 클로드코드 마켓플레이스로 이 플러그인을 추가하면(위 "설치 방법" 표의 "Claude Code 마켓플레이스 플러그인" 참고), 터미널 없이 채팅창에서 바로 조절할 수 있습니다.
-- `/claudetower:widgets` — 지금 켜져 있는 항목만 확인
-- `/claudetower:widgets off <항목...>` / `/claudetower:widgets on <항목...>` — 지정한 항목만 켜고 끄기
+- `/claudetower:widgets` — **인자 없이 실행하면** 지금 상태를 먼저 보여준 뒤, 켜고 끌 항목을 고르는 선택 메뉴가 화면에 뜹니다. 원하는 항목을 클릭(선택)하면 그 항목의 현재 상태가 반전되고(켜짐→꺼짐, 꺼짐→켜짐), 아무것도 선택하지 않고 넘어가면 "변경 없음"으로 그대로 끝납니다. 항목 이름을 직접 타이핑할 필요 없이 채팅창 안에서 클릭만으로 조절할 수 있습니다
+- `/claudetower:widgets off <항목...>` / `/claudetower:widgets on <항목...>` — 항목 이름을 직접 입력해 지정한 항목만 한 번에 켜고 끄기(메뉴 없이 바로 처리하고 싶을 때)
 - `/claudetower:status` — 설치 상태 확인
 - `/claudetower:config` — 갱신 속도 등 조절
 
