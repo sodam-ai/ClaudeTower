@@ -13,3 +13,10 @@ Thumbs.db
 .plugin-config/
 .todos-report.md/
 .complexity-log.md
+
+# 서드파티 에이전트 하네스 세션 부산물 (M40부터 매 세션 관찰, 프로젝트 소스 아님)
+.active-agents
+.active-agents.lock
+.active-agents.tmp
+.failure-tracker.jsonl
+.pair-programming-session.md
