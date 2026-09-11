@@ -3177,3 +3177,65 @@ end-to-end로 재현한 것은 아니다 — 격리된 시뮬레이션 검증까
 `src/` 실제 코드 확인을 함께 거쳐야 한다.
 
 - 상태: **완료 — 회귀 없음 확인**.
+
+## M83: 2026-09-11 — GitHub 릴리스 최신화 (`v0.5.0` → `v0.5.3`, M51~M82 반영)
+
+**배경**: PRD·CHECKPOINT 전수 재독 후 다음 작업 방향을 강력 추천하는 요청에 따라, 실사용자가
+실제로 다운로드하는 배포 채널의 공백을 최우선으로 골랐다. 실측 결과 `gh release list`의
+최신 릴리스는 여전히 `v0.5.0`(2026-08-20, M50 시점)이었고, `package.json`/`.claude-plugin/
+plugin.json`/`marketplace.json`은 이미 `0.5.3`으로 3차례(M76·M77 마켓플레이스 캐시 무효화용)
+올라 있었으나 **GitHub Release로는 한 번도 발행되지 않았다** — CLI 실행파일 자체는 여전히
+M50 시점 코드를 배포 중이었다(M56 Origin/Referer 방어, M59 `accounts switch`, M62 활성계정
+위젯, M73 PATH 방송 버그 수정 등 실사용자 영향 있는 변경 다수 미배포).
+
+**착수 전 확인(추측 없이 실측)**:
+- `git rev-list --left-right --count origin/main...HEAD` → `1 0` — 이 브랜치(`docs-and-fixes/
+  2026-07-06`)와 `origin/main`이 사실상 동일(PR#37로 M78~M82까지 이미 병합 완료 확인).
+- `npm run verify`(lint+lint:boundary+test:display 237+test:plugin 18) 재실행, `npm run
+  test:accounts`(309) 재실행 — 전부 그린 확인 후 착수.
+- `node bin/claudetower.js accounts status` 실행 — Account 모듈이 여전히 기본 비활성화 상태임을
+  재확인(릴리스가 이 상태를 바꾸지 않는다는 것의 사전 증거).
+
+**만든 것(코드 변경 없음, 순수 배포 작업)**:
+- CI(`main` HEAD `746014d`)의 "Build SEA binaries" 실행 이력을 조회한 결과, HEAD 커밋 자신의
+  실행(`33510361730`)은 macOS 러너 가용성 문제(`The job was not acquired by Runner of type
+  hosted`)로 그 잡만 실패 — Windows/Linux/`verify-display-standalone`은 전부 success. macOS를
+  포함해 5개 아티팩트가 전부 성공한 가장 최근 실행(`93ed14c`, `33499411855`)을 찾아, 두 커밋
+  사이 `git diff --stat`로 **`src/`·`bin/`·`package.json`이 완전히 동일**함을 직접 확인한 뒤(차이는
+  `.PRD/`·`README*`·`CHECKPOINT.md`·`install.ps1` 문서/스크립트뿐, 컴파일 대상 아님) 그 실행의
+  아티팩트를 채택 — 실행 중이던 macOS 잡을 재시도해 새로 기다리는 대신, 이미 검증된 동일 소스
+  빌드를 재사용해 시간·불확실성을 줄였다.
+- `gh run download`로 5개 아티팩트(exe 3종+`keyring-native.node` 2종) 다운로드, v0.5.0 릴리스의
+  실제 자산 크기와 대조해 손상 없음을 1차 확인. Windows exe는 로컬에서 직접 실행해
+  `--version`(`0.5.3`)·`--help` 정상 출력까지 확인(3개 플랫폼 중 로컬에서 실행 가능한 유일한
+  플랫폼).
+- `git tag -a v0.5.3 746014d...` + push, `gh release create v0.5.3`로 5개 자산(설치 스크립트가
+  기대하는 정확한 파일명 그대로: `claudetower-win-x64.exe`·`claudetower-macos-arm64`·
+  `claudetower-linux-x64`·`keyring-native-win-x64.node`·`keyring-native-macos-arm64.node`) 첨부 +
+  M51~M82 요약 릴리스 노트(v0.5.0 노트와 동일 형식 — 새 기능/보안 강화/알려진 제약 구분) 작성,
+  `--latest` 지정.
+
+**실제 배포 경로 end-to-end 검증(자기선언 아님, 외부에서 직접 확인)**:
+- `curl -sI -L https://github.com/sodam-ai/ClaudeTower/releases/latest/download/
+  claudetower-win-x64.exe` — 302 리다이렉트 체인을 따라가 최종 200 OK, `Content-Length:
+  87282688`이 로컬에 다운로드해둔 파일 크기와 정확히 일치. `install.ps1`이 실제로 사용하는 것과
+  동일한 `releases/latest/download/...` URL 패턴으로 검증했다(설치 스크립트를 직접 실행하지는
+  않음 — 이 컴퓨터에 이미 실사용 중인 ClaudeTower가 떠 있어, 실제 재설치는 05_FIELD_ISSUES
+  이슈#1(설치 파일 잠금 경합)의 실사용 재현 위험을 안게 되므로 사용자 요청 없이 임의 실행하지
+  않았다).
+- `gh release list` — `v0.5.3`이 `Latest`, `v0.5.0`은 그 표시가 사라짐을 확인.
+
+**의도적으로 하지 않은 것**:
+- 이 컴퓨터의 실제 설치본 재설치 — 위 이유로 하지 않음. 다음에 사용자가 직접 업데이트를
+  원하면 `irm .../install.ps1 | iex`(또는 `claudetower setup` 재실행)로 반영된다.
+- macOS/Linux 자산 실기 실행 검증 — 이 PC가 Windows뿐이라 여전히 불가능(v0.5.0 이후 변함없는
+  한계, CI 스모크 테스트로만 확인됨).
+- 코드·문서 변경 — 이번 작업은 순수 배포이며 `src/`·`.PRD/`를 전혀 건드리지 않았다.
+
+**남은 위험**: 낮음. macOS 아티팩트가 HEAD 커밋 자신의 CI 실행이 아니라 소스가 동일한 이전
+커밋(`93ed14c`)의 실행에서 온 것이라는 점만 정직하게 남긴다 — `src`/`bin`/`package.json` 동일성은
+diff로 직접 확인했으므로 기능적 위험은 없다고 판단하나, "같은 커밋에서 직접 뽑은 아티팩트"보다는
+한 단계 간접적인 증거라는 걸 명시한다.
+
+- 상태: **완료** — GitHub Release `v0.5.3` 발행·`latest` 전환·다운로드 경로 실측 확인. 저장소
+  코드 변경 없음, 이 CHECKPOINT.md 갱신만 커밋 대상.
