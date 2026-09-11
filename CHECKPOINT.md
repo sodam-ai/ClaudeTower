@@ -3270,3 +3270,62 @@ diff로 직접 확인했으므로 기능적 위험은 없다고 판단하나, "�
 그걸 만드는 다른 도구의 동작에는 전혀 영향을 주지 않는다.
 
 - 상태: **완료** — `.gitignore` 변경 1건, 코드 영향 없음.
+
+## M85: 2026-09-11 — `add-api-key`의 라벨 중복 검사가 락 밖에 있던 M55 잔여 위험 해소
+
+**배경**: PRD·CHECKPOINT 재확인 중 "다음 작업" 후보를 다시 전부 분류했다. 🛑 실거래 배선과
+`diagnose-quota`는 여전히 사용자의 실제 API 키가 있어야만 진행 가능해 AI가 대신 실행할 수
+없고(직접 `accounts list` 재실행으로 재확인 — 등록된 계정 0개), Phase 3의 장식적 항목
+(`subagentStatusLine` 등)은 본래 목적(계정 자동전환)과 무관한 새 범위라 임의 착수를
+보류했다. 대신 이미 **M55가 알려진 위험으로 명시적으로 남겨둔 항목** — `add-api-key`의
+라벨 중복 검사(`existingLabels`)가 락 밖(사전 스냅샷 읽기)에서만 이뤄져, 두 프로세스가
+동시에 같은 라벨로 등록하면 레지스트리에 같은 라벨의 계정이 중복 생성될 수 있는 결함 —
+을 해소했다. 이건 새 기능이 아니라 Account 모듈(본래 목적의 핵심 구성요소) 자체의 데이터
+정합성 완결이라 범위 이탈이 아니라고 판단했다.
+
+**만든 것**:
+- [x] `src/accounts/accounts/accounts-registry.js`에 `LabelTakenError`·
+  `appendAccountIfLabelAvailable(account, filePath)` 신설 — `rename-account-command.js`가
+  이미 쓰는 원칙(검사 자체를 `updateFn` 안, 즉 락을 쥔 시점의 진짜 최신 목록 기준으로
+  옮긴다)을 add에도 동일하게 적용. 라벨이 이미 있으면 `updateFn`이 입력과 같은 배열(참조
+  동일)을 반환해 `updateRegistry`가 불필요한 파일 쓰기를 생략하도록 기존 최적화를 그대로
+  활용.
+- [x] `src/accounts/accounts/add-api-key-command.js` — `appendAccount` 호출을
+  `appendAccountIfLabelAvailable`로 교체. 기존 롤백 로직(레지스트리 쓰기 실패 시 방금
+  저장한 credential-store 시크릿을 삭제)이 `LabelTakenError`에도 그대로 적용되며(변경
+  없이 재사용), 로그 메시지만 "동시 등록 경합"과 "일반 저장 오류"를 구분하도록 다듬음.
+- [x] 기존 사전 검사(`buildAddApiKeyRequest`의 `existingLabels`, 락 밖)는 그대로 유지 —
+  일반적인 순차 시도에서 credential-store를 건드리기 전에 즉시 거부하는 빠른 경로로서
+  여전히 유효(기존 "라벨 중복 시 credential-store를 호출하지 않고 거부한다" 테스트가
+  회귀 없이 통과함으로 확인). 새 함수는 그 사전 검사를 대체하는 게 아니라, 사전 검사를
+  둘 다 통과해버리는 좁은 경합 창(레이스)에 대한 마지막 안전망.
+
+**검증(전부 직접 실행)**:
+- 신규 단위 테스트 2건(정상 등록, 중복 시 `LabelTakenError`) + **실제 프로세스 10개로
+  동시에 같은 라벨을 등록 시도하는 경합 테스트 1건**(M47·M52·기존 accounts-registry
+  동시쓰기 테스트와 동일한 방식 — 스레드가 아니라 진짜 OS 프로세스) — 정확히 1개만
+  성공(exit 0), 나머지 9개는 전부 `LabelTakenError`로 실패(exit 9), 최종 레지스트리에
+  중복 없이 1건만 남음, 임시/락 파일 잔재 0건까지 확인.
+- `test/accounts/accounts-registry.test.js` 격리 실행 13/13(신규 3건 포함).
+- `test/accounts/add-api-key-command.test.js` 격리 실행 6/6 — **실제 Windows Credential
+  Manager까지 왕복하는 통합 테스트 포함**, 회귀 없음(기존 라벨 중복 거부·롤백 테스트도
+  그대로 통과).
+- `npm run verify`(lint+lint:boundary+test:display+test:plugin) 전부 통과.
+- `npm run test:accounts` **312/312**(309+신규 3건) 통과.
+
+**의도적으로 하지 않은 것**: `add` 흐름 전체(요청 조립+credential-store 저장까지)를 락
+안으로 옮기는 더 큰 재구조화는 하지 않았다 — M55가 이미 "과설계 위험, 범위 벗어남"으로
+판단한 그대로 유지. 이번 수정은 레지스트리 쓰기 시점의 라벨 재검증만 좁게 추가했다
+(Minimal Impact). 실거래 배선·`diagnose-quota`는 이번에도 손대지 않음.
+
+**남은 위험**: 낮음. `setSecret`(credential-store)은 여전히 락 밖에서 먼저 실행된다 —
+경합에서 진 프로세스는 credential-store에 잠깐 썼다가 롤백(삭제)하는 왕복이 발생하지만,
+이건 기존에도 "레지스트리 쓰기 실패 시 롤백" 경로가 이미 하던 동작과 동일한 성격이라 새
+위험이 아니다(테스트로 이미 검증돼온 정상 동작 범주). 극히 드문 경우(둘 다 아주 근접한
+타이밍에 같은 라벨로 등록) 사용자에게 "라벨이 이미 사용 중"이라는 다소 혼란스러운 메시지가
+뜰 수 있으나(자기 자신의 다른 터미널과 경합했을 가능성이 높음), 데이터 정합성(중복 계정
+방지)이 사용자 경험보다 우선한다는 이 프로젝트의 기존 판단(M52·M55)과 일관된다.
+
+- 상태: **완료** — `src/accounts/accounts/accounts-registry.js`·`add-api-key-command.js`
+  (수정), `test/accounts/accounts-registry.test.js`(수정, 신규 3건), `CHECKPOINT.md`
+  변경. 회귀 없음.

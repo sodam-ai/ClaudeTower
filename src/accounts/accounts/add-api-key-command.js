@@ -15,7 +15,7 @@ const { buildAddApiKeyRequest } = require('./add-api-key-request');
 const { createCredentialRef } = require('../credential-store/credential-ref');
 const { setSecret, deleteSecret } = require('../credential-store');
 const { readActivationState } = require('../module-activation-state-store');
-const { existingLabels, appendAccount } = require('./accounts-registry');
+const { existingLabels, appendAccountIfLabelAvailable, LabelTakenError } = require('./accounts-registry');
 
 function backendForPlatform() {
   if (process.platform === 'win32') return 'windows_dpapi';
@@ -63,11 +63,17 @@ function runAddApiKeyCommand(
   setSecret(credentialRef, secretToStore);
 
   try {
-    appendAccount(account, registryPath);
+    appendAccountIfLabelAvailable(account, registryPath);
   } catch (registryErr) {
     try {
       deleteSecret(credentialRef);
-      log(`계정 등록 실패(목록 저장 오류로 방금 저장한 키를 롤백했습니다): ${registryErr.message}`);
+      if (registryErr instanceof LabelTakenError) {
+        // 사전 검사(existingLabels, 락 밖)를 통과했더라도 락을 쥔 시점에 다시 보니
+        // 그 사이 다른 프로세스가 같은 라벨을 먼저 등록한 경우 — 동시 등록 경합.
+        log(`계정 등록 실패: ${registryErr.message} (방금 저장한 키는 롤백했습니다.)`);
+      } else {
+        log(`계정 등록 실패(목록 저장 오류로 방금 저장한 키를 롤백했습니다): ${registryErr.message}`);
+      }
     } catch (rollbackErr) {
       log(
         `심각: 자격증명은 저장됐지만 목록 등록에 실패했고 자동 롤백도 실패했습니다. ` +
