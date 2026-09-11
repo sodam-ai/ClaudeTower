@@ -197,6 +197,29 @@ function appendAccount(account, filePath) {
   return updateRegistry((current) => [...current, account], filePath);
 }
 
+// 2026-09-11(M55가 이미 알려진 위험으로 남겨둔 항목 해소) — add-api-key-command.js의
+// 사전 라벨검사(existingLabels)는 락 밖에서 읽은 스냅샷 기준이라, 두 프로세스가 동시에
+// 같은 라벨로 등록을 시도하면 둘 다 그 사전검사를 통과해버릴 수 있다(레지스트리에 같은
+// 라벨의 계정이 중복 생성됨). 이 함수는 rename-account-command.js가 이미 쓰는 것과
+// 동일한 원칙 — "검사 자체를 updateFn 안(=락을 쥔 시점의 진짜 최신 목록 기준)으로
+// 옮긴다" — 을 add에도 적용해, 두 번째로 도착한 프로세스만 확실하게 실패하게 한다.
+class LabelTakenError extends Error {}
+
+function appendAccountIfLabelAvailable(account, filePath) {
+  let labelTaken = false;
+  const result = updateRegistry((current) => {
+    if (current.some((a) => a.label === account.label)) {
+      labelTaken = true;
+      return current; // 참조 동일 반환 → updateRegistry가 불필요한 쓰기를 생략
+    }
+    return [...current, account];
+  }, filePath);
+  if (labelTaken) {
+    throw new LabelTakenError(`라벨 "${account.label}"은(는) 이미 사용 중입니다.`);
+  }
+  return result;
+}
+
 // `claudetower account-purge`용 — 목록 전체를 통째로 교체한다. 자격증명(credential-store)
 // 삭제가 계정별로 부분 실패할 수 있으므로(accounts-purge-command.js 참고), 호출부가
 // "삭제 성공한 것만 뺀 나머지"를 여기 넘겨 실패분은 목록에 그대로 남긴다 — 자격증명은
@@ -210,4 +233,13 @@ function writeRegistry(accounts, filePath) {
   return updateRegistry(() => accounts, filePath);
 }
 
-module.exports = { resolveRegistryPath, readRegistry, existingLabels, appendAccount, writeRegistry, updateRegistry };
+module.exports = {
+  resolveRegistryPath,
+  readRegistry,
+  existingLabels,
+  appendAccount,
+  appendAccountIfLabelAvailable,
+  LabelTakenError,
+  writeRegistry,
+  updateRegistry,
+};
