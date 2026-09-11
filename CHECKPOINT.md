@@ -3329,3 +3329,125 @@ diff로 직접 확인했으므로 기능적 위험은 없다고 판단하나, "�
 - 상태: **완료** — `src/accounts/accounts/accounts-registry.js`·`add-api-key-command.js`
   (수정), `test/accounts/accounts-registry.test.js`(수정, 신규 3건), `CHECKPOINT.md`
   변경. 회귀 없음.
+
+---
+
+## 다음 세션 작업 계획: `diagnose-quota` 실행 → 🛑 실거래 배선 결정 (또는 대안 경로) (2026-09-12 작성)
+
+> **주의**: 이 절은 M-번호를 붙이지 않는다(이 문서 최상단 원칙 — "완료 항목은 실제로 실행해
+> 확인한 것만 done으로 표기", M60~M62 사이 절과 동일한 관례). 아래 내용이 실제로 실행·검증된
+> 뒤에야 그 시점의 다음 M번호를 받는다.
+
+### 지금 이 순간의 정확한 상태(전부 직접 재확인, 이 절 작성 직전)
+
+- HEAD `071557b`(로컬)이 `origin/main` `75aea6c`(M85, PR#39 병합)로 스쿼시 반영 완료 —
+  `git status` clean, 동시 세션 없음(`git fetch` 재확인).
+- `node bin/claudetower.js accounts list` → **등록된 계정 0개**. `accounts status` →
+  Account 모듈 **비활성화**(기본값). 이 컴퓨터에서 `diagnose-quota`가 실행된 적이 아직
+  없다(따라서 quota 헤더 파서의 실측 검증도 아직 없다).
+- `npm run verify`(lint+lint:boundary+test:display 237+test:plugin 18) 245+18,
+  `npm run test:accounts` **312/312** — 전부 그린. 이 숫자가 다음 세션의 회귀 비교
+  기준선이다.
+- GitHub Release 최신판은 `v0.5.3`(2026-09-11, M83). 마켓플레이스 플러그인도 동일
+  버전으로 정상 작동 확인됨(M77 라이브 검증).
+
+### 왜 이 경로가 다음 순서인가 (추측 없이, 반복 재확인된 결론)
+
+이 세션 안에서 서로 다른 각도로 **세 차례** 재확인했다 — (1) PRD 9개 문서 대 실제
+코드/CHECKPOINT 대조, (2) `accounts status`/`accounts list` 실측, (3) `subagentStatusLine`을
+공식문서(`code.claude.com/docs/en/statusline`)로 직접 확인 — 그 결과 Phase 2의 실체 있는
+잔여 항목은 전부 **하나의 분기점**에 모인다: `diagnose-quota` 실행 → 그 결과를 근거로
+🛑 실거래 배선 여부 결정. 이 분기점 앞에서 AI가 자체적으로 더 진행할 수 있는 항목은
+없다(실비용·실계정이 필요한 사용자 전용 행동).
+
+### 경로 A — `diagnose-quota` 실행 후 배선 진행 (본래 목적에 닿는 길)
+
+**A-1단계(사용자 전용, AI 대행 불가)**:
+```
+claudetower accounts enable
+claudetower accounts add --api-key <라벨> <실제 Anthropic API 키>
+claudetower accounts diagnose-quota <라벨>
+```
+- **위험 고지(사전 검토)**: `diagnose-quota`는 실제 `api.anthropic.com`에 `max_tokens:1`
+  최소 요청 1건을 보낸다 — 극히 작지만 **실비용이 발생**한다(`consent-text.js`가 이미
+  고지). credential-store는 격리 경로를 지원하지 않아(M35 설계, 항상 실제 OS 키체인 사용)
+  이 단계는 **이 컴퓨터의 진짜 Windows Credential Manager**에 흔적을 남긴다 — 정리하려면
+  `claudetower accounts remove <라벨>` 또는 `account-purge`를 사용할 것.
+- **완료 기준**: 헤더 6개(`anthropic-ratelimit-tokens/requests-limit/remaining/reset`)가
+  `.PRD/07_OAUTH_FLOW_SPEC.md §5-4`가 문서화한 필드명과 실제로 일치하는지 CLI 출력으로
+  직접 확인. **불일치 시** `src/accounts/quota/api-key-quota-reading.js`의 파서를 실측값
+  기준으로 정정하는 게 이 경로의 새로운 최우선 작업이 된다(추측 아니라 실측 먼저).
+
+**A-2단계(사용자의 별도 명시 승인 필요 — 원칙 승인과 다름, M45 참고)**: A-1이 필드명 일치를
+확인하면, 다음 질문이 사용자에게 명시적으로 던져져야 한다 — *"지금 실거래 배선을 켜도
+됩니까?"* 이 질문에 대한 답이 없으면 AI는 절대 다음으로 넘어가지 않는다
+(`test/accounts/live-wiring-gate.test.js`가 기계적으로도 차단).
+
+**A-2 승인 시 구현 계획(순서 고정, 지금 미리 준비해둠 — 새로 설계할 것 없음)**:
+1. `bin/claudetower.js`에 `run` 서브커맨드 신설 — teamclaude `eval $(env) claude` 패턴대로,
+   프록시를 먼저 기동한 뒤 Claude Code를 자식 프로세스로 실행(`ANTHROPIC_BASE_URL`을 자식
+   프로세스 시작 전에 이미 설정).
+2. `active-account-provider.js`의 `getApiKey`/`onUpstreamHeaders`(M46, M51에서 quota 연결
+   결함까지 수정 완료)를 `request-forwarder.js`의 `createRequestForwarder`(M44)에 주입.
+3. 그 결과를 `startProxyServer`(M25)에 연결.
+4. `test/accounts/live-wiring-gate.test.js`를 그 테스트 자신이 이미 문서화해둔 방식대로
+   의도적으로 수정(우회가 아니라 이 테스트가 요구하는 정식 해제 절차).
+5. **실제 API 키 계정 2개 이상**으로 E2E 검증: 전환 발생 → `RotationEvent`(reason:
+   `quota_threshold`/`http_429_failover`) 기록 확인 → `active_account` 위젯(M62)이
+   실시간으로 바뀌는지 statusline으로 직접 확인.
+6. README.md/README.en.md(+html 2종, M61/M63 pandoc 파이프라인 재사용)에 "자동전환이
+   실제로 켜졌다"는 사실과 갱신된 위험 고지 반영 — 지금까지는 "구현됐지만 안 켜짐"으로
+   서술돼 있어 이 시점부터 사실과 어긋난다.
+7. 버전 상향(현재 0.5.3 → 다음 마이너/패치, `package.json`+`plugin.json`+
+   `marketplace.json` 3곳 동기화 — M76이 이미 겪은 캐시 무효화 함정 재확인할 것) + 새
+   GitHub Release(M83과 동일 절차: CI 아티팩트 5종 확보 → 태그 → `gh release create`).
+8. `.PRD/01_PRD.md §5`·`03_PHASES.md` Phase 2 체크리스트의 마지막 두 미완료 항목([ ])을
+   완료로 정정.
+
+**A 경로의 예상 위험(사전 검토, 착수 전 반드시 재확인)**:
+- **동시 세션 충돌**: 이 저장소는 여러 세션이 조율 없이 동시에 작업해온 전례가 매우 많다
+  (M44~M61 구간 전체에서 반복 관찰). 배선처럼 리스크가 가장 큰 작업을 시작하기 직전에는
+  반드시 `git fetch`+`git log`로 다른 세션이 이미 진행 중인지 재확인할 것 — 특히
+  `bin/claudetower.js`·`live-wiring-gate.test.js`가 동시에 건드려지고 있는지.
+- **credential-store 격리 부재**: 배선 E2E 테스트는 실제 OS 키체인을 쓸 수밖에 없다 —
+  테스트 계정 라벨은 `claudetower-test-*` 접두어로 통일하고, 끝나면 `findCredentials
+  ('claudetower')`(M48이 `cmdkey`보다 신뢰도 높다고 확인한 API)로 잔재 0건까지 재확인할 것.
+- **macOS/Linux 미검증**: 배선 코드 자체는 크로스플랫폼이지만, 이 PC가 Windows뿐이라 실제
+  왕복은 Windows에서만 확인 가능 — "3플랫폼 모두 확인됨"이라고 과대 고지하지 말 것.
+- **롤백 준비**: 배선 직후 문제가 발견되면 `live-wiring-gate.test.js`를 원상복구(재추가)하고
+  `bin/claudetower.js`의 `run` 서브커맨드를 되돌리는 것으로 즉시 안전지대로 복귀 가능하게,
+  이 되돌리기 자체를 별도 커밋으로 준비해둘 것(구현과 같은 PR에 묶지 않는 것을 권장).
+
+### 경로 B — 사용자가 A를 원치 않을 때의 대안: `subagentStatusLine`(Display 전용, 새 범위)
+
+공식 문서(`code.claude.com/docs/en/statusline` §"Subagent status lines")로 이미 실체를
+확인해뒀다 — 다음 세션이 다시 조사할 필요 없이 아래 요약만으로 설계 착수 가능:
+
+- `settings.json`에 `subagentStatusLine: { type: "command", command: "<경로>" }` 추가(메인
+  `statusLine`과 별개 필드, 동일한 trust/`disableAllHooks`/`allowManagedHooksOnly` 게이트
+  적용).
+- **리프레시 주기마다 서브에이전트 전체 목록을 한 번에** stdin JSON으로 받는다(1개씩 아님):
+  base hook fields + `columns`(가용 폭) + `tasks[]`. 각 task: `id`/`name`/`type`/`status`/
+  `description`/`label`/`startTime`/`model`/`effort`/`contextWindowSize`/`tokenCount`/
+  `tokenSamples`/`cwd`. `model`/`contextWindowSize`는 Claude Code v2.1.205+ 필요, 모델
+  미확정 task는 생략될 수 있음.
+- 출력은 **행 단위 NDJSON**: `{"id": "<task id>", "content": "<행 내용>"}` 한 줄씩 —
+  ANSI 색상·OSC 8 하이퍼링크 허용. `id`를 생략하면 기본 렌더링 유지, `content`를 빈
+  문자열로 주면 그 행을 숨김.
+- **기존 `src/display/widgets/*.js`(단일 문자열 조합) 아키텍처와 출력 프로토콜이 다르다** —
+  새 렌더링 계층(예: `src/display/subagent-statusline.js`)이 필요하고, 위젯 재사용은
+  "퍼센트 계산 로직"처럼 부분적으로만 가능하다(`contextWindowSize`+`tokenCount`로 per-row
+  퍼센트 계산 등). 착수 전 `settings.json`에 실제로 필드를 추가해 샘플 stdin을 1회 실측
+  캡처해볼 것(추측으로 스키마를 단정하지 말 것 — 안티패턴#1).
+- 이 경로는 ToS·게이트와 완전히 무관해 승인 즉시 AI가 독립 착수 가능하나, 본래 목적(계정
+  자동전환)과는 무관한 Phase 3 P3 항목이라는 점을 다시 한번 명시한다 — 사용자가 A보다
+  이쪽을 먼저 원한다는 명시적 의사표시가 있을 때만 착수할 것.
+
+### 완료 기준 (done-when, 실측 확인 후에만 체크)
+
+- [ ] `diagnose-quota` 실행 결과와 파서 필드명 일치 확인(또는 불일치 시 파서 정정)
+- [ ] 🛑 배선 여부에 대한 사용자의 별도 명시 답변 확보(A-2 질문)
+- [ ] (배선 승인 시) 위 8단계 전부 실행 + E2E 실사용 검증 + README 동기화 + 새 릴리스
+- [ ] (배선 미승인 또는 B 선택 시) `subagentStatusLine` 실측 스키마 캡처 → 구현 → 테스트 →
+      문서화
+- [ ] 어느 경로든 완료 후 `.PRD/03_PHASES.md` Phase 로드맵 요약표 정정
