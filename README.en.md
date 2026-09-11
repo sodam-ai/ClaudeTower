@@ -30,6 +30,7 @@ A statusline CLI for Claude Code. Written so that anyone can follow it from star
   - [Architecture](#architecture-in-plain-terms)
 - [② Account switching (experimental, disabled by default)](#②-account-switching-experimental-disabled-by-default)
 - [Version history summary](#version-history-summary)
+- [Operational notes](#operational-notes-good-to-know-during-everyday-use)
 - [Troubleshooting](#troubleshooting)
 - [FAQ](#faq)
 - [Legal, copyright, license & commercial use](#legal-copyright-license--commercial-use)
@@ -402,6 +403,14 @@ Added gauge-bar visuals alongside percentage numbers for easier reading.
 
 Initial release. Shows location, context, cost, and rate limits; `setup` installation wizard.
 </details>
+
+## Operational notes (good to know during everyday use)
+
+- **When updating**: While reinstalling via the one-liner (`install.ps1`/`install.sh`), we recommend closing any open Claude Code windows if you can — if the statusline keeps the executable in use, the install can occasionally fail to complete in one shot (an automatic retry usually resolves it; if it keeps failing, close Claude Code briefly and try again).
+- **When using multiple computers**: An API key you register via the account-switching (②) feature is stored **only in that computer's own OS credential vault** — it doesn't follow you to another computer automatically. You'll need to run `accounts add` again on each computer.
+- **When keeping several terminal windows open at once**: Account operations (register/delete/switch) are protected internally with file locking, so data never gets corrupted — but if two windows attempt the exact same operation at nearly the same instant, one of them may get a rejection message (this is expected behavior; just try again).
+- **About cost**: This program itself is free and never sends any data externally. The "cost ($)" figure shown on screen, and the tiny real cost incurred when you run `accounts diagnose-quota`, are both **costs from the Claude service you're already using** — this program never charges you separately.
+- **When removing everything**: `claudetower uninstall` only safely removes the statusline registration. To also fully remove account data (②), run `claudetower account-purge` (`[y/N]` confirmation required) first — skipping this order isn't dangerous, but account data may be left behind in your OS credential vault.
 
 ## Troubleshooting
 

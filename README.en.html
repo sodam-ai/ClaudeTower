@@ -76,6 +76,7 @@
 </ul></li>
 <li><a href="#②-account-switching-experimental-disabled-by-default">② Account switching (experimental, disabled by default)</a></li>
 <li><a href="#version-history-summary">Version history summary</a></li>
+<li><a href="#operational-notes-good-to-know-during-everyday-use">Operational notes</a></li>
 <li><a href="#troubleshooting">Troubleshooting</a></li>
 <li><a href="#faq">FAQ</a></li>
 <li><a href="#legal-copyright-license--commercial-use">Legal, copyright, license &amp; commercial use</a></li>
@@ -548,6 +549,14 @@ Widgets shown: model, project location, git branch/changes, context usage, cost,
 <p>Initial release. Shows location, context, cost, and rate limits; <code>setup</code> installation wizard.</p>
 </details>
 
+<h2 id="operational-notes-good-to-know-during-everyday-use">Operational notes (good to know during everyday use)</h2>
+<ul>
+<li><strong>When updating</strong>: While reinstalling via the one-liner (<code>install.ps1</code>/<code>install.sh</code>), we recommend closing any open Claude Code windows if you can — if the statusline keeps the executable in use, the install can occasionally fail to complete in one shot (an automatic retry usually resolves it; if it keeps failing, close Claude Code briefly and try again).</li>
+<li><strong>When using multiple computers</strong>: An API key you register via the account-switching (②) feature is stored <strong>only in that computer's own OS credential vault</strong> — it doesn't follow you to another computer automatically. You'll need to run <code>accounts add</code> again on each computer.</li>
+<li><strong>When keeping several terminal windows open at once</strong>: Account operations (register/delete/switch) are protected internally with file locking, so data never gets corrupted — but if two windows attempt the exact same operation at nearly the same instant, one of them may get a rejection message (this is expected behavior; just try again).</li>
+<li><strong>About cost</strong>: This program itself is free and never sends any data externally. The "cost ($)" figure shown on screen, and the tiny real cost incurred when you run <code>accounts diagnose-quota</code>, are both <strong>costs from the Claude service you're already using</strong> — this program never charges you separately.</li>
+<li><strong>When removing everything</strong>: <code>claudetower uninstall</code> only safely removes the statusline registration. To also fully remove account data (②), run <code>claudetower account-purge</code> (<code>[y/N]</code> confirmation required) first — skipping this order isn't dangerous, but account data may be left behind in your OS credential vault.</li>
+</ul>
 <h2 id="troubleshooting">Troubleshooting</h2>
 <table>
 <thead>
